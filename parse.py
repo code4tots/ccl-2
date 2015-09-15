@@ -195,6 +195,7 @@ def Parse(string, filename):
     bases = []
     declarations = []
     methods = []
+    Consume(':')
     while At('Name'):
       bases.append(GetToken().value)
     EatStatementDelimiters()
