@@ -182,6 +182,7 @@ def Parse(string, filename):
   def ParseModule():
     EatStatementDelimiters()
     clss = [ParseClass()]
+    EatStatementDelimiters()
     while not At('End'):
       clss.append(ParseClass())
       EatStatementDelimiters()
