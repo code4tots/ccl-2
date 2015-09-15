@@ -39,6 +39,8 @@ class Node(object):
 def Diff(left, right):
   if type(left) != type(right):
     return 'Left side is %s while right side is %s' % (type(left), type(right))
+  elif isinstance(left, str):
+    return 'Left side is %s while right side is %s' % (left, right)
   elif isinstance(left, Node):
     return left.Diff(right)
   elif isinstance(left, list):
@@ -266,6 +268,7 @@ def Parse(string, filename):
       other = None
       EatStatementDelimiters()
       if Consume('else'):
+        EatStatementDelimiters()
         other = ParseStatement()
       elif Peek(-1).type in (';', 'Newline'): # TODO: Find more elegant solution.
         i[0] -= 1
@@ -516,6 +519,110 @@ diff = module.Diff(Module(None, [
         While(None, VariableLookup(None, 'true'), StatementBlock(None, [
           Break(None),
         ])),
+        Return(None,
+          MethodCall(None,
+            VariableLookup(None, 'a'),
+            'Add',
+            [VariableLookup(None, 'b')],
+          )
+        ),
+      ])),
+    ]),
+]))
+
+if diff:
+  assert False, diff
+
+module = Parse(r"""
+
+class Main
+
+  var x
+  var y : Int
+
+  method Main()
+    var z : Float
+
+  method Add(a : Int, b : Int) : Int
+    if true
+      a.Print()
+    return a.Add(b)
+
+""", '<test>')
+
+diff = module.Diff(Module(None, [
+  Class(None, 'Main', [],
+    [
+      Declaration(None, 'x', None),
+      Declaration(None, 'y', 'Int'),
+    ],
+    [
+      Method(None, 'Main', [], None, StatementBlock(None,
+        [
+          Declaration(None, 'z', 'Float'),
+        ])
+      ),
+      Method(None, 'Add', [('a', 'Int'), ('b', 'Int')], 'Int', StatementBlock(None, [
+        If(None, VariableLookup(None, 'true'),
+          StatementBlock(None, [
+            MethodCall(None, VariableLookup(None, 'a'), 'Print', []),
+          ]),
+          None
+        ),
+        Return(None,
+          MethodCall(None,
+            VariableLookup(None, 'a'),
+            'Add',
+            [VariableLookup(None, 'b')],
+          )
+        ),
+      ])),
+    ]),
+]))
+
+if diff:
+  assert False, diff
+
+module = Parse(r"""
+
+class Main
+
+  var x
+  var y : Int
+
+  method Main()
+    var z : Float
+
+  method Add(a : Int, b : Int) : Int
+    if true
+      a.Print()
+    else
+      b.Print()
+    return a.Add(b)
+
+""", '<test>')
+
+diff = module.Diff(Module(None, [
+  Class(None, 'Main', [],
+    [
+      Declaration(None, 'x', None),
+      Declaration(None, 'y', 'Int'),
+    ],
+    [
+      Method(None, 'Main', [], None, StatementBlock(None,
+        [
+          Declaration(None, 'z', 'Float'),
+        ])
+      ),
+      Method(None, 'Add', [('a', 'Int'), ('b', 'Int')], 'Int', StatementBlock(None, [
+        If(None, VariableLookup(None, 'true'),
+          StatementBlock(None, [
+            MethodCall(None, VariableLookup(None, 'a'), 'Print', []),
+          ]),
+          StatementBlock(None, [
+            MethodCall(None, VariableLookup(None, 'b'), 'Print', []),
+          ]),
+        ),
         Return(None,
           MethodCall(None,
             VariableLookup(None, 'a'),
