@@ -1,49 +1,44 @@
-Grammatical constructs:
+Classes required of target language
 
-  Module
-    sequence of classes
+  Object
+    Equal(Object) : Bool
+    ToString() : String
+    Inspect() : String
 
-  Class
-    sequence of bases, declarations and methods
+  Nil
+    Equal(Object) : Bool
+    ToString() : String
+    Inspect() : String
 
-  Declaration
-    variable name and optionally type name
-
-  Method
-    method signature and block of statements
-
-  Statement
-    Declaration|Expression|While|Break|If|Pass|Return
-
-  Expression
-    VariableLookup|GetAttribute|MethodCall|Assignment|SetAttribute|Number|String
+  Bool
+    Equal(Object) : Bool
+    ToString() : String
+    Inspect() : String
 
   Number
+    Equal(Object) : Bool
+    ToString() : String
+    Inspect() : String
+    Add(String)
 
   String
+    Equal(Object) : Bool
+    ToString() : String
+    Inspect() : String
+    Add(String)
 
-  VariableLookup
-    variable name
+  List
+    Equal(Object) : Bool
+    ToString() : String
+    Inspect() : String
 
-  GetAttribute
-    owner expression, attribute name
+  Set
+    Equal(Object) : Bool
+    ToString() : String
+    Inspect() : String
 
-  SetAttribute
-    owner expression, attribute name and value expression
+  Map
+    Equal(Object) : Bool
+    ToString() : String
+    Inspect() : String
 
-  MethodCall
-    owner expression, attribute name and argument expressions
-
-  Assignment
-    variable name and value expression
-
-  Return
-    return expression
-
-  If
-    test expression, if statement block, else statement block
-
-  While
-    test expression and block of statements
-
-  Break
