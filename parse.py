@@ -67,6 +67,10 @@ class Class(Node):
   attributes = ['name', 'bases', 'declarations', 'methods']
 
 
+class ClassExpression(Node):
+  attributes = ['package_name', 'class_name']
+
+
 class Method(Node):
   "method signature and block of statements"
   attributes = ['name', 'arguments', 'return_type', 'body']
@@ -123,7 +127,7 @@ class VariableLookup(Expression):
 
 
 class New(Expression):
-  attributes = ['package_name', 'class_name', 'constructor_arguments']
+  attributes = ['class_', 'constructor_arguments']
 
 
 class GetAttribute(Expression):
@@ -201,7 +205,8 @@ def Parse(string, filename):
     methods = []
     Consume(':')
     while At('Name'):
-      bases.append(GetToken().value)
+      bases.append(ParseClassExpression())
+      Consume(',')
     EatStatementDelimiters()
     Expect('Indent')
     EatStatementDelimiters()
@@ -216,6 +221,15 @@ def Parse(string, filename):
         raise ParseError('Expected declaration or method', Peek().origin)
       EatStatementDelimiters()
     return Class(origin[0], name, bases, declarations, methods)
+
+  def ParseClassExpression():
+    origin = [None]
+    package_name = None
+    class_name = Expect('Name', origin).value
+    if Consume('.'):
+      package_name = class_name
+      class_name = Expect('Name').value
+    return ClassExpression(origin[0], package_name, class_name)
 
   def ParseDeclaration():
     origin = [None]
@@ -327,13 +341,9 @@ def Parse(string, filename):
     elif At('String', origin):
       return String(origin[0], GetToken().value)
     elif Consume('new', origin):
-      package_name = None
-      class_name = Expect('Name').value
-      if Consume('.'):
-        package_name = class_name
-        class_name = Expect('Name').value
+      cls = ParseClassExpression()
       args = ParseMethodCallArguments()
-      return New(origin[0], package_name, class_name, args)
+      return New(origin[0], cls, args)
     else:
       raise ParseError('Expected expression', Peek().origin)
 
@@ -673,7 +683,7 @@ diff = module.Diff(Module(None, [
     [
       Method(None, 'Main', [], None, StatementBlock(None,
         [
-          New(None, 'hello', 'Main', []),
+          New(None, ClassExpression(None, 'hello', 'Main'), []),
         ]),
       ),
     ]),
