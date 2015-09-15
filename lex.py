@@ -4,7 +4,7 @@ import sys
 
 
 SYMBOLS = (
-    '\\', '.',
+    '.',
     '(', ')', '[', ']',
     '=', ':',
     ';', ',',
@@ -18,6 +18,7 @@ KEYWORDS = (
     'if', 'else',
     'return',
     'var',
+    'new',
 )
 
 

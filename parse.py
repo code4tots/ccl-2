@@ -122,6 +122,10 @@ class VariableLookup(Expression):
   attributes = ['name']
 
 
+class New(Expression):
+  attributes = ['package_name', 'class_name', 'constructor_arguments']
+
+
 class GetAttribute(Expression):
   "owner expression, attribute name"
   attributes = ['owner', 'attribute']
@@ -322,6 +326,14 @@ def Parse(string, filename):
       return Number(origin[0], GetToken().value)
     elif At('String', origin):
       return String(origin[0], GetToken().value)
+    elif Consume('new', origin):
+      package_name = None
+      class_name = Expect('Name').value
+      if Consume('.'):
+        package_name = class_name
+        class_name = Expect('Name').value
+      args = ParseMethodCallArguments()
+      return New(origin[0], package_name, class_name, args)
     else:
       raise ParseError('Expected expression', Peek().origin)
 
@@ -633,6 +645,37 @@ diff = module.Diff(Module(None, [
           )
         ),
       ])),
+    ]),
+]))
+
+if diff:
+  assert False, diff
+
+module = Parse(r"""
+
+class Main
+
+  var x
+  var y : Int
+
+  method Main()
+    new hello.Main()
+
+
+""", '<test>')
+
+diff = module.Diff(Module(None, [
+  Class(None, 'Main', [],
+    [
+      Declaration(None, 'x', None),
+      Declaration(None, 'y', 'Int'),
+    ],
+    [
+      Method(None, 'Main', [], None, StatementBlock(None,
+        [
+          New(None, 'hello', 'Main', []),
+        ]),
+      ),
     ]),
 ]))
 
