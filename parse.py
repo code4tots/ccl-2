@@ -20,8 +20,39 @@ class Node(object):
         return False
     return True
 
+  # Python 3 handles this as expected without me having to implement __ne__,
+  # but Python 2 doesn't assume this.
+  def __ne__(self, other):
+    return not (self == other)
+
   def __repr__(self):
     return '%s(None, %s)' % (type(self).__name__, ', '.join(repr(getattr(self, attr)) for attr in self.attributes))
+
+  def Diff(self, other):
+    for i, attr in enumerate(self.attributes):
+      left = getattr(self, attr)
+      right = getattr(other, attr)
+      if left != right:
+        return 'In %s, attribute %s (argument %d)\n' % (type(self).__name__, attr, i) + Diff(left, right)
+
+
+def Diff(left, right):
+  if type(left) != type(right):
+    return 'Left side is %s while right side is %s' % (type(left), type(right))
+  elif isinstance(left, Node):
+    return left.Diff(right)
+  elif isinstance(left, list):
+    i = 0
+    while i < min(len(left), len(right)) and left[i] == right[i]:
+      i += 1
+    if i >= len(left):
+      return 'The right side has %s not present in the left side' % right[0]
+    if i >= len(right):
+      return 'The left side has %s not present in the right side' % left[0]
+    else:
+      return 'In list element %d\n' % i + Diff(left[i], right[i])
+  else:
+    raise TypeError((type(left), type(right)))
 
 
 class Module(Node):
@@ -239,6 +270,13 @@ def Parse(string, filename):
       elif Peek(-1).type in (';', 'Newline'): # TODO: Find more elegant solution.
         i[0] -= 1
       return If(origin[0], test, body, other)
+    elif Consume('while', origin):
+      test = ParseExpression()
+      EatStatementDelimiters()
+      body = ParseStatementBlock()
+      return While(origin[0], test, body)
+    elif Consume('break', origin):
+      return Break(origin[0])
     else:
       return ParseExpression()
 
@@ -302,9 +340,12 @@ class Main
 
 """, '<test>')
 
-assert module == Module(None, [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [], [], []),
-]), module
+]))
+
+if diff:
+  assert False, diff
 
 module = Parse(r"""
 
@@ -314,13 +355,16 @@ class Main
 
 """, '<test>')
 
-assert module == Module(None, [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [],
     [
       Method(None, 'Main', [], None, StatementBlock(None, [])),
     ]),
-]), module
+]))
+
+if diff:
+  assert False, diff
 
 module = Parse(r"""
 
@@ -334,7 +378,7 @@ class Main
 
 """, '<test>')
 
-assert module == Module(None, [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -346,7 +390,10 @@ assert module == Module(None, [
           Declaration(None, 'z', 'Float'),
         ])),
     ]),
-]), module
+]))
+
+if diff:
+  assert False, diff
 
 module = Parse(r"""
 
@@ -363,7 +410,7 @@ class Main
 
 """, '<test>')
 
-assert module == Module(None, [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -387,7 +434,10 @@ assert module == Module(None, [
         ])
       ),
     ]),
-]), module
+]))
+
+if diff:
+  assert False, diff
 
 module = Parse(r"""
 
@@ -404,7 +454,7 @@ class Main
 
 """, '<test>')
 
-assert module == Module(None, [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -428,4 +478,54 @@ assert module == Module(None, [
         ])
       ),
     ]),
-]), module
+]))
+
+if diff:
+  assert False, diff
+
+module = Parse(r"""
+
+class Main
+
+  var x
+  var y : Int
+
+  method Main()
+    var z : Float
+
+  method Add(a : Int, b : Int) : Int
+    while true
+      break
+    return a.Add(b)
+
+""", '<test>')
+
+diff = module.Diff(Module(None, [
+  Class(None, 'Main', [],
+    [
+      Declaration(None, 'x', None),
+      Declaration(None, 'y', 'Int'),
+    ],
+    [
+      Method(None, 'Main', [], None, StatementBlock(None,
+        [
+          Declaration(None, 'z', 'Float'),
+        ])
+      ),
+      Method(None, 'Add', [('a', 'Int'), ('b', 'Int')], 'Int', StatementBlock(None, [
+        While(None, VariableLookup(None, 'true'), StatementBlock(None, [
+          Break(None),
+        ])),
+        Return(None,
+          MethodCall(None,
+            VariableLookup(None, 'a'),
+            'Add',
+            [VariableLookup(None, 'b')],
+          )
+        ),
+      ])),
+    ]),
+]))
+
+if diff:
+  assert False, diff
