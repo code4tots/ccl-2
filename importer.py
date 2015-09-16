@@ -10,6 +10,8 @@ class Program(parse.Node):
 def ResolveImports(main_module):
   uri_to_modules = dict()
 
+  uri_to_modules['<main>'] = main_module
+
   queue = set([main_module])
   while queue:
     module = queue.pop()
