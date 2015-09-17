@@ -18,7 +18,8 @@ class Origin
     ])
 
   method LineNumber()
-    var i, total
+    var i
+    var total
     i = 0
     total = 0
     while i.LessThan(self.position)

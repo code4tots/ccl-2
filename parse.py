@@ -117,6 +117,10 @@ class String(Expression):
   attributes = ['value']
 
 
+class List(Expression):
+  attributes = ['items']
+
+
 class VariableLookup(Expression):
   "variable name"
   attributes = ['name']
@@ -335,6 +339,12 @@ def Parse(string, filename):
       cls = ParseClassExpression()
       args = ParseMethodCallArguments()
       return New(origin[0], cls, args)
+    elif Consume('[', origin):
+      args = []
+      while not Consume(']'):
+        args.append(ParseExpression())
+        Consume(',')
+      return List(origin[0], args)
     else:
       raise ParseError('Expected expression', Peek().origin)
 
