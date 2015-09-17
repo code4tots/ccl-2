@@ -59,11 +59,7 @@ def Diff(left, right):
 
 class Module(Node):
   "sequence of classes"
-  attributes = ['imports', 'classes']
-
-
-class Import(Node):
-  attributes = ['uri', 'name']
+  attributes = ['classes']
 
 
 class Class(Node):
@@ -194,18 +190,12 @@ def Parse(string, filename):
   def ParseModule():
     origin = [None]
     EatStatementDelimiters()
-    imports = []
-    while Consume('import', origin):
-      uri = Expect('String').value
-      name = Expect('Name').value
-      imports.append(Import(origin[0], uri, name))
-      EatStatementDelimiters()
     clss = [ParseClass()]
     EatStatementDelimiters()
     while not At('End'):
       clss.append(ParseClass())
       EatStatementDelimiters()
-    return Module(imports[0].origin if imports else clss[0].origin, imports, clss)
+    return Module(clss[0].origin, clss)
 
   def ParseClass():
     origin = [None]
@@ -378,7 +368,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [], [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [], [], []),
 ]))
 
@@ -393,7 +383,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [], [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [],
     [
@@ -416,7 +406,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [], [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -448,7 +438,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [], [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -492,7 +482,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [], [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -538,7 +528,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [], [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -585,7 +575,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [], [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -637,7 +627,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [], [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -685,7 +675,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [], [
+diff = module.Diff(Module(None, [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -695,39 +685,6 @@ diff = module.Diff(Module(None, [], [
       Method(None, 'Main', [], None, StatementBlock(None,
         [
           New(None, ClassExpression(None, 'hello', 'Main'), []),
-        ]),
-      ),
-    ]),
-]))
-
-if diff:
-  assert False, diff
-
-module = Parse(r"""
-
-import 'github://foo.bar/src/baz.ccl' baz
-
-class Main
-
-  var x
-  var y : Int
-
-  method Main()
-    new baz.Main()
-
-
-""", '<test>')
-
-diff = module.Diff(Module(None, [Import(None, 'github://foo.bar/src/baz.ccl', 'baz')], [
-  Class(None, 'Main', [],
-    [
-      Declaration(None, 'x', None),
-      Declaration(None, 'y', 'Int'),
-    ],
-    [
-      Method(None, 'Main', [], None, StatementBlock(None,
-        [
-          New(None, ClassExpression(None, 'baz', 'Main'), []),
         ]),
       ),
     ]),
