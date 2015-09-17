@@ -4,9 +4,9 @@
 
 class Origin
 
-  var filespec
-  var string
-  var position
+  var filespec : String
+  var string : String
+  var position : Number
 
   method LocationMessage()
     return 'in %s on line %d column %d\n%s\n%s*\n'.Format([
@@ -54,15 +54,15 @@ class Origin
 
 class Token
 
-  var type
+  var type : String
   var value
-  var origin
+  var origin : Origin
 
 
 class LexError
 
-  var message
-  var origin
+  var message : String
+  var origin : Origin
 
   method ToString()
     return message.Add('\n').Add(origin.LocationMessage())
@@ -70,13 +70,13 @@ class LexError
 
 class Lexer
 
-  var tokens
-  var depth
-  var string
-  var filespec
-  var position
-  var mark
-  var indent_stack
+  var tokens : List
+  var depth : Number
+  var string : String
+  var filespec : String
+  var position : Number
+  var mark : Number
+  var indent_stack : List
 
   new(string, filespec)
     this.tokens = []
