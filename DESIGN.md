@@ -65,3 +65,17 @@ Classes required of target language
     ToString() : String
     Inspect() : String
     ToBool() : Bool
+
+
+## Sample code
+
+
+import 'relative:foo/bar.ccl' baz
+
+
+class Main
+
+  def Run(universe)
+    su = new SimplifiedUniverse(universe)
+
+

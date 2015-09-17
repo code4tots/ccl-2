@@ -111,3 +111,10 @@ class CCSimplifiedUniverse(CCObject):
 print(translation)
 exec(translation + "\nCCMain().MMRun(CCUniverse())\n")
 
+
+fn = 'lex.ccl'
+
+with open(fn) as f:
+  print(TranslateStatement(parse.Parse(f.read(), fn)))
+
+

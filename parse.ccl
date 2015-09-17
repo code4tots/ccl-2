@@ -1,0 +1,46 @@
+# parse.ccl
+# Port of parse.py to ccl
+
+
+class Parser
+
+  var tokens
+  var tree_builder
+  var position
+
+  new(lexer, tree_builder)
+    this.tokens = lexer.Lex()
+    this.tree_builder = tree_builder
+    this.position = position
+
+  method Peek(lookahead)
+    return this.tokens.Get(this.position.Add(lookahead))
+
+  method At(type, origin_pointer, lookahead)
+    if this.Peek(lookahead).type.Equals(type)
+      if origin_pointer
+        origin_pointer.Set(0, Peek(lookahead).origin)
+      return true
+
+  method GetToken()
+    var token
+    token = tokens.Get(this.position)
+    this.position = this.position.Add(1)
+    return token
+
+  method Consume(type, origin)
+    if this.At(type, origin)
+      return this.GetToken()
+
+  method Expect(type, origin)
+    if this.At(type, origin).Not()
+      raise new ParseError(
+          'Expected %s but found %s'.Format([type, this.Peek().type,]),
+          this.Peek().origin,
+      )
+
+  method EatStatementDelimiters()
+    while true
+      if Consume('Newline').Not()
+        if Consume(';').Not()
+          break

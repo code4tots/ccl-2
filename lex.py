@@ -12,6 +12,7 @@ SYMBOLS = (
 
 
 KEYWORDS = (
+    'include',
     'pass',
     'class', 'method',
     'while', 'break',
