@@ -324,7 +324,7 @@ def Parse(string, filename):
         return Assignment(origin[0], name, value)
       elif At('(', origin):
         args = ParseMethodCallArguments()
-        return MethodCall(origin[0], None, name, args)
+        return MethodCall(origin[0], VariableLookup(origin[0], 'this'), name, args)
       else:
         return VariableLookup(origin[0], name)
     elif At('Number', origin):
