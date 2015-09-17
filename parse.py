@@ -67,10 +67,6 @@ class Class(Node):
   attributes = ['name', 'bases', 'declarations', 'methods']
 
 
-class ClassExpression(Node):
-  attributes = ['package_name', 'class_name']
-
-
 class Method(Node):
   "method signature and block of statements"
   attributes = ['name', 'arguments', 'return_type', 'body']
@@ -224,13 +220,7 @@ def Parse(string, filename):
     return Class(origin[0], name, bases, declarations, methods)
 
   def ParseClassExpression():
-    origin = [None]
-    package_name = None
-    class_name = Expect('Name', origin).value
-    if Consume('.'):
-      package_name = class_name
-      class_name = Expect('Name').value
-    return ClassExpression(origin[0], package_name, class_name)
+    return Expect('Name').value
 
   def ParseDeclaration():
     origin = [None]
@@ -670,7 +660,7 @@ class Main
   var y : Int
 
   method Main()
-    new hello.Main()
+    new Main()
 
 
 """, '<test>')
@@ -684,7 +674,7 @@ diff = module.Diff(Module(None, [
     [
       Method(None, 'Main', [], None, StatementBlock(None,
         [
-          New(None, ClassExpression(None, 'hello', 'Main'), []),
+          New(None, 'Main', []),
         ]),
       ),
     ]),
