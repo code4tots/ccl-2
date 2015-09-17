@@ -123,7 +123,7 @@ class VariableLookup(Expression):
 
 
 class New(Expression):
-  attributes = ['class_', 'constructor_arguments']
+  attributes = ['class_', 'arguments']
 
 
 class GetAttribute(Expression):
