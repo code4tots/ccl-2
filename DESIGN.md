@@ -1,81 +1,44 @@
-All interaction with the outside world must go through the 'universe' object in some way.
+# DESIGN
 
-When a program is started, the target class is instantiated, and the 'Run' method is called with a single 'universe' argument.
+### Grammar
 
-It may not be possible to construct a universe object normally from within the language.
-
-In order to implement e.g. the singleton pattern, you must add an object to the registry in the universe object.
-A unique identifier associated with a given class (yet to be implemented) may be useful for this purpose.
-
-Classes required of target language
-
-  Object
-    Equal(Object) : Bool
-    ToString() : String
-    Inspect() : String
-    ToBool() : Bool
-    And(Object) : Bool
-    Or(Object) : Bool
-
-  Universe
-    Equal(Object) : Bool
-    ToString() : String
-    Inspect() : String
-
-  Nil
-    Equal(Object) : Bool
-    ToString() : String
-    Inspect() : String
-    ToBool() : Bool
-
-  Bool
-    Equal(Object) : Bool
-    ToString() : String
-    Inspect() : String
-    ToBool() : Bool
-
-  Number
-    Equal(Object) : Bool
-    ToString() : String
-    Inspect() : String
-    ToBool() : Bool
-    Add(String)
-
-  String
-    Equal(Object) : Bool
-    ToString() : String
-    Inspect() : String
-    ToBool() : Bool
-    Add(String)
-
-  List
-    Equal(Object) : Bool
-    ToString() : String
-    Inspect() : String
-    ToBool() : Bool
-
-  Set
-    Equal(Object) : Bool
-    ToString() : String
-    Inspect() : String
-    ToBool() : Bool
-
-  Map
-    Equal(Object) : Bool
-    ToString() : String
-    Inspect() : String
-    ToBool() : Bool
-
-
-## Sample code
-
-
-import 'relative:foo/bar.ccl' baz
-
-
-class Main
-
-  def Run(universe)
-    su = new SimplifiedUniverse(universe)
-
-
+Module : ModuleElement* END
+       ;
+ModuleElement : ImportDeclaration
+              | ClassDefinition
+              ;
+ImportDeclaration : 'import' STRING=uri NAME
+                  ;
+ClassDefinition : 'class' NAME (':' ClassReference*)? INDENT ClassElement* DEDENT
+                ;
+ClassElement : VariableDeclaration
+             | MethodDefinition
+             ;
+VariableDeclaration : 'var' NameTypePair (',' NameTypePair)*
+                    ;
+NameTypePair : NAME (':' TYPE)?
+             ;
+MethodDefinition : 'method' NAME '(' (NAME (',' NAME)*)? ')' StatementBlock
+                 ;
+StatementBlock : INDENT Statement* DEDENT
+               ;
+Statement : VariableDeclaration
+          | While
+          | Break
+          | Continue
+          | If
+          | Return
+          | Expression
+          ;
+While : 'while' Expression StatementBlock
+      ;
+Break : 'break'
+      ;
+Continue : 'continue'
+         ;
+If : 'if' Expression StatementBlock ('else' StatementBlock)?
+   ;
+Return : 'return' Expression
+       ;
+Expression : # TODO
+           ;
