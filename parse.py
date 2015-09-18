@@ -59,7 +59,11 @@ def Diff(left, right):
 
 class Module(Node):
   "sequence of classes"
-  attributes = ['classes']
+  attributes = ['includes', 'classes']
+
+
+class Include(Node):
+  attributes = ['uri']
 
 
 class Class(Node):
@@ -189,13 +193,18 @@ def Parse(string, filename):
 
   def ParseModule():
     origin = [None]
-    EatStatementDelimiters()
-    clss = [ParseClass()]
+    clss = []
+    includes = []
     EatStatementDelimiters()
     while not At('End'):
-      clss.append(ParseClass())
+      if Consume('include', origin):
+        includes.append(Include(origin[0], Expect('String').value))
+      elif At('class'):
+        clss.append(ParseClass())
+      else:
+        raise ParseError('Expected include directive or class definition', Peek().origin)
       EatStatementDelimiters()
-    return Module(clss[0].origin, clss)
+    return Module(clss[0].origin, includes, clss)
 
   def ParseClass():
     origin = [None]
@@ -369,7 +378,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [
+diff = module.Diff(Module(None, [], [
   Class(None, 'Main', [], [], []),
 ]))
 
@@ -384,7 +393,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [
+diff = module.Diff(Module(None, [], [
   Class(None, 'Main', [],
     [],
     [
@@ -407,7 +416,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [
+diff = module.Diff(Module(None, [], [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -439,7 +448,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [
+diff = module.Diff(Module(None, [], [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -483,7 +492,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [
+diff = module.Diff(Module(None, [], [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -529,7 +538,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [
+diff = module.Diff(Module(None, [], [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -576,7 +585,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [
+diff = module.Diff(Module(None, [], [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -628,7 +637,7 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [
+diff = module.Diff(Module(None, [], [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
@@ -676,7 +685,40 @@ class Main
 
 """, '<test>')
 
-diff = module.Diff(Module(None, [
+diff = module.Diff(Module(None, [], [
+  Class(None, 'Main', [],
+    [
+      Declaration(None, 'x', None),
+      Declaration(None, 'y', 'Int'),
+    ],
+    [
+      Method(None, 'Main', [], None, StatementBlock(None,
+        [
+          New(None, 'Main', []),
+        ]),
+      ),
+    ]),
+]))
+
+if diff:
+  assert False, diff
+
+module = Parse(r"""
+
+include 'relative:lex.ccl'
+
+class Main
+
+  var x
+  var y : Int
+
+  method Main()
+    new Main()
+
+
+""", '<test>')
+
+diff = module.Diff(Module(None, [Include(None, 'relative:lex.ccl')], [
   Class(None, 'Main', [],
     [
       Declaration(None, 'x', None),
