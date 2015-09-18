@@ -206,7 +206,7 @@ def Parse(string, filename):
     methods = []
     Consume(':')
     while At('Name'):
-      bases.append(ParseClassExpression())
+      bases.append(Expect('Name').value)
       Consume(',')
     EatStatementDelimiters()
     Expect('Indent')
@@ -222,9 +222,6 @@ def Parse(string, filename):
         raise ParseError('Expected declaration or method', Peek().origin)
       EatStatementDelimiters()
     return Class(origin[0], name, bases, declarations, methods)
-
-  def ParseClassExpression():
-    return Expect('Name').value
 
   def ParseDeclaration():
     origin = [None]
@@ -336,7 +333,7 @@ def Parse(string, filename):
     elif At('String', origin):
       return String(origin[0], GetToken().value)
     elif Consume('new', origin):
-      cls = ParseClassExpression()
+      cls = Expect('Name').value
       args = ParseMethodCallArguments()
       return New(origin[0], cls, args)
     elif Consume('[', origin):
