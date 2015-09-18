@@ -33,21 +33,22 @@ def TranslateStatement(node, depth):
     bases = ['CC' + base for base in node.bases]
     if not bases:
       bases.append('CCObject')
-    return '  ' * depth + 'class CC' + node.name + '(' + ', '.join(bases) + '):\n' + ''.join(TranslateStatement(method, depth+1) for method in node.methods)
+    return '\n' + '  ' * depth + 'class CC' + node.name + '(' + ', '.join(bases) + '):\n' + (''.join(TranslateStatement(method, depth+1) for method in node.methods) or ('  ' * (depth+1) + 'pass\n'))
   elif isinstance(node, parse.Method):
     args = ['XX' + arg for arg, _ in node.arguments]
     return '\n  ' * depth + 'def MM' + node.name + '(XXthis' + ''.join(', ' + arg for arg in args) + '):\n' + TranslateStatement(node.body, depth+1)
   elif isinstance(node, parse.Declaration):
-    return '  ' * depth + 'pass\n'
+    return ''
   elif isinstance(node, parse.StatementBlock):
-    if node.statements:
-      return ''.join(TranslateStatement(s, depth) for s in node.statements)
-    else:
-      return '  ' * depth + 'pass\n'
+    translation = ''.join(TranslateStatement(s, depth) for s in node.statements)
+    return translation or ('  ' * depth + 'pass\n')
   elif isinstance(node, parse.Return):
-    pass
+    return '  ' * depth + 'return ' + TranslateExpression(node.expression) + '\n'
   elif isinstance(node, parse.If):
-    pass
+    translation = '  ' * depth + 'if ' + TranslateExpression(node.test) + ':\n' + TranslateStatement(node.body, depth+1)
+    if node.other:
+      translation += 'else:\n' + TranslateStatement(node.other, depth+1)
+    return translation
   elif isinstance(node, parse.While):
     return '  ' * depth + 'while ' + TranslateExpression(node.test) + ':\n' + TranslateStatement(node.body, depth+1)
   elif isinstance(node, parse.Break):
@@ -68,13 +69,15 @@ def TranslateExpression(node):
   elif isinstance(node, parse.New):
     return 'CC%s(%s)' % (node.class_, ', '.join(map(TranslateExpression, node.arguments)))
   elif isinstance(node, parse.GetAttribute):
-    return '%s.AA%s' % (TranslateExpression(node.owner, node.attribute))
+    return '%s.AA%s' % (TranslateExpression(node.owner), node.attribute)
   elif isinstance(node, parse.SetAttribute):
     return '%s.AA%s = %s' % (TranslateExpression(node.owner), node.attribute, TranslateExpression(node.value))
   elif isinstance(node, parse.MethodCall):
     return '%s.MM%s(%s)' % (TranslateExpression(node.owner), node.attribute, ', '.join(map(TranslateExpression, node.arguments)))
   elif isinstance(node, parse.Assignment):
     return 'XX%s = %s' % (node.name, TranslateExpression(node.value))
+  elif isinstance(node, parse.List):
+    return 'CCList([%s])' % ', '.join(map(TranslateExpression, node.items))
 
   raise TypeError('Unrecognized node type %s' % type(node))
 
@@ -120,6 +123,12 @@ class CCString(CCObject):
     return self.value
 
 
+class CCList(CCObject):
+
+  def __init__(self, value):
+    self.value = value
+
+
 class CCUniverse(CCObject):
   pass
 
@@ -133,13 +142,14 @@ class CCSimplifiedUniverse(CCObject):
     print(string)
 
 
-print(translation)
-exec(translation + "\nCCMain().MMRun(CCUniverse())\n")
+# print(translation)
+# exec(translation + "\nCCMain().MMRun(CCUniverse())\n")
 
 
 fn = 'lex.ccl'
 
 with open(fn) as f:
-  print(TranslateStatement(parse.Parse(f.read(), fn)))
+  translation = TranslateModule(parse.Parse(f.read(), fn))
 
-
+print(translation)
+# exec(translation + 'CCMain().Run(CCUniverse())')
