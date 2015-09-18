@@ -20,7 +20,7 @@ NameTypePair           : NAME (':' TYPE)?
                        ;
 MethodDefinition       : 'method' NAME '(' (NAME (',' NAME)*)? ')' StatementBlock
                        ;
-StatementBlock         : INDENT Statement* DEDENT
+StatementBlock         : INDENT Statement* DEDENT DELIMITER
                        ;
 Statement              : VariableDeclaration
                        | While
@@ -28,17 +28,37 @@ Statement              : VariableDeclaration
                        | Continue
                        | If
                        | Return
-                       | Expression
+                       | Expression DELIMITER
                        ;
 While                  : 'while' Expression StatementBlock
                        ;
-Break                  : 'break'
+Break                  : 'break' DELIMITER
                        ;
-Continue               : 'continue'
+Continue               : 'continue' DELIMITER
                        ;
-If                     : 'if' Expression StatementBlock ('else' StatementBlock)?
+If                     : 'if' Expression DELIMITER StatementBlock ('else' StatementBlock)? DELIMITER
                        ;
-Return                 : 'return' Expression
+Return                 : 'return' Expression DELIMITER
                        ;
-Expression             : # TODO
+Expression             : TernaryExpression
+                       ;
+TernaryExpression      : OrExpression 'if' Expression 'else' TernaryExpression
+                       | OrExpression
+                       ;
+OrExpression           : AndExpression ('or' AndExpression)*
+                       ;
+AndExpression          : PostfixExpression ('and' PostfixExpression)*
+                       ;
+PostfixExpression      : PrimaryExpression '.' NAME '(' ArgumentList ')'
+                       | PrimaryExpression '.' NAME '=' Expression
+                       | PrimaryExpression '.' NAME
+                       | PrimaryExpression
+                       ;
+PrimaryExpression      : NAME '=' Expression
+                       | NAME '(' ArgumentList ')'
+                       | NAME
+                       | NUMBER
+                       | STRING
+                       | '[' ArgumentList ']'
+                       | '(' Expression ')'
                        ;
