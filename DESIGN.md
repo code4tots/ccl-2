@@ -47,7 +47,12 @@ TernaryExpression      : OrExpression 'if' Expression 'else' TernaryExpression
                        ;
 OrExpression           : AndExpression ('or' AndExpression)*
                        ;
-AndExpression          : PostfixExpression ('and' PostfixExpression)*
+AndExpression          : PrefixExpression ('and' PrefixExpression)*
+                       ;
+PrefixExpression       : 'not' PostfixExpression
+                       | '-' PostfixExpression
+                       | '+' PostfixExpression
+                       | PostfixExpression
                        ;
 PostfixExpression      : PrimaryExpression '.' NAME '(' ArgumentList ')'
                        | PrimaryExpression '.' NAME '=' Expression
