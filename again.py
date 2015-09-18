@@ -46,10 +46,14 @@ class Token(object):
     return 'Token(%r,%r)' % (self.type, self.value)
 
 
-class LexError(Exception):
+class CclError(Exception):
 
   def __init__(self, message, origin):
-    super(LexError, self).__init__(message + '\n' + origin.LocationMessage())
+    super(CclError, self).__init__(message + '\n' + origin.LocationMessage())
+
+
+class LexError(CclError):
+  pass
 
 
 class Lexer(object):
