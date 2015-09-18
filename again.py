@@ -1,5 +1,7 @@
 """again.py"""
 
+### Lexer
+
 class Origin(object):
 
   def __init__(self, filespec, string, position):
@@ -204,8 +206,7 @@ class Lexer(object):
 
     return self.tokens
 
-
-### Tests
+### Lexer Tests
 
 origin = Origin('<test>', """
 hello world!
