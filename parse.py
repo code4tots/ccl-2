@@ -345,6 +345,10 @@ def Parse(string, filename):
         args.append(ParseExpression())
         Consume(',')
       return List(origin[0], args)
+    elif Consume('('):
+      expr = ParseExpression()
+      Expect(')')
+      return expr
     else:
       raise ParseError('Expected expression', Peek().origin)
 
