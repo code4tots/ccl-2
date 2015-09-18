@@ -61,4 +61,5 @@ PrimaryExpression      : NAME '=' Expression
                        | STRING
                        | '[' ArgumentList ']'
                        | '(' Expression ')'
+                       | 'not' Expression
                        ;
