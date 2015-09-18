@@ -1,6 +1,31 @@
 import parse
 
 
+class TranslationError(parse.ParseError):
+  pass
+
+
+def TranslateModule(node, seen=None):
+  if seen is None:
+    seen = set()
+
+  translation = ''
+
+  for include in node.includes:
+    if include.uri not in seen:
+      seen.add(include.uri)
+      content = GetContentFromInclude(include)
+      translation += TranslateModule(parse.Parse(content, include.uri), seen)
+
+  translation += TranslateStatement(node, 0)
+
+  return translation
+
+
+def GetContentFromInclude(include):
+  raise TranslationError('include not yet supported', include.origin)
+
+
 def TranslateStatement(node, depth):
   if isinstance(node, parse.Module):
     return '  ' * depth + ''.join(TranslateStatement(cls, depth) for cls in node.classes)
