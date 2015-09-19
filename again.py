@@ -622,6 +622,9 @@ class CCObject {
   public CCObject InvokeMethod(String name, CCObject... args) {
     throw new RuntimeException("Unrecognized method " + name);
   }
+  public boolean ToBoolean() {
+    return true;
+  }
 }
 
 class CCNil extends CCObject {
@@ -666,36 +669,51 @@ class CCList extends CCObject {
     else:
       base = 'Object'
 
+    if any(m.name == '__New__' for m in methods):
+      constructor = self.Indent(
+        "\npublic CC%s(CCObject... args) {"
+        '\n  this.InvokeMethod("__New__", args);'
+        "\n}" % (name,)
+        )
+    else:
+      constructor = self.Indent(
+        "\npublic CC%s(%s) {" % (name, ', '.join('CCObject XX' + d.name for d in declarations)) +
+        ''.join(
+        "\n  this.AA%s = XX%s;" % (d.name, d.name) for d in declarations
+        ) +
+        "\n}"
+        )
+
     dd = ''.join(map(self.Indent, declarations))
     mm = ''.join(map(self.Indent, methods))
 
     ga = self.Indent(
-      "\npublic CCObject GetAttribute(String name) {\n" +
+      "\npublic CCObject GetAttribute(String name) {" +
       ''.join(
-      '  if (name.equals("%s"))\n'
-      "    return this.AA%s;\n" % (d.name, d.name) for d in declarations
+      '\n  if (name.equals("%s"))'
+      "\n    return this.AA%s;" % (d.name, d.name) for d in declarations
       ) + 
-      "  return super.GetAttribute(name);\n"
-      "}")
+      "\n  return super.GetAttribute(name);"
+      "\n}")
     sa = self.Indent(
-      "\npublic CCObject SetAttribute(String name, CCObject value) {\n" +
+      "\npublic CCObject SetAttribute(String name, CCObject value) {" +
       ''.join(
-      '  if (name.equals("%s"))\n'
-      "    return this.AA%s = value;\n" % (d.name, d.name) for d in declarations
+      '\n  if (name.equals("%s"))'
+      "\n    return this.AA%s = value;" % (d.name, d.name) for d in declarations
       ) + 
-      "  return super.SetAttribute(name, value);\n"
-      "}")
+      "\n  return super.SetAttribute(name, value);"
+      "\n}")
     im = self.Indent(
-      "\npublic CCObject InvokeMethod(String name, CCObject... args) {\n" +
+      "\npublic CCObject InvokeMethod(String name, CCObject... args) {" +
       ''.join(
-      '  if (name.equals("%s"))\n'
-      "    return this.MM%s(%s);\n" % (m.name, m.name, ', '.join('args[%d]' % i
+      '\n  if (name.equals("%s"))'
+      "\n    return this.MM%s(%s);" % (m.name, m.name, ', '.join('args[%d]' % i
       for i in range(m.arglen))) for m in methods
       ) + 
-      "  return super.InvokeMethod(name, args);\n"
-      "}")
+      "\n  return super.InvokeMethod(name, args);"
+      "\n}")
 
-    return '\nclass CC%s extends CC%s\n{%s%s%s\n}' % (name, base, dd, mm, ga + sa + im)
+    return '\nclass CC%s extends CC%s\n{%s\n}' % (name, base, constructor + dd + mm + ga + sa + im)
 
   def AttributeDeclaration(self, origin, name, type_):
     type_ = 'Object' # TODO: Change to type_ = type_ or 'Object'
@@ -727,6 +745,18 @@ class CCList extends CCObject {
   def Return(self, origin, expression):
     return '\nreturn %s;' % expression
 
+  def If(self, origin, test, body, other):
+    return '\nif (%s.ToBoolean())%s\nelse%s' % (test, body, other) if other else '\nif (%s.ToBoolean())%s' % (test, body)
+
+  def While(self, origin, test, body):
+    return '\nwhile (%s.ToBoolean())%s' % (test, body)
+
+  def Break(self, origin):
+    return '\nbreak;'
+
+  def Continue(self, origin):
+    return '\ncontinue;'
+
   def ExpressionStatement(self, origin, expression):
     return '\n%s;' % expression
 
@@ -743,10 +773,19 @@ class CCList extends CCObject {
     return 'new CCList(%s)' % ', '.join(items)
 
   def GetAttribute(self, origin, owner, attribute):
-    return '(%s).GetAttribute("%s")' % (owner, attribute)
+    return '%s.GetAttribute("%s")' % (owner, attribute)
+
+  def SetAttribute(self, origin, owner, attr, value):
+    return '%s.SetAttribute("%s", %s)' % (owner, attr, value)
 
   def MethodCall(self, origin, owner, attribute, arguments):
-    return '(%s).InvokeMethod("%s", %s)' % (owner, attribute, ', '.join(arguments))
+    return '%s.InvokeMethod("%s"%s)' % (owner, attribute, ''.join(', ' + arg for arg in arguments))
+
+  def Assignment(self, origin, name, value):
+    return 'XX%s = %s' % (name, value)
+
+  def New(self, origin, name, args):
+    return 'new CC%s(%s)' % (name, ', '.join(args))
 
 ### Translator Tests
 

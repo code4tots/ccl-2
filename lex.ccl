@@ -14,7 +14,7 @@ class Origin
         this.LineNumber(),
         this.ColumnNumber(),
         this.Line(),
-        ' '.Multiply(self.ColumnNumber().Subtract(1)),
+        ' '.Multiply(this.ColumnNumber().Subtract(1)),
     ])
 
   method LineNumber()
@@ -22,7 +22,7 @@ class Origin
     var total
     i = 0
     total = 0
-    while i.LessThan(self.position)
+    while i.LessThan(this.position)
       if this.string.Get(i).Equals('\n')
         total = total.Add(1)
       i = i.Add(1)
@@ -32,11 +32,11 @@ class Origin
     return (1).Add(this.position).Subtract(this.LineStart())
 
   method Line()
-    return this.string.Slice(self.LineStart(), self.LineEnd())
+    return this.string.Slice(this.LineStart(), this.LineEnd())
 
   method LineStart()
     var i
-    i = self.position
+    i = this.position
     while i.GreaterThanOrEqualTo(0)
       if this.string.Get(i).Equals('\n')
         break
@@ -46,7 +46,7 @@ class Origin
   method LineEnd()
     var i
     i = 0
-    while i.LessThan(self.position)
+    while i.LessThan(this.position)
       if this.string.Get(i).Equals('\n')
         break
       i = i.Add(1)
@@ -66,7 +66,7 @@ class LexError
   var origin : Origin
 
   method ToString()
-    return message.Add('\n').Add(origin.LocationMessage())
+    return this.message.Add('\n').Add(this.origin.LocationMessage())
 
 
 class Lexer
@@ -79,13 +79,14 @@ class Lexer
   var mark : Number
   var indent_stack : List
 
-  new(string, filespec)
+  method __New__(string, filespec)
     this.tokens = []
     this.depth = 0
     this.string = string
     this.position = 0
     this.indent_stack = ['']
     this.filespec = filespec
+    return nil
 
   method GetSymbols()
     return [
@@ -103,15 +104,14 @@ class Lexer
       'if', 'else',
       'return',
       'var',
-      'new',      
     ]
 
   method MakeOrigin()
-    return new Origin(this.filespec, this.string, this.mark)
+    return Origin(this.filespec, this.string, this.mark)
 
   method MakeToken(type, value)
-    return new Token(type, value, this.MakeOrigin())
+    return Token(type, value, this.MakeOrigin())
 
   method Lex()
-    pass
+    return nil
 
