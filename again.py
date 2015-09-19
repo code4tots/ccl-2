@@ -601,16 +601,40 @@ class Translator(object):
 
   def GetNativePrelude(self):
     return r"""
+import java.util.ArrayList;
+import java.util.Arrays;
+
 class CCObject {
 }
 
 class CCString extends CCObject {
+
+  String value;
+
+  CCString(String value) {
+    this.value = value;
+  }
+
 }
 
 class CCNumber extends CCObject {
+
+  double value;
+
+  CCNumber(double value) {
+    this.value = value;
+  }
+
 }
 
 class CCList extends CCObject {
+
+  ArrayList<CCObject> list;
+
+  CCList(CCObject... args) {
+    list = new ArrayList<CCObject>(Arrays.asList(args));
+  }
+
 }
 
 """

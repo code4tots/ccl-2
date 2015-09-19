@@ -6,10 +6,10 @@ class Origin
   var string : String
   var position : Number
 
-  method LocationMessage() : String
-    return 'in %s on line %d column %d\n%s\n%s*\n'.Format([
-        this.filespec,
-        this.LineNumber(),
-        this.ColumnNumber(),
-        this.Line(),
-        ' '.Multiply(this.ColumnNumber().Subtract(1))])
+#  method LocationMessage() : String
+#    return 'in %s on line %d column %d\n%s\n%s*\n'.Format([
+#        this.filespec,
+#        this.LineNumber(),
+#        this.ColumnNumber(),
+#        this.Line(),
+#        ' '.Multiply(this.ColumnNumber().Subtract(1))])
