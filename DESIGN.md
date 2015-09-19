@@ -28,7 +28,7 @@ Statement              : VariableDeclaration
                        | Continue
                        | If
                        | Return
-                       | Expression DELIMITER
+                       | ExpressionStatement
                        ;
 While                  : 'while' Expression StatementBlock
                        ;
@@ -40,6 +40,8 @@ If                     : 'if' Expression DELIMITER StatementBlock ('else' Statem
                        ;
 Return                 : 'return' Expression DELIMITER
                        ;
+ExpressionStatement    : Expression DELIMITER
+                       ;
 Expression             : TernaryExpression
                        ;
 TernaryExpression      : OrExpression 'if' Expression 'else' TernaryExpression
@@ -49,9 +51,9 @@ OrExpression           : AndExpression ('or' AndExpression)*
                        ;
 AndExpression          : PrefixExpression ('and' PrefixExpression)*
                        ;
-PrefixExpression       : 'not' PostfixExpression
-                       | '-' PostfixExpression
-                       | '+' PostfixExpression
+PrefixExpression       : 'not' PrefixExpression
+                       | '-' PrefixExpression
+                       | '+' PrefixExpression
                        | PostfixExpression
                        ;
 PostfixExpression      : PrimaryExpression '.' NAME '(' ArgumentList ')'
