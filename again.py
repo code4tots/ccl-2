@@ -1,5 +1,7 @@
 """again.py"""
 
+import sys
+
 ### Lexer
 
 class Origin(object):
@@ -375,7 +377,7 @@ class Parser(object):
     self.EatStatementDelimiters()
     while not self.Consume('Dedent', None):
       if self.At('var', None):
-        declarations.append(self.ParseDeclaration())
+        declarations.append(self.ParseAttributeDeclaration())
       elif self.At('method', None):
         methods.append(self.ParseMethod())
       elif self.Consume('pass', None):
@@ -384,6 +386,15 @@ class Parser(object):
         raise ParseError('Expected declaration or method', self.Peek(0).origin)
       self.EatStatementDelimiters()
     return self.tree_builder.Class(origin[0], name, bases, declarations, methods)
+
+  def ParseAttributeDeclaration(self):
+    origin = [None]
+    self.Expect('var', origin)
+    name = self.Expect('Name', None).value
+    type_ = None
+    if self.Consume(':', None):
+      type_ = self.Expect('Name', None).value
+    return self.tree_builder.AttributeDeclaration(origin[0], name, type_)
 
   def ParseDeclaration(self):
     origin = [None]
@@ -504,17 +515,20 @@ class Parser(object):
   def ParsePostfixExpression(self):
     origin = [None]
     expr = self.ParsePrimaryExpression()
-    if self.Consume('.', origin):
-      attr = self.Expect('Name', None).value
-      if self.Consume('(', origin):
-        args = self.ParseArgumentList()
-        self.Expect(')', None)
-        return self.tree_builder.MethodCall(origin[0], expr, attr, args)
-      elif self.Consume('=', origin):
-        value = self.ParseExpression()
-        return self.tree_builder.SetAttribute(origin[0], expr, attr, value)
+    while True:
+      if self.Consume('.', origin):
+        attr = self.Expect('Name', None).value
+        if self.Consume('(', origin):
+          args = self.ParseArgumentList()
+          self.Expect(')', None)
+          expr = self.tree_builder.MethodCall(origin[0], expr, attr, args)
+        elif self.Consume('=', origin):
+          value = self.ParseExpression()
+          expr = self.tree_builder.SetAttribute(origin[0], expr, attr, value)
+        else:
+          expr = self.tree_builder.GetAttribute(origin[0], expr, attr)
       else:
-        return self.tree_builder.GetAttribute(origin[0], expr, attr)
+        break
     return expr
 
   def ParseArgumentList(self):
@@ -538,10 +552,10 @@ class Parser(object):
       else:
         return self.tree_builder.Name(origin[0], name)
     elif self.At('Number', origin):
-      number = self.Expect('Number').value
+      number = self.Expect('Number', None).value
       return self.tree_builder.Number(origin[0], number)
     elif self.At('String', origin):
-      string = self.Expect('String').value
+      string = self.Expect('String', None).value
       return self.tree_builder.String(origin[0], string)
     elif self.Consume('[', origin):
       args = self.ParseArgumentList()
@@ -583,12 +597,22 @@ class Translator(object):
     self.parser = Parser(filespec, string, self)
 
   def Translate(self):
-    return self.GetNativePrefix() + self.parser.ParseModule()
+    return self.GetNativePrelude() + self.parser.ParseModule()
 
-  def GetNativePrefix(self):
+  def GetNativePrelude(self):
     return r"""
 class CCObject {
 }
+
+class CCString extends CCObject {
+}
+
+class CCNumber extends CCObject {
+}
+
+class CCList extends CCObject {
+}
+
 """
 
   def Indent(self, string):
@@ -613,12 +637,16 @@ class CCObject {
 
     return '\nclass CC%s extends CC%s\n{%s%s\n}' % (name, base, dd, mm)
 
+  def AttributeDeclaration(self, origin, name, type_):
+    type_ = type_ or 'Object'
+    return '\nCC%s AA%s;' % (type_, name)
+
   def Declaration(self, origin, name, type_):
     type_ = type_ or 'Object'
     return '\nCC%s XX%s;' % (type_, name)
 
   def StatementBlock(self, origin, statements):
-    return '\n{' + ''.join(statements) + '\n}'
+    return '\n{' + ''.join(map(self.Indent, statements)) + '\n}'
 
   def Method(self, origin, name, args, return_type, body):
     args = [(n, t or 'Object') for n, t in args]
@@ -635,8 +663,22 @@ class CCObject {
     return '\n%s;' % expression
 
   def Name(self, origin, name):
-    return 'XX' + name
+    return 'this' if name == 'this' else 'XX' + name
 
+  def String(self, origin, value):
+    return 'new CCString("%s")' % value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
+  def Number(self, origin, value):
+    return 'new CCNumber(%r)' % value
+
+  def List(self, origin, items):
+    return 'new CCList(%s)' % ', '.join(items)
+
+  def GetAttribute(self, origin, owner, attribute):
+    return '(%s).AA%s' % (owner, attribute)
+
+  def MethodCall(self, origin, owner, attribute, arguments):
+    return '(%s).MM%s(%s)' % (owner, attribute, ', '.join(arguments))
 
 ### Translator Tests
 
@@ -669,3 +711,20 @@ class Main
 """).Translate()
 
 
+def Main():
+  if len(sys.argv) == 1:
+    filespec = '<stdin>'
+    string = sys.stdin.read()
+  elif len(sys.argv) == 2:
+    filespec = sys.argv[1]
+    with open(filespec) as f:
+      string = f.read()
+  else:
+    sys.stderr.write('usage: python %s [inputfile]\n' % sys.argv[0])
+    exit(1)
+
+  sys.stdout.write(Translator(filespec, string).Translate())
+
+
+if __name__ == '__main__':
+  Main()
