@@ -71,7 +71,7 @@ class Lexer(object):
 
   def GetSymbols(self):
     return [
-      '.', '=', '(', ')', '[', ']', ',', ';',
+      '.', '=', '(', ')', '[', ']', ',', ';', ':',
     ]
 
   def GetKeywords(self):
@@ -80,9 +80,10 @@ class Lexer(object):
       'class',
       'pass',
       'method',
+      'var',
+      'return',
       'while', 'break', 'continue',
       'if', 'else',
-      'var',
     ]
 
   def MakeOrigin(self):
@@ -329,12 +330,12 @@ class Parser(object):
     self.i += 1
     return token
 
-  def Consume(self, type_, origin):
-    if self.At(type_, origin):
+  def Consume(self, type_, origin_pointer):
+    if self.At(type_, origin_pointer):
       return self.GetToken()
 
-  def Expect(self, type_, origin):
-    if not self.At(type_, origin):
+  def Expect(self, type_, origin_pointer):
+    if not self.At(type_, origin_pointer):
       raise ParseError('Expected %s but found %s' % (type_, self.Peek(0).type), self.Peek(0).origin)
     return self.GetToken()
 
@@ -343,13 +344,14 @@ class Parser(object):
       pass
 
   def ParseModule(self):
+    origin_pointer = [None]
     clss = []
     includes = []
     origin = self.Peek(0).origin
     self.EatStatementDelimiters()
     while not self.At('End', None):
-      if self.Consume('include', origin):
-        includes.append(self.tree_builder.Include(origin[0], self.Expect('String', None).value))
+      if self.Consume('include', origin_pointer):
+        includes.append(self.tree_builder.Include(origin_pointer[0], self.Expect('String', None).value))
       elif self.At('class', None):
         clss.append(self.ParseClass())
       else:
@@ -386,10 +388,10 @@ class Parser(object):
   def ParseDeclaration(self):
     origin = [None]
     self.Expect('var', origin)
-    name = self.Expect('Name').value
+    name = self.Expect('Name', None).value
     type_ = None
     if self.Consume(':', None):
-      type_ = self.Expect('Name').value
+      type_ = self.Expect('Name', None).value
     return self.tree_builder.Declaration(origin[0], name, type_)
 
   def ParseMethod(self):
@@ -402,12 +404,12 @@ class Parser(object):
       argname = self.Expect('Name', None).value
       argtype = None
       if self.Consume(':', None):
-        argtype = self.Expect('Name').value
+        argtype = self.Expect('Name', None).value
       args.append((argname, argtype))
       self.Consume(',', None)
     return_type = None
     if self.Consume(':', None):
-      return_type = self.Expect('Name').value
+      return_type = self.Expect('Name', None).value
     self.EatStatementDelimiters()
     body = self.ParseStatementBlock()
     return self.tree_builder.Method(origin[0], name, args, return_type, body)
@@ -427,7 +429,7 @@ class Parser(object):
 
   def ParseStatement(self):
     origin = [None]
-    if self.At('var'):
+    if self.At('var', None):
       return self.ParseDeclaration()
     elif self.Consume('return', origin):
       return self.tree_builder.Return(origin[0], self.ParseExpression())
@@ -567,5 +569,103 @@ class Main
   pass
 
 """, TestTreeBuilder()).ParseModule()
+
+### Translator
+
+class TranslationError(CclError):
+  pass
+
+class Translator(object):
+
+  def __init__(self, filespec, string):
+    self.filespec = filespec
+    self.string = string
+    self.parser = Parser(filespec, string, self)
+
+  def Translate(self):
+    return self.GetNativePrefix() + self.parser.ParseModule()
+
+  def GetNativePrefix(self):
+    return r"""
+class CCObject {
+}
+"""
+
+  def Indent(self, string):
+    return string.replace('\n', '\n  ')
+
+  def Module(self, origin, includes, classes):
+    return ''.join(includes) + ''.join(classes)
+
+  def Include(self, origin, uri):
+    raise TranslationError('includes not yet supported', origin)
+
+  def Class(self, origin, name, bases, declarations, methods):
+    if len(bases) > 1:
+      raise TranslationError('multiple inheritance is not yet supported', origin)
+    elif len(bases) == 1:
+      base = bases[0]
+    else:
+      base = 'Object'
+
+    dd = ''.join(map(self.Indent, declarations))
+    mm = ''.join(map(self.Indent, methods))
+
+    return '\nclass CC%s extends CC%s\n{%s%s\n}' % (name, base, dd, mm)
+
+  def Declaration(self, origin, name, type_):
+    type_ = type_ or 'Object'
+    return '\nCC%s XX%s;' % (type_, name)
+
+  def StatementBlock(self, origin, statements):
+    return '\n{' + ''.join(statements) + '\n}'
+
+  def Method(self, origin, name, args, return_type, body):
+    args = [(n, t or 'Object') for n, t in args]
+    args = ', '.join('CC%s XX%s' % (t, n) for n, t in args)
+
+    return_type = return_type or 'Object'
+
+    return '\nCC%s MM%s(%s)%s' % (return_type, name, args, body)
+
+  def Return(self, origin, expression):
+    return '\nreturn %s;' % expression
+
+  def ExpressionStatement(self, origin, expression):
+    return '\n%s;' % expression
+
+  def Name(self, origin, name):
+    return 'XX' + name
+
+
+### Translator Tests
+
+translation = Translator('<test>', r"""
+""").Translate()
+
+try:
+  translation = Translator('<test>', r"""
+
+include 'local:lex.ccl'
+
+class Main
+  pass
+
+  """).Translate()
+except TranslationError:
+  pass
+else:
+  assert False, 'expected include not supported error to be raised, but nothing happened.'
+
+translation = Translator('<test>', r"""
+
+class Main
+
+  var x : Main
+
+  method Function(a, b, c)
+    return x
+
+""").Translate()
 
 
