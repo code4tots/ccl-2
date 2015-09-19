@@ -132,12 +132,12 @@ class Lexer(object):
     while True:
       self.SkipSpacesAndComments()
 
+      self.j = self.i
+
       if self.Done():
         break
 
-      self.j = self.i
-
-      if self.Char() == '\n':
+      elif self.Char() == '\n':
         self.i += 1
         self.tokens.append(self.MakeToken('Newline', None))
         while True:
@@ -149,6 +149,7 @@ class Lexer(object):
               self.i += 1
           if self.Done() or not self.Char().isspace():
             break
+          self.i += 1
         if self.NotDone():
           self.ProcessIndents()
 
@@ -300,5 +301,271 @@ in <test> on line 1 column 1
 """, str(e)
 else:
   assert False, "Lex('!@#', '<test>') should have raised error but didn't"
+
+### Parser
+
+class ParseError(CclError):
+  pass
+
+
+class Parser(object):
+
+  def __init__(self, filespec, string, tree_builder):
+    self.tokens = Lexer(filespec, string).Lex()
+    self.i = 0
+    self.tree_builder = tree_builder
+
+  def Peek(self, lookahead):
+    return self.tokens[self.i + lookahead]
+
+  def At(self, type_, origin_pointer):
+    if self.Peek(0).type == type_:
+      if origin_pointer:
+        origin_pointer[0] = self.Peek(0).origin
+      return True
+
+  def GetToken(self):
+    token = self.tokens[self.i]
+    self.i += 1
+    return token
+
+  def Consume(self, type_, origin):
+    if self.At(type_, origin):
+      return self.GetToken()
+
+  def Expect(self, type_, origin):
+    if not self.At(type_, origin):
+      raise ParseError('Expected %s but found %s' % (type_, self.Peek(0).type), self.Peek(0).origin)
+    return self.GetToken()
+
+  def EatStatementDelimiters(self):
+    while self.Consume('Newline', None) or self.Consume(';', None):
+      pass
+
+  def ParseModule(self):
+    clss = []
+    includes = []
+    origin = self.Peek(0).origin
+    self.EatStatementDelimiters()
+    while not self.At('End', None):
+      if self.Consume('include', origin):
+        includes.append(self.tree_builder.Include(origin[0], self.Expect('String', None).value))
+      elif self.At('class', None):
+        clss.append(self.ParseClass())
+      else:
+        raise ParseError('Expected include directive or class definition', self.Peek(0).origin)
+      self.EatStatementDelimiters()
+    return self.tree_builder.Module(origin, includes, clss)
+
+  def ParseClass(self):
+    origin = [None]
+    self.Expect('class', origin)
+    name = self.Expect('Name', None).value
+    bases = []
+    declarations = []
+    methods = []
+    self.Consume(':', None)
+    while self.At('Name', None):
+      bases.append(self.Expect('Name', None).value)
+      self.Consume(',', None)
+    self.EatStatementDelimiters()
+    self.Expect('Indent', None)
+    self.EatStatementDelimiters()
+    while not self.Consume('Dedent', None):
+      if self.At('var', None):
+        declarations.append(self.ParseDeclaration())
+      elif self.At('method', None):
+        methods.append(self.ParseMethod())
+      elif self.Consume('pass', None):
+        pass
+      else:
+        raise ParseError('Expected declaration or method', self.Peek(0).origin)
+      self.EatStatementDelimiters()
+    return self.tree_builder.Class(origin[0], name, bases, declarations, methods)
+
+  def ParseDeclaration(self):
+    origin = [None]
+    self.Expect('var', origin)
+    name = self.Expect('Name').value
+    type_ = None
+    if self.Consume(':', None):
+      type_ = self.Expect('Name').value
+    return self.tree_builder.Declaration(origin[0], name, type_)
+
+  def ParseMethod(self):
+    origin = [None]
+    self.Expect('method', origin)
+    name = self.Expect('Name', None).value
+    args = []
+    self.Expect('(', None)
+    while not self.Consume(')', None):
+      argname = self.Expect('Name', None).value
+      argtype = None
+      if self.Consume(':', None):
+        argtype = self.Expect('Name').value
+      args.append((argname, argtype))
+      self.Consume(',', None)
+    return_type = None
+    if self.Consume(':', None):
+      return_type = self.Expect('Name').value
+    self.EatStatementDelimiters()
+    body = self.ParseStatementBlock()
+    return self.tree_builder.Method(origin[0], name, args, return_type, body)
+
+  def ParseStatementBlock(self):
+    origin = [None]
+    self.Expect('Indent', origin)
+    self.EatStatementDelimiters()
+    statements = []
+    while not self.Consume('Dedent', None):
+      if self.Consume('pass', None):
+        pass
+      else:
+        statements.append(self.ParseStatement())
+      self.EatStatementDelimiters()
+    return self.tree_builder.StatementBlock(origin[0], statements)
+
+  def ParseStatement(self):
+    origin = [None]
+    if self.At('var'):
+      return self.ParseDeclaration()
+    elif self.Consume('return', origin):
+      return self.tree_builder.Return(origin[0], self.ParseExpression())
+    elif self.Consume('while', origin):
+      test = self.ParseExpression()
+      self.EatStatementDelimiters()
+      body = self.ParseStatementBlock()
+      return self.tree_builder.While(origin[0], test, body)
+    elif self.Consume('break', origin):
+      return self.tree_builder.Break(origin[0])
+    elif self.Consume('continue', origin):
+      return self.tree_builder.Continue(origin[0])
+    elif self.Consume('if', origin):
+      test = self.ParseExpression()
+      self.EatStatementDelimiters()
+      body = self.ParseStatementBlock()
+      other = None
+      self.EatStatementDelimiters()
+      if self.Consume('else', None):
+        self.EatStatementDelimiters()
+        other = self.ParseStatementBlock()
+      elif self.Peek(-1).type in (';', 'Newline'): # TODO: Find more elegant solution.
+        self.i -= 1
+      return self.tree_builder.If(origin[0], test, body, other)
+    else:
+      origin = self.Peek(0).origin
+      expression = self.ParseExpression()
+      return self.tree_builder.ExpressionStatement(origin, expression)
+
+  def ParseExpression(self):
+    return self.ParseTernaryExpression()
+
+  def ParseTernaryExpression(self):
+    origin = [None]
+    expr = self.ParseOrExpression()
+    if self.Consume('if', origin):
+      test = self.ParseExpression()
+      self.Expect('else', None)
+      right = self.ParseTernaryExpression()
+      expr = self.tree_builder.TernaryExpression(origin[0], expr, test, right)
+    return expr
+
+  def ParseOrExpression(self):
+    origin = [None]
+    expr = self.ParseAndExpression()
+    while self.Consume('or', origin):
+      right = self.ParseAndExpression()
+      expr = self.tree_builder.OrExpression(origin[0], expr, right)
+    return expr
+
+  def ParseAndExpression(self):
+    origin = [None]
+    expr = self.ParsePrefixExpression()
+    while self.Consume('and', origin):
+      right = self.ParsePrefixExpression()
+      expr = self.tree_builder.AndExpression(origin[0], expr, right)
+    return expr
+
+  def ParsePrefixExpression(self):
+    origin = [None]
+    if self.Consume('not', origin):
+      expr = self.ParsePrefixExpression()
+      return self.tree_builder.Not(origin[0], expr)
+    elif self.Consume('+', origin):
+      expr = self.ParsePrefixExpression()
+      return self.tree_builder.Positive(origin[0], expr)
+    elif self.Consume('-', origin):
+      expr = self.ParsePrefixExpression()
+      return self.tree_builder.Negative(origin[0], expr)
+    return self.ParsePostfixExpression()
+
+  def ParsePostfixExpression(self):
+    origin = [None]
+    expr = self.ParsePrimaryExpression()
+    if self.Consume('.', origin):
+      attr = self.Expect('Name', None).value
+      if self.Consume('(', origin):
+        args = self.ParseArgumentList()
+        self.Expect(')', None)
+        return self.tree_builder.MethodCall(origin[0], expr, attr, args)
+      elif self.Consume('=', origin):
+        value = self.ParseExpression()
+        return self.tree_builder.SetAttribute(origin[0], expr, attr, value)
+      else:
+        return self.tree_builder.GetAttribute(origin[0], expr, attr)
+    return expr
+
+  def ParseArgumentList(self):
+    args = []
+    while not any(self.At(delim, None) for delim in (')', ']')):
+      args.append(self.ParseExpression())
+      self.Consume(',', None)
+    return args
+
+  def ParsePrimaryExpression(self):
+    origin = [None]
+    if self.At('Name', origin):
+      name = self.Expect('Name', None).value
+      if self.Consume('=', origin):
+        value = self.ParseExpression()
+        return self.tree_builder.Assignment(origin[0], name, value)
+      elif self.Consume('(', origin):
+        args = self.ParseArgumentList()
+        self.Expect(')', None)
+        return self.tree_builder.New(origin[0], name, args)
+      else:
+        return self.tree_builder.Name(origin[0], name)
+    elif self.At('Number', origin):
+      number = self.Expect('Number').value
+      return self.tree_builder.Number(origin[0], number)
+    elif self.At('String', origin):
+      string = self.Expect('String').value
+      return self.tree_builder.String(origin[0], string)
+    elif self.Consume('[', origin):
+      args = self.ParseArgumentList()
+      self.Expect(']', None)
+      return self.tree_builder.List(origin[0], args)
+    elif self.Consume('(', None):
+      expr = self.ParseExpression()
+      self.Expect(')', None)
+      return expr
+    raise ParseError('Expected expression', self.Peek(0).origin)
+
+### Parser Tests
+
+class TestTreeBuilder(object):
+
+  def Module(self, origin, includes, classes):
+    pass
+
+  def Class(self, origin, name, bases, declarations, methods):
+    pass
+
+Parser('<test>', r"""
+
+class Main
+  pass
+
+""", TestTreeBuilder()).ParseModule()
 
 
