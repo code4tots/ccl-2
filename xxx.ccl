@@ -6,6 +6,12 @@ class Origin
   var string : String
   var position : Number
 
+  method Test()
+  	return nil
+
+  method Test2(x : Number) : Number
+  	return x
+
 #  method LocationMessage() : String
 #    return 'in %s on line %d column %d\n%s\n%s*\n'.Format([
 #        this.filespec,
@@ -13,3 +19,6 @@ class Origin
 #        this.ColumnNumber(),
 #        this.Line(),
 #        ' '.Multiply(this.ColumnNumber().Subtract(1))])
+
+class Subclass : Origin
+  pass

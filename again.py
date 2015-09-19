@@ -589,6 +589,11 @@ class Main
 class TranslationError(CclError):
   pass
 
+
+class StringWithData(str):
+  pass
+
+
 class Translator(object):
 
   def __init__(self, filespec, string):
@@ -605,38 +610,43 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 class CCObject {
+
+  public static CCNil XXnil = new CCNil();
+
+  public CCObject GetAttribute(String name) {
+    throw new RuntimeException("Unrecognized attribute " + name);
+  }
+  public CCObject SetAttribute(String name, CCObject value) {
+    throw new RuntimeException("Unrecognized attribute " + name);
+  }
+  public CCObject InvokeMethod(String name, CCObject... args) {
+    throw new RuntimeException("Unrecognized method " + name);
+  }
 }
 
-class CCString extends CCObject {
-
-  String value;
-
-  CCString(String value) {
-    this.value = value;
-  }
-
+class CCNil extends CCObject {
 }
 
 class CCNumber extends CCObject {
-
-  double value;
-
-  CCNumber(double value) {
+  public double value;
+  public CCNumber(double value) {
     this.value = value;
   }
+}
 
+class CCString extends CCObject {
+  public String value;
+  public CCString(String value) {
+    this.value = value;
+  }
 }
 
 class CCList extends CCObject {
-
-  ArrayList<CCObject> list;
-
+  public ArrayList<CCObject> list;
   CCList(CCObject... args) {
     list = new ArrayList<CCObject>(Arrays.asList(args));
   }
-
 }
-
 """
 
   def Indent(self, string):
@@ -659,26 +669,60 @@ class CCList extends CCObject {
     dd = ''.join(map(self.Indent, declarations))
     mm = ''.join(map(self.Indent, methods))
 
-    return '\nclass CC%s extends CC%s\n{%s%s\n}' % (name, base, dd, mm)
+    ga = self.Indent(
+      "\npublic CCObject GetAttribute(String name) {\n" +
+      ''.join(
+      '  if (name.equals("%s"))\n'
+      "    return this.AA%s;\n" % (d.name, d.name) for d in declarations
+      ) + 
+      "  return super.GetAttribute(name);\n"
+      "}")
+    sa = self.Indent(
+      "\npublic CCObject SetAttribute(String name, CCObject value) {\n" +
+      ''.join(
+      '  if (name.equals("%s"))\n'
+      "    return this.AA%s = value;\n" % (d.name, d.name) for d in declarations
+      ) + 
+      "  return super.SetAttribute(name, value);\n"
+      "}")
+    im = self.Indent(
+      "\npublic CCObject InvokeMethod(String name, CCObject... args) {\n" +
+      ''.join(
+      '  if (name.equals("%s"))\n'
+      "    return this.MM%s(%s);\n" % (m.name, m.name, ', '.join('args[%d]' % i
+      for i in range(m.arglen))) for m in methods
+      ) + 
+      "  return super.InvokeMethod(name, args);\n"
+      "}")
+
+    return '\nclass CC%s extends CC%s\n{%s%s%s\n}' % (name, base, dd, mm, ga + sa + im)
 
   def AttributeDeclaration(self, origin, name, type_):
-    type_ = type_ or 'Object'
-    return '\nCC%s AA%s;' % (type_, name)
+    type_ = 'Object' # TODO: Change to type_ = type_ or 'Object'
+    decl = StringWithData('\npublic CC%s AA%s;' % (type_, name))
+    decl.name = name
+    return decl
 
   def Declaration(self, origin, name, type_):
-    type_ = type_ or 'Object'
+    type_ = 'Object' # TODO: Change to type_ = type_ or 'Object'
     return '\nCC%s XX%s;' % (type_, name)
 
   def StatementBlock(self, origin, statements):
     return '\n{' + ''.join(map(self.Indent, statements)) + '\n}'
 
   def Method(self, origin, name, args, return_type, body):
+    arglen = len(args)
     args = [(n, t or 'Object') for n, t in args]
-    args = ', '.join('CC%s XX%s' % (t, n) for n, t in args)
+    # TODO: Change to args = ', '.join('CC%s XX%s' % (t, n) for n, t in args)
+    args = ', '.join('CCObject XX%s' % n for n, _ in args)
 
-    return_type = return_type or 'Object'
+    return_type = 'Object' # TODO: Chante to return_type = return_type or 'Object'
 
-    return '\nCC%s MM%s(%s)%s' % (return_type, name, args, body)
+    m = StringWithData('\npublic CC%s MM%s(%s)%s' % (return_type, name, args, body))
+    m.name = name
+    m.arglen = arglen
+
+    return m
 
   def Return(self, origin, expression):
     return '\nreturn %s;' % expression
@@ -699,10 +743,10 @@ class CCList extends CCObject {
     return 'new CCList(%s)' % ', '.join(items)
 
   def GetAttribute(self, origin, owner, attribute):
-    return '(%s).AA%s' % (owner, attribute)
+    return '(%s).GetAttribute("%s")' % (owner, attribute)
 
   def MethodCall(self, origin, owner, attribute, arguments):
-    return '(%s).MM%s(%s)' % (owner, attribute, ', '.join(arguments))
+    return '(%s).InvokeMethod("%s", %s)' % (owner, attribute, ', '.join(arguments))
 
 ### Translator Tests
 
@@ -747,7 +791,7 @@ def Main():
     sys.stderr.write('usage: python %s [inputfile]\n' % sys.argv[0])
     exit(1)
 
-  sys.stdout.write(Translator(filespec, string).Translate())
+  sys.stdout.write(Translator(filespec, string).Translate() + '\n')
 
 
 if __name__ == '__main__':
