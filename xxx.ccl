@@ -20,5 +20,7 @@ class Origin
 #        this.Line(),
 #        ' '.Multiply(this.ColumnNumber().Subtract(1))])
 
-class Subclass : Origin
-  pass
+# class Subclass : Origin
+#   pass
+
+
