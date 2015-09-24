@@ -5,7 +5,7 @@ types
   list (python list)
   dict (python dict)
   lambda (represented as tuple of (ctx, node) pair)
-  builtin (represented as python object)
+  builtin (represented as python object none of the above)
 
 builtins define their own behavior when retrieving or assigning
 attributes, or when trying to call it like a function.
