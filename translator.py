@@ -283,4 +283,91 @@ class ParseError(CclError):
   pass
 
 
+# TODO: include origin data in parse tree.
+# I've already set origin_pointers to facilitate this,
+# but actually testing it is going to be a bit more annoying.
+class Parser(object):
+
+  def __init__(self, filespec, string):
+    self.filespec = filespec
+    self.string = string
+    self.tokens = Lex(filespec, string)
+    self.i = 0
+
+  def GetToken(self):
+    token = self.tokens[self.i]
+    self.i += 1
+    return token
+
+  def Peek(self, lookahead=0):
+    return self.tokens[self.i + lookahead]
+
+  def At(self, type, origin_pointer=None):
+    if self.Peek().type == type:
+      if origin_pointer:
+        origin_pointer[0] = self.Peek().origin
+      return True
+
+  def Consume(self, type, origin_pointer=None):
+    if self.At(type, origin_pointer):
+      return self.GetToken()
+
+  def Expect(self, type, origin_pointer=None):
+    if not self.At(type, origin_pointer):
+      raise ParseError(self.Peek(0).origin, 'Expected %s but found %s' % (type_, self.Peek(0).type))
+    return self.GetToken()
+
+  def EatStatementDelimiters(self):
+    while self.Consume('Newline') or self.Consume(';'):
+      pass
+
+  def ParseModule(self):
+    statements = []
+    origin = self.Peek().origin
+    while not self.Consume('End'):
+      statements.append(self.ParseStatement())
+      self.EatStatementDelimiters()
+    return {'type': 'Module', 'statements': statements}
+
+  def ParseStatement(self):
+    origin_pointer = [None]
+    if self.Consume('if', origin_pointer):
+      test = self.ParseExpression()
+      body = self.ParseStatementBlock()
+      other = None
+      if self.Consume('else'):
+        if self.At('if'):
+          other = self.ParseStatement()
+        else:
+          other = self.ParseStatementBlock()
+      return {'type': 'If', 'test': test, 'body': body, 'other': other}
+    elif self.Consume('while', origin_pointer):
+      test = self.ParseExpression()
+      body = self.ParseStatementBlock()
+      return {'type': 'While', 'test': test, 'body': body}
+    elif self.Consume('break', origin_pointer):
+      return {'type': 'Break'}
+    elif self.Consume('continue', origin_pointer):
+      return {'type': 'Continue'}
+    elif self.Continue('return', origin_pointer):
+      expr = None
+      if not self.At('Newline'):
+        expr = self.ParseExpression()
+      return {'type': 'Return', 'expression': expr}
+    else:
+      expr = self.ParseExpression()
+      return {'type': 'Expression', 'expression': expr}
+
+  def ParseStatementBlock(self):
+    origin_pointer = [None]
+    self.EatStatementDelimiters()
+    self.Expect('Indent', origin_pointer)
+    while not self.Consume('Dedent'):
+      statements.append(self.ParseStatement())
+      self.EatStatementDelimiters()
+    self.EatStatementDelimiters()
+    return {'type': 'Block', 'statements': statements}
+
+  def ParseExpression(self):
+    return self.ParseAssignExpression()
 
