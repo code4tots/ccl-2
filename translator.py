@@ -314,7 +314,7 @@ class Parser(object):
 
   def Expect(self, type, origin_pointer=None):
     if not self.At(type, origin_pointer):
-      raise ParseError(self.Peek(0).origin, 'Expected %s but found %s' % (type_, self.Peek(0).type))
+      raise ParseError(self.Peek(0).origin, 'Expected %s but found %s' % (type, self.Peek(0).type))
     return self.GetToken()
 
   def EatStatementDelimiters(self):
@@ -324,6 +324,7 @@ class Parser(object):
   def ParseModule(self):
     statements = []
     origin = self.Peek().origin
+    self.EatStatementDelimiters()
     while not self.Consume('End'):
       statements.append(self.ParseStatement())
       self.EatStatementDelimiters()
@@ -349,7 +350,7 @@ class Parser(object):
       return {'type': 'Break'}
     elif self.Consume('continue', origin_pointer):
       return {'type': 'Continue'}
-    elif self.Continue('return', origin_pointer):
+    elif self.Consume('return', origin_pointer):
       expr = None
       if not self.At('Newline'):
         expr = self.ParseExpression()
@@ -370,4 +371,83 @@ class Parser(object):
 
   def ParseExpression(self):
     return self.ParseAssignExpression()
+
+  def ParseAssignExpression(self):
+    return self.ParseExponentiationExpression()
+
+  def ParseExponentiationExpression(self):
+    origin_pointer = [None]
+    expr = self.ParsePostfixExpression()
+    if self.Consume('**', origin_pointer):
+      right = self.ParseExponentiationExpression()
+      return {'type': '__pow__', 'left': expr, 'right': right}
+    return expr
+
+  def ParsePostfixExpression(self):
+    origin_pointer = [None]
+    expr = self.ParsePrimaryExpression()
+    while True:
+      if self.Consume('(', origin_pointer):
+        args = []
+        while not self.Consume(')'):
+          args.append(self.ParseExpression())
+          self.Consume(',')
+        expr = {'type': '__call__', 'function': expr, 'arguments': args}
+      elif self.Consume('.', origin_pointer):
+        attr = self.Expect('Name').value
+        expr = {'type': '__getattr__', 'owner': expr, 'attribute': attr}
+      elif self.Consume('[', origin_pointer):
+        index = self.ParseExpression()
+        expr = {'type': '__getitem__', 'owner': expr, 'index': index}
+      else:
+        break
+    return expr
+
+  def ParsePrimaryExpression(self):
+    origin_pointer = [None]
+    if self.Consume('('):
+      expr = self.ParseExpression()
+      self.Consume(')')
+      return expr
+    elif self.At('Name', origin_pointer):
+      return {'type': 'Name', 'name': self.Expect('Name').value}
+    elif self.At('Number', origin_pointer):
+      return {'type': 'Number', 'value': self.Expect('Number').value}
+    elif self.At('String', origin_pointer):
+      return {'type': 'String', 'value': self.Expect('String').value}
+    elif self.Consume('[', origin_pointer):
+      items = []
+      while not self.Consume(']'):
+        items.append(self.ParseExpression())
+        self.Consume(',')
+      return {'type': 'List', 'items': items}
+    elif self.Consume('{', origin_pointer):
+      pairs = []
+      while not self.Consume('}'):
+        key = self.ParseExpression()
+        value = None
+        if self.Consume(':'):
+          value = self.ParseExpression()
+        self.Consume(',')
+        pairs.append((key, value))
+      return {'type': 'Dict', 'pairs': pairs}
+    else:
+      raise ParseError(self.Peek().origin, 'Expected expression but found ' + self.Peek().type)
+
+
+def Parse(filespec, string):
+  return Parser(filespec, string).ParseModule()
+
+### Parser Tests
+
+tree = Parse('<test>', '')
+assert tree == {'type': 'Module', 'statements': []}, tree
+
+tree = Parse('<test>', r"""
+hello
+""")
+assert tree == {'type': 'Module', 'statements': [
+    {'type': 'Expression', 'expression': {'type': 'Name', 'name': 'hello'}},
+]}, tree
+
 
