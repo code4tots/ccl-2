@@ -4,7 +4,10 @@ import sys
 
 ### Lexer
 
-SYMBOLS = ('.', '=', '(', ')', '[', ']', ',', ';', ':',)
+SYMBOLS = (
+  '(', ')', '[', ']', '{', '}',
+  '.', '=', ',', ';', ':', '\\',
+)
 KEYWORDS = (
   'class', 'lambda',
   'pass',
@@ -283,9 +286,6 @@ class ParseError(CclError):
   pass
 
 
-# TODO: include origin data in parse tree.
-# I've already set origin_pointers to facilitate this,
-# but actually testing it is going to be a bit more annoying.
 class Parser(object):
 
   def __init__(self, filespec, string):
@@ -328,7 +328,7 @@ class Parser(object):
     while not self.Consume('End'):
       statements.append(self.ParseStatement())
       self.EatStatementDelimiters()
-    return {'type': 'Module', 'statements': statements}
+    return {'type': 'Module', 'stmts': statements, 'origin': origin}
 
   def ParseStatement(self):
     origin_pointer = [None]
@@ -341,33 +341,46 @@ class Parser(object):
           other = self.ParseStatement()
         else:
           other = self.ParseStatementBlock()
-      return {'type': 'If', 'test': test, 'body': body, 'other': other}
+      return {'type': 'If', 'test': test, 'body': body, 'other': other, 'origin': origin_pointer[0]}
     elif self.Consume('while', origin_pointer):
       test = self.ParseExpression()
       body = self.ParseStatementBlock()
-      return {'type': 'While', 'test': test, 'body': body}
+      return {'type': 'While', 'test': test, 'body': body, 'origin': origin_pointer[0]}
     elif self.Consume('break', origin_pointer):
-      return {'type': 'Break'}
+      return {'type': 'Break', 'origin': origin_pointer[0]}
     elif self.Consume('continue', origin_pointer):
-      return {'type': 'Continue'}
+      return {'type': 'Continue', 'origin': origin_pointer[0]}
     elif self.Consume('return', origin_pointer):
       expr = None
       if not self.At('Newline'):
         expr = self.ParseExpression()
-      return {'type': 'Return', 'expression': expr}
+      return {'type': 'Return', 'expr': expr, 'origin': origin_pointer[0]}
+    elif self.Consume('var', origin_pointer):
+      decls = []
+      while True:
+        target = self.ParsePostfixExpression()
+        value = None
+        if self.Consume('='):
+          value = self.ParseExpression()
+        decls.append({'type': 'Declaration', 'target': target, 'value': value, 'origin': target['origin']})
+        if not self.Consume(','):
+          break
+      return {'type': 'Block', 'stmts': decls, 'origin': origin_pointer}
     else:
       expr = self.ParseExpression()
-      return {'type': 'Expression', 'expression': expr}
+      return {'type': 'Expression', 'expr': expr, 'origin': origin_pointer[0]}
 
   def ParseStatementBlock(self):
     origin_pointer = [None]
     self.EatStatementDelimiters()
     self.Expect('Indent', origin_pointer)
+    self.EatStatementDelimiters()
+    statements = []
     while not self.Consume('Dedent'):
       statements.append(self.ParseStatement())
       self.EatStatementDelimiters()
     self.EatStatementDelimiters()
-    return {'type': 'Block', 'statements': statements}
+    return {'type': 'Block', 'stmts': statements, 'origin': origin_pointer[0]}
 
   def ParseExpression(self):
     return self.ParseAssignExpression()
@@ -380,7 +393,7 @@ class Parser(object):
     expr = self.ParsePostfixExpression()
     if self.Consume('**', origin_pointer):
       right = self.ParseExponentiationExpression()
-      return {'type': '__pow__', 'left': expr, 'right': right}
+      return {'type': '__pow__', 'left': expr, 'right': right, 'origin': origin_pointer[0]}
     return expr
 
   def ParsePostfixExpression(self):
@@ -392,13 +405,13 @@ class Parser(object):
         while not self.Consume(')'):
           args.append(self.ParseExpression())
           self.Consume(',')
-        expr = {'type': '__call__', 'function': expr, 'arguments': args}
+        expr = {'type': '__call__', 'f': expr, 'args': args, 'origin': origin_pointer[0]}
       elif self.Consume('.', origin_pointer):
         attr = self.Expect('Name').value
-        expr = {'type': '__getattr__', 'owner': expr, 'attribute': attr}
+        expr = {'type': '__getattr__', 'owner': expr, 'attr': attr, 'origin': origin_pointer[0]}
       elif self.Consume('[', origin_pointer):
         index = self.ParseExpression()
-        expr = {'type': '__getitem__', 'owner': expr, 'index': index}
+        expr = {'type': '__getitem__', 'owner': expr, 'i': index, 'origin': origin_pointer[0]}
       else:
         break
     return expr
@@ -410,17 +423,17 @@ class Parser(object):
       self.Consume(')')
       return expr
     elif self.At('Name', origin_pointer):
-      return {'type': 'Name', 'name': self.Expect('Name').value}
+      return {'type': 'Name', 'name': self.Expect('Name').value, 'origin': origin_pointer[0]}
     elif self.At('Number', origin_pointer):
-      return {'type': 'Number', 'value': self.Expect('Number').value}
+      return {'type': 'Number', 'value': self.Expect('Number').value, 'origin': origin_pointer[0]}
     elif self.At('String', origin_pointer):
-      return {'type': 'String', 'value': self.Expect('String').value}
+      return {'type': 'String', 'value': self.Expect('String').value, 'origin': origin_pointer[0]}
     elif self.Consume('[', origin_pointer):
       items = []
       while not self.Consume(']'):
         items.append(self.ParseExpression())
         self.Consume(',')
-      return {'type': 'List', 'items': items}
+      return {'type': 'List', 'items': items, 'origin': origin_pointer[0]}
     elif self.Consume('{', origin_pointer):
       pairs = []
       while not self.Consume('}'):
@@ -430,7 +443,20 @@ class Parser(object):
           value = self.ParseExpression()
         self.Consume(',')
         pairs.append((key, value))
-      return {'type': 'Dict', 'pairs': pairs}
+      return {'type': 'Dict', 'pairs': pairs, 'origin': origin_pointer[0]}
+    elif self.Consume('\\', origin_pointer):
+      args = []
+      vararg = None
+      while self.At('Name'):
+        args.append(self.Expect('Name').value)
+        self.Consume(',')
+      if self.Consume('*'):
+        vararg = self.Expect('Name').value
+      if self.Consume('.'):
+        body = self.ParseExpression()
+      else:
+        body = self.ParseStatementBlock()
+      return {'type': 'Lambda', 'args': args, 'vararg': vararg, 'body': body, 'origin': origin_pointer[0]}
     else:
       raise ParseError(self.Peek().origin, 'Expected expression but found ' + self.Peek().type)
 
@@ -440,14 +466,425 @@ def Parse(filespec, string):
 
 ### Parser Tests
 
-tree = Parse('<test>', '')
-assert tree == {'type': 'Module', 'statements': []}, tree
+def Diff(left, right):
+  if type(left) != type(right):
+    return 'left side is type %s but right side is type %s' % tuple(map(type, (left, right)))
+  elif left is None:
+    return '' if right is None else 'left is None but right is %s' % right
+  elif type(left) == dict:
+    left = dict(left)
+    right = dict(right)
+    left.pop('origin', None)
+    right.pop('origin', None)
+    if left['type'] != right['type']:
+      return 'Type of left is %s but type of right is %s' % (left['type'], right['type'])
+    for key in left.keys():
+      if key not in right:
+        return 'Key %r is in left but not in right' % key
+    for key in right.keys():
+      if key not in left:
+        return 'Key %r is in right but not in left' % key
+    for key in left.keys():
+      diff = Diff(left[key], right[key])
+      if diff:
+        return 'For key element %s\n%s' % (key, diff)
+    return ''
+  elif type(left) == float:
+    return '' if left == right else 'left is %f but right is %f' % (left, right)
+  elif type(left) == str:
+    return '' if left == right else 'left is %s but right is %s' % (left, right)
+  elif type(left) == tuple:
+    i = 0
+    while i < min(len(left), len(right)):
+      diff = Diff(left[i], right[i])
+      if diff:
+        return 'On tuple element %d\n' % i + diff
+      i += 1
+    if len(left) < len(right):
+      return 'left has no more elements but right has %s' % right[i]
+    if len(right) < len(left):
+      return 'right has no more elements but left has %s' % left[i]
+    return ''
+  elif type(left) == list:
+    i = 0
+    while i < min(len(left), len(right)):
+      diff = Diff(left[i], right[i])
+      if diff:
+        return 'On list element %d\n' % i + diff
+      i += 1
+    if len(left) < len(right):
+      return 'left has no more elements but right has %s' % right[i]
+    if len(right) < len(left):
+      return 'right has no more elements but left has %s' % left[i]
+    return ''
+  return 'unrecognized type %s' % type(left)
 
-tree = Parse('<test>', r"""
+node = Parse('<test>', '')
+diff = Diff(node, {'type': 'Module', 'stmts': []})
+assert not diff, diff
+
+node = Parse('<test>', r"""
 hello
 """)
-assert tree == {'type': 'Module', 'statements': [
-    {'type': 'Expression', 'expression': {'type': 'Name', 'name': 'hello'}},
-]}, tree
+diff = Diff(node, {'type': 'Module', 'stmts': [
+    {'type': 'Expression', 'expr': {'type': 'Name', 'name': 'hello'}},
+]})
+assert not diff, diff
 
+node = Parse('<test>', r"""
+hello(1, 2, 3)
+""")
+diff = Diff(node, {'type': 'Module', 'stmts': [
+    {'type': 'Expression', 'expr': {'type': '__call__',
+        'f': {'type': 'Name', 'name': 'hello'},
+        'args': [
+            {'type': 'Number', 'value': 1.0},
+            {'type': 'Number', 'value': 2.0},
+            {'type': 'Number', 'value': 3.0},
+        ]}},
+]})
+assert not diff, diff
+
+node = Parse('<test>', r"""
+if 1
+  2
+else
+  3
+""")
+diff = Diff(node, {'type': 'Module', 'stmts': [
+    {'type': 'If',
+        'test': {'type': 'Number', 'value': 1.0},
+        'body': {'type': 'Block', 'stmts':[
+            {'type': 'Expression', 'expr': {'type': 'Number', 'value': 2.0}},
+        ]},
+        'other': {'type': 'Block', 'stmts': [
+            {'type': 'Expression', 'expr': {'type': 'Number', 'value': 3.0}},
+        ]},
+    },
+]})
+assert not diff, diff
+
+node = Parse('<test>', r"""
+while 1
+  continue
+  break
+  [1, 2, 3]
+""")
+diff = Diff(node, {'type': 'Module', 'stmts': [
+    {'type': 'While',
+        'test': {'type': 'Number', 'value': 1.0},
+        'body': {'type': 'Block', 'stmts':[
+            {'type': 'Continue'},
+            {'type': 'Break'},
+            {'type': 'Expression', 'expr': {'type': 'List', 'items': [
+                {'type': 'Number', 'value': 1.0},
+                {'type': 'Number', 'value': 2.0},
+                {'type': 'Number', 'value': 3.0},
+            ]}}
+        ]},
+    },
+]})
+assert not diff, diff
+
+node = Parse('<test>', r"""
+var x = \ a b c
+  return x
+""")
+diff = Diff(node, {'type': 'Module', 'stmts': [
+    {'type': 'Block', 'stmts': [
+        {'type': 'Declaration',
+            'target': {'type': 'Name', 'name': 'x'},
+            'value': {'type': 'Lambda', 'args': ['a', 'b', 'c'], 'vararg': None,
+                'body': {'type': 'Block', 'stmts': [
+                    {'type': 'Return', 'expr': {'type': 'Name', 'name': 'x'}},
+                ]}}}
+    ]},
+]})
+assert not diff, diff
+
+
+### ToJava
+
+def SanitizeStringForJava(string):
+  return '"%s"' % string.replace('"', '\\"').replace('\n', '\\n')
+
+def TranslateNodeToJava(node):
+  if node is None:
+    return 'null'
+  elif type(node) == float:
+    return 'new Num(%f)' % str(node)
+  elif type(node) == str:
+    return 'new Str(%s)' % SanitizeStringForJava(node)
+  elif type(node) == list:
+    return 'new List(%s)' % ', '.join(map(TranslateNodeToJava, node))
+  elif type(node) == dict:
+    return 'new Dict(%s)' % ', '.join('%s, %s' % tuple(map(TranslateNodeToJava, (k, v))) for k, v in node.items())
+  elif type(node) == Origin:
+    return 'new Origin(FILESPEC, SOURCE, %d)' % node.position
+  else:
+    raise TypeError('Unrecognized TranslateNodeToJava type %s (%r)' % (type(node), node))
+
+
+def TranslateModuleToJava(filespec, string):
+  node = Parse(filespec, string)
+  return r"""
+    {
+      final String FILESPEC = %s;
+      final String SOURCE = %s;
+      CODE_REGISTRY.setitem(FILESPEC, %s);
+    }
+    """ % (SanitizeStringForJava(filespec), SanitizeStringForJava(string), TranslateNodeToJava(node))
+
+JAVA_TEMPLATE = r"""
+public class Ccl {
+
+  public static class Obj {
+    public boolean equalsStr(String string) {
+      return equals(new Str(string));
+    }
+    public void setitem(Obj key, Obj value) {
+      throw new RuntimeException(getClass().getName() + ".setitem");
+    }
+    public void setitem(String key, Obj value) {
+      setitem(new Str(key), value);
+    }
+    public void setitem(Integer key, Obj value) {
+      setitem(new Num(key.doubleValue()), value);
+    }
+    public Obj getitem(Obj key) {
+      throw new RuntimeException(getClass().getName() + ".getitem");
+    }
+    public Obj getitem(String key) {
+      return getitem(new Str(key));
+    }
+    public Obj getitem(Integer key) {
+      return getitem(new Num(key.doubleValue()));
+    }
+    public boolean contains(Obj key) {
+      throw new RuntimeException(getClass().getName() + ".contains");
+    }
+    public boolean contains(String key) {
+      return contains(new Str(key));
+    }
+    public int size() {
+      throw new RuntimeException(getClass().getName() + ".size");
+    }
+  }
+
+  public static class Num extends Obj {
+    final public Double value;
+    public Num(Double number) {
+      value = number;
+    }
+    public int hashCode() {
+      return value.hashCode();
+    }
+    public boolean equals(Object other) {
+      if (!(other instanceof Num))
+        return false;
+      return ((Num) other).value.equals(value);
+    }
+  }
+
+  public static class Str extends Obj {
+    final public String value;
+    public Str(String string) {
+      value = string;
+    }
+    public String toString() {
+      return value;
+    }
+    public int hashCode() {
+      return value.hashCode();
+    }
+    public boolean equals(Object other) {
+      if (!(other instanceof Str))
+        return false;
+      return ((Str) other).value.equals(value);
+    }
+  }
+
+  public static class List extends Obj {
+    final public java.util.ArrayList<Obj> value = new java.util.ArrayList<Obj>();
+    public List(Obj... args) {
+      for (int i = 0; i < args.length; i++)
+        value.add(args[i]);
+    }
+    public int hashCode() {
+      // Java's ArrayList comes with non-trivial hashCode.
+      return value.hashCode();
+    }
+    public boolean equals(Object other) {
+      if (!(other instanceof List))
+        return false;
+      return ((List) other).value.equals(value);
+    }
+    public int size() {
+      return value.size();
+    }
+    public Obj getitem(Obj key) {
+      return value.get(((Num) key).value.intValue());
+    }
+  }
+
+  public static class Dict extends Obj {
+    final public java.util.HashMap<Obj, Obj> value = new java.util.HashMap<Obj, Obj>();
+    public Dict(Obj... args) {
+      for (int i = 0; i < args.length; i += 2)
+        value.put(args[i], args[i+1]);
+    }
+    public int hashCode() {
+      // Java's HashMap comes with non-trivial hashCode.
+      return value.hashCode();
+    }
+    public boolean equals(Object other) {
+      if (!(other instanceof List))
+        return false;
+      return ((List) other).value.equals(value);
+    }
+    public void setitem(Obj key, Obj value) {
+      this.value.put(key, value);
+    }
+    public Obj getitem(Obj key) {
+      if (!value.containsKey(key))
+        throw new RuntimeException("Dict.getitem no key: " + key.toString());
+      return value.get(key);
+    }
+    public boolean contains(Obj key) {
+      return value.containsKey(key);
+    }
+  }
+
+  public static class Lambda extends Obj {
+    // For Lambda, it is sufficient to inherit 'hashCode' and 'equals' from Object.
+    final public Obj context;
+    final public Obj node;
+    public Lambda(Obj context, Obj node) {
+      this.context = context;
+      this.node = node;
+    }
+  }
+
+  public static class Origin extends Obj {
+    final public String filespec;
+    final public String string;
+    final public Integer position;
+    public Origin(String fs, String s, Integer pos) {
+      filespec = fs;
+      string = s;
+      position = pos;
+    }
+    public int hashCode() {
+      return position;
+    }
+    public boolean equals(Object other) {
+      if (!(other instanceof Origin))
+        return false;
+      Origin ot = (Origin) other;
+      return filespec.equals(ot.filespec) && string.equals(ot.string) && position.equals(ot.position);
+    }
+  }
+
+  // Other other subclasses...
+  public static class Builtin extends Obj {
+    
+  }
+
+  public final String MAIN_FILESPEC = %s;
+  public final Dict CODE_REGISTRY = new Dict();
+
+  public Ccl() {
+%s
+  }
+
+  public Obj getRootContext() {
+    return new Dict();
+  }
+
+  public void run() {
+    run(CODE_REGISTRY.getitem(MAIN_FILESPEC));
+  }
+
+  public void run(Obj node) {
+    eval(getRootContext(), node);
+  }
+
+  public Obj findContext(Obj context, Obj name) {
+    if (context.contains(name))
+      return context;
+    else if (context.contains("__parent__"))
+      return findContext(context.getitem("__parent__"), name);
+    else
+      throw new RuntimeException("Name " + name.toString() + " not defined");
+  }
+
+  public void assign(Obj context, Obj target, Obj value, boolean isDeclaration) {
+    Obj type = target.getitem("type");
+    if (type.equalsStr("Name")) {
+      Obj name = target.getitem("name");
+      if (isDeclaration)
+        context.setitem(name, new Num(0.0));
+      if (value != null)
+        findContext(context, name).setitem(name, value);
+      return;
+    }
+    throw new RuntimeException("Type " + type.toString() + " is not assingable");
+  }
+
+  public Obj eval(Obj context, Obj node) {
+    Obj type = node.getitem("type");
+    if (type.equalsStr("Module")) {
+      Obj stmts = node.getitem("stmts");
+      Obj last = new Num(0.0);
+      for (int i = 0; i < stmts.size(); i++)
+        last = eval(context, stmts.getitem(i));
+      return last;
+    }
+    else if (type.equalsStr("Block")) {
+      Obj stmts = node.getitem("stmts");
+      Obj last = new Num(0.0);
+      for (int i = 0; i < stmts.size(); i++)
+        last = eval(context, stmts.getitem(i));
+      return last;
+    }
+    else if (type.equalsStr("Declaration")) {
+      Obj target = node.getitem("target");
+      Obj value = eval(context, node.getitem("value"));
+      assign(context, target, value, true);
+      return value;
+    }
+    else if (type.equalsStr("Expression")) {
+      return eval(context, node.getitem("expr"));
+    }
+    else if (type.equalsStr("Name")) {
+      return findContext(context, type).getitem(type);
+    }
+    else if (type.equalsStr("Lambda")) {
+      return new Lambda(context, node);
+    }
+    else {
+      throw new RuntimeException("Unrecognized eval node type: " + type.toString());
+    }
+  }
+
+  public static void main(String[] args) {
+    new Ccl().run();
+  }
+}
+"""
+
+def TranslateToJava(filespec, string):
+  # TODO: Multiple modules.
+  return JAVA_TEMPLATE % (SanitizeStringForJava(filespec), TranslateModuleToJava(filespec, string))
+
+
+translation = TranslateToJava('<test>', r"""
+var main = \
+  print("Hello world!")
+
+main()
+
+""")
+
+print(translation)
 
