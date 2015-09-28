@@ -64,12 +64,13 @@ public class Xccl {
     public Obj call(Obj... args) { throw getException(); }
 
     // To java types
-    public boolean equals(Object r) { return eq((Obj) r).toBoolean(); }
+    public int hashCode() { return 0; }
+    public boolean equals(Object r) { return (r instanceof Obj) && eq((Obj) r).toBoolean(); }
     public RuntimeException getException() { return new RuntimeException(getClass().getName()); }
-    public Boolean toBoolean() { return ((Bool) truth()).value; }
+    public Boolean toBoolean() { return truth().toBoolean(); }
     public Double toDouble() { throw getException(); }
     public Integer toInteger() { return toDouble().intValue(); }
-    public String toString() { return ((Str) str()).value; }
+    public String toString() { return str().toString(); }
     public java.util.ArrayList<Obj> toArrayList() { throw getException(); }
   }
 
@@ -77,32 +78,98 @@ public class Xccl {
   }
 
   public static class Bool extends Obj {
-    public final Boolean value;
+    private final Boolean value;
     public Bool(Boolean b) { value = b; }
+
+    public Boolean toBoolean() { return value; }
   }
 
   public static class Num extends Obj {
-    public final Double value;
+    private final Double value;
     public Num(Double d) { value = d; }
     public Num(Integer i) { value = i.doubleValue(); }
+
+    public Double toDouble() { return value; }
   }
 
   public static class Str extends Obj {
-    public final String value;
+    private final String value;
     public Str(String s) { value = s; }
+
+    public Obj truth() { return X(value.length() > 0); }
+
+    public Obj eq(Obj r) { return X((r instanceof Str) && (r.toString().equals(value))); }
+    public Obj lt(Obj r) { throw getException(); }
+
+    public Obj add(Obj r) { throw getException(); }
+    public Obj mod(Obj r) { throw getException(); }
+
+    public Obj iadd(Obj r) { throw getException(); }
+
+    public Obj size() { return X(value.length()); }
+    public Obj getitem(Obj k) { throw getException(); }
+    public Obj setitem(Obj k, Obj v) { throw getException(); }
+
+    public Obj push(Obj v) { throw getException(); }
+    public Obj pop() { throw getException(); }
+
+    public Obj contains(Obj k) { throw getException(); }
+
+    public Obj str() { return this; }
+    public Obj repr() { return X(value.replace("\"", "\\\"").replace("\n", "\\n")); }
+
     public String toString() { return value; }
   }
 
   public static class List extends Obj {
-    public final java.util.ArrayList<Obj> value = new java.util.ArrayList<Obj>();
+    private final java.util.ArrayList<Obj> value = new java.util.ArrayList<Obj>();
     public List(Obj... args) {
       for (int i = 0; i < args.length; i++)
         value.add(args[i]);
     }
+
+    public Obj truth() { return X(value.size() > 0); }
+
+    public Obj eq(Obj r) { throw getException(); }
+    public Obj ne(Obj r) { return eq(r).not(); }
+    public Obj lt(Obj r) { throw getException(); }
+    public Obj le(Obj r) { throw getException(); }
+    public Obj gt(Obj r) { throw getException(); }
+    public Obj ge(Obj r) { throw getException(); }
+
+    public Obj add(Obj r) { throw getException(); }
+    public Obj sub(Obj r) { throw getException(); }
+    public Obj mul(Obj r) { throw getException(); }
+    public Obj div(Obj r) { throw getException(); }
+    public Obj mod(Obj r) { throw getException(); }
+    public Obj pow(Obj r) { throw getException(); }
+    public Obj abs() { throw getException(); }
+    public Obj neg() { throw getException(); }
+
+    public Obj iadd(Obj r) { throw getException(); }
+
+    public Obj size() { return X(value.size()); }
+    public Obj getitem(Obj k) { return value.get(k.toInteger()); }
+    public Obj setitem(Obj k, Obj v) { throw getException(); }
+
+    public Obj getattr(Obj k) { throw getException(); }
+    public Obj setattr(Obj k, Obj v) { throw getException(); }
+
+    public Obj push(Obj v) { throw getException(); }
+    public Obj pop() { throw getException(); }
+    public Obj pop(Obj k) { throw getException(); }
+
+    public Obj contains(Obj k) { throw getException(); }
+
+    public Obj str() { return repr(); }
+    public Obj repr() { throw getException(); }
+
+    public Obj call(Obj... args) { throw getException(); }
+
   }
 
   public static class Dict extends Obj {
-    public final java.util.HashMap<Obj, Obj> value = new java.util.HashMap<Obj, Obj>();
+    private final java.util.HashMap<Obj, Obj> value = new java.util.HashMap<Obj, Obj>();
     public Dict(Obj... args) {
       if (args.length % 2 != 0)
         throw new RuntimeException("Dict constructor requires an even number of arguments");
@@ -118,7 +185,7 @@ public class Xccl {
 
     public Obj iadd(Obj r) { throw getException(); }
 
-    public Obj size() { throw getException(); }
+    public Obj size() { return X(value.size()); }
     public Obj getitem(Obj k) { if (value.containsKey(k)) return value.get(k); else throw getException(); }
     public Obj setitem(Obj k, Obj v) { return value.put(k, v); }
 
@@ -150,6 +217,24 @@ public class Xccl {
   }
 
   public void run() {
+    eval(getRootContext(), CODE_REGISTRY.getitem(MAIN_FILESPEC));
+  }
+
+  public Obj getRootContext() {
+    return D();
+  }
+
+  public Obj eval(Obj context, Obj node) {
+    Obj type = node.getitem(X("type"));
+    if (type.eq(X("Module")).toBoolean()) {
+      Obj last = X(0);
+      Obj stmts = node.getitem(X("stmts"));
+      int bound = stmts.size().toInteger();
+      for (int i = 0; i < bound; i++)
+        last = eval(context, stmts.getitem(X(i)));
+      return last;
+    }
+    throw new RuntimeException("Unrecognized node: " + type.toString());
   }
   // Lexer
 
