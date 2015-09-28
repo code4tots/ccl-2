@@ -15,6 +15,8 @@ KEYWORDS = (
   'return',
   'while', 'break', 'continue',
   'if', 'else',
+  'nil',
+  'true', 'false',
 )
 
 
@@ -424,6 +426,12 @@ class Parser(object):
       return expr
     elif self.At('Name', origin_pointer):
       return {'type': 'Name', 'name': self.Expect('Name').value, 'origin': origin_pointer[0]}
+    elif self.Consume('nil', origin_pointer):
+      return {'type': 'nil', 'origin': origin_pointer[0]}
+    elif self.Consume('true', origin_pointer):
+      return {'type': 'true', 'origin': origin_pointer[0]}
+    elif self.Consume('false', origin_pointer):
+      return {'type': 'false', 'origin': origin_pointer[0]}
     elif self.At('Number', origin_pointer):
       return {'type': 'Number', 'value': self.Expect('Number').value, 'origin': origin_pointer[0]}
     elif self.At('String', origin_pointer):
@@ -610,17 +618,17 @@ def SanitizeStringForJava(string):
 
 def TranslateNodeToJava(node):
   if node is None:
-    return 'null'
+    return 'NIL'
   elif type(node) == float:
-    return 'new Num(%f)' % str(node)
+    return 'X(%f)' % str(node)
   elif type(node) == str:
-    return 'new Str(%s)' % SanitizeStringForJava(node)
+    return 'X(%s)' % SanitizeStringForJava(node)
   elif type(node) == list:
-    return 'new List(%s)' % ', '.join(map(TranslateNodeToJava, node))
+    return 'A(%s)' % ', '.join(map(TranslateNodeToJava, node))
   elif type(node) == dict:
-    return 'new Dict(%s)' % ', '.join('%s, %s' % tuple(map(TranslateNodeToJava, (k, v))) for k, v in node.items())
+    return 'D(%s)' % ', '.join('%s, %s' % tuple(map(TranslateNodeToJava, (k, v))) for k, v in node.items())
   elif type(node) == Origin:
-    return 'new Origin(FILESPEC, SOURCE, %d)' % node.position
+    return 'D(X("filespec"), FILESPEC, X("source"), SOURCE, X("position"), X(%d))' % node.position
   else:
     raise TypeError('Unrecognized TranslateNodeToJava type %s (%r)' % (type(node), node))
 
@@ -629,242 +637,18 @@ def TranslateModuleToJava(filespec, string):
   node = Parse(filespec, string)
   return r"""
     {
-      final String FILESPEC = %s;
-      final String SOURCE = %s;
+      final Obj FILESPEC = X(%s);
+      final Obj SOURCE = X(%s);
       CODE_REGISTRY.setitem(FILESPEC, %s);
     }
     """ % (SanitizeStringForJava(filespec), SanitizeStringForJava(string), TranslateNodeToJava(node))
 
 JAVA_TEMPLATE = r"""
-public class Ccl {
-
-  public static class Obj {
-    public boolean equalsStr(String string) {
-      return equals(new Str(string));
-    }
-    public void setitem(Obj key, Obj value) {
-      throw new RuntimeException(getClass().getName() + ".setitem");
-    }
-    public void setitem(String key, Obj value) {
-      setitem(new Str(key), value);
-    }
-    public void setitem(Integer key, Obj value) {
-      setitem(new Num(key.doubleValue()), value);
-    }
-    public Obj getitem(Obj key) {
-      throw new RuntimeException(getClass().getName() + ".getitem");
-    }
-    public Obj getitem(String key) {
-      return getitem(new Str(key));
-    }
-    public Obj getitem(Integer key) {
-      return getitem(new Num(key.doubleValue()));
-    }
-    public boolean contains(Obj key) {
-      throw new RuntimeException(getClass().getName() + ".contains");
-    }
-    public boolean contains(String key) {
-      return contains(new Str(key));
-    }
-    public int size() {
-      throw new RuntimeException(getClass().getName() + ".size");
-    }
-  }
-
-  public static class Num extends Obj {
-    final public Double value;
-    public Num(Double number) {
-      value = number;
-    }
-    public int hashCode() {
-      return value.hashCode();
-    }
-    public boolean equals(Object other) {
-      if (!(other instanceof Num))
-        return false;
-      return ((Num) other).value.equals(value);
-    }
-  }
-
-  public static class Str extends Obj {
-    final public String value;
-    public Str(String string) {
-      value = string;
-    }
-    public String toString() {
-      return value;
-    }
-    public int hashCode() {
-      return value.hashCode();
-    }
-    public boolean equals(Object other) {
-      if (!(other instanceof Str))
-        return false;
-      return ((Str) other).value.equals(value);
-    }
-  }
-
-  public static class List extends Obj {
-    final public java.util.ArrayList<Obj> value = new java.util.ArrayList<Obj>();
-    public List(Obj... args) {
-      for (int i = 0; i < args.length; i++)
-        value.add(args[i]);
-    }
-    public int hashCode() {
-      // Java's ArrayList comes with non-trivial hashCode.
-      return value.hashCode();
-    }
-    public boolean equals(Object other) {
-      if (!(other instanceof List))
-        return false;
-      return ((List) other).value.equals(value);
-    }
-    public int size() {
-      return value.size();
-    }
-    public Obj getitem(Obj key) {
-      return value.get(((Num) key).value.intValue());
-    }
-  }
-
-  public static class Dict extends Obj {
-    final public java.util.HashMap<Obj, Obj> value = new java.util.HashMap<Obj, Obj>();
-    public Dict(Obj... args) {
-      for (int i = 0; i < args.length; i += 2)
-        value.put(args[i], args[i+1]);
-    }
-    public int hashCode() {
-      // Java's HashMap comes with non-trivial hashCode.
-      return value.hashCode();
-    }
-    public boolean equals(Object other) {
-      if (!(other instanceof List))
-        return false;
-      return ((List) other).value.equals(value);
-    }
-    public void setitem(Obj key, Obj value) {
-      this.value.put(key, value);
-    }
-    public Obj getitem(Obj key) {
-      if (!value.containsKey(key))
-        throw new RuntimeException("Dict.getitem no key: " + key.toString());
-      return value.get(key);
-    }
-    public boolean contains(Obj key) {
-      return value.containsKey(key);
-    }
-  }
-
-  public static class Lambda extends Obj {
-    // For Lambda, it is sufficient to inherit 'hashCode' and 'equals' from Object.
-    final public Obj context;
-    final public Obj node;
-    public Lambda(Obj context, Obj node) {
-      this.context = context;
-      this.node = node;
-    }
-  }
-
-  public static class Origin extends Obj {
-    final public String filespec;
-    final public String string;
-    final public Integer position;
-    public Origin(String fs, String s, Integer pos) {
-      filespec = fs;
-      string = s;
-      position = pos;
-    }
-    public int hashCode() {
-      return position;
-    }
-    public boolean equals(Object other) {
-      if (!(other instanceof Origin))
-        return false;
-      Origin ot = (Origin) other;
-      return filespec.equals(ot.filespec) && string.equals(ot.string) && position.equals(ot.position);
-    }
-  }
-
-  // Other other subclasses...
-  public static class Builtin extends Obj {
-    
-  }
-
-  public final String MAIN_FILESPEC = %s;
-  public final Dict CODE_REGISTRY = new Dict();
+public class Ccl extends Xccl {
 
   public Ccl() {
+    super(X(%s));
 %s
-  }
-
-  public Obj getRootContext() {
-    return new Dict();
-  }
-
-  public void run() {
-    run(CODE_REGISTRY.getitem(MAIN_FILESPEC));
-  }
-
-  public void run(Obj node) {
-    eval(getRootContext(), node);
-  }
-
-  public Obj findContext(Obj context, Obj name) {
-    if (context.contains(name))
-      return context;
-    else if (context.contains("__parent__"))
-      return findContext(context.getitem("__parent__"), name);
-    else
-      throw new RuntimeException("Name " + name.toString() + " not defined");
-  }
-
-  public void assign(Obj context, Obj target, Obj value, boolean isDeclaration) {
-    Obj type = target.getitem("type");
-    if (type.equalsStr("Name")) {
-      Obj name = target.getitem("name");
-      if (isDeclaration)
-        context.setitem(name, new Num(0.0));
-      if (value != null)
-        findContext(context, name).setitem(name, value);
-      return;
-    }
-    throw new RuntimeException("Type " + type.toString() + " is not assingable");
-  }
-
-  public Obj eval(Obj context, Obj node) {
-    Obj type = node.getitem("type");
-    if (type.equalsStr("Module")) {
-      Obj stmts = node.getitem("stmts");
-      Obj last = new Num(0.0);
-      for (int i = 0; i < stmts.size(); i++)
-        last = eval(context, stmts.getitem(i));
-      return last;
-    }
-    else if (type.equalsStr("Block")) {
-      Obj stmts = node.getitem("stmts");
-      Obj last = new Num(0.0);
-      for (int i = 0; i < stmts.size(); i++)
-        last = eval(context, stmts.getitem(i));
-      return last;
-    }
-    else if (type.equalsStr("Declaration")) {
-      Obj target = node.getitem("target");
-      Obj value = eval(context, node.getitem("value"));
-      assign(context, target, value, true);
-      return value;
-    }
-    else if (type.equalsStr("Expression")) {
-      return eval(context, node.getitem("expr"));
-    }
-    else if (type.equalsStr("Name")) {
-      return findContext(context, type).getitem(type);
-    }
-    else if (type.equalsStr("Lambda")) {
-      return new Lambda(context, node);
-    }
-    else {
-      throw new RuntimeException("Unrecognized eval node type: " + type.toString());
-    }
   }
 
   public static void main(String[] args) {
