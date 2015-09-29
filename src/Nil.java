@@ -16,9 +16,22 @@ public class Nil extends Obj {
         return X("nil");
       }
     });
+
+    TYPE.setattr("__hash__", new Function("nil.__hash__") {
+      public Obj call(Obj... args) {
+        return X(0);
+      }
+    });
+
+    TYPE.setattr("__eq__", new Function("nil.__eq__") {
+      public Obj call(Obj... args) {
+        return X(args[1] instanceof Nil);
+      }
+    });
   }
 
   public static void main(String[] args) {
     assert NIL.toString().equals("nil"): NIL.toString();
+    assert NIL.equals(NIL);
   }
 }

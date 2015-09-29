@@ -5,14 +5,25 @@ public class Bool extends Obj {
   public static final Obj TRUE = new Bool(true);
   public static final Obj FALSE = new Bool(false);
 
-  private final boolean value;
+  private final Boolean value;
 
-  private Bool(boolean value) {
+  private Bool(Boolean value) {
     super(TYPE);
     this.value = value;
   }
 
-  public boolean toBoolean() {
+  public Boolean toBoolean() {
     return value;
+  }
+
+  static {
+    TYPE.setattr("__hash__", new Function("bool.__hash__") {
+      public Obj call(Obj... args) {
+        return X(args[0].toBoolean().hashCode());
+      }
+    });
+  }
+
+  public static void main(String[] args) {
   }
 }

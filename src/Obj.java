@@ -1,4 +1,4 @@
-// Quick test: javac -Xlint *.java && java -ea Nil
+// Quick test: javac -Xlint *.java && java -ea Obj
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,13 +24,13 @@ public class Obj {
   public static final Obj DICT_TYPE = Dict.TYPE;
   public static final Obj FUNCTION_TYPE = Function.TYPE;
   public static final Obj METHOD_TYPE = Method.TYPE;
-
-  public static final Obj LAMBDA_TYPE = new Obj(TYPE_TYPE);
+  public static final Obj LAMBDA_TYPE = Lambda.TYPE;
 
   public static final Obj NIL = Nil.NIL;
   public static final Obj TRUE = Bool.TRUE;
   public static final Obj FALSE = Bool.FALSE;
 
+  public static Obj X(Boolean x) { return x ? TRUE : FALSE; }
   public static Obj X(Integer x) { return Num.X(x); }
   public static Obj X(Double x) { return Num.X(x); }
   public static Obj X(String x) { return Str.X(x); }
@@ -65,10 +65,25 @@ public class Obj {
     this.type = type;
   }
 
+  public boolean hasattr(String name) {
+    return getattr(name) != null;
+  }
+
   public Obj getattr(String name) {
     Obj attr = attrs.get(name);
     if (attr == null) {
       attr = type.attrs.get(name);
+      if (attr == null) {
+        Obj mroobj = type.attrs.get("__mro__");
+        if (mroobj != null) {
+          ArrayList<Obj> mro = mroobj.toArrayList();
+          for (int i = 0; i < mro.size(); i++) {
+            attr = mro.get(i).attrs.get(name);
+            if (attr != null)
+              break;
+          }
+        }
+      }
       if (attr instanceof Callable)
         attr = M(this, attr);
     }
@@ -97,7 +112,10 @@ public class Obj {
   }
 
   public final int hashCode() {
-    return toInteger();
+    Obj x = m("__hash__");
+    if (!(x instanceof Num))
+      throw err("__hash__ must return an instnce of num");
+    return x.toInteger();
   }
 
   public final boolean equals(Object other) {
@@ -107,7 +125,7 @@ public class Obj {
   }
 
   // Should only be overriden by Bool. Otherwise should be considered final.
-  public boolean toBoolean() {
+  public Boolean toBoolean() {
     Obj x = m("__bool__");
     if (!(x instanceof Bool))
       throw err("__bool__ must return an instance of bool");
@@ -137,6 +155,17 @@ public class Obj {
   // Should only be overriden by List. Otherwise should be considered final.
   public ArrayList<Obj> toArrayList() {
     throw err("Convertion ot ArrayList not supported");
+  }
+
+  public static void main(String[] args) {
+    Nil.main(args);
+    Bool.main(args);
+    Num.main(args);
+    Str.main(args);
+    List.main(args);
+    Dict.main(args);
+    Function.main(args);
+    Method.main(args);
   }
 }
 
