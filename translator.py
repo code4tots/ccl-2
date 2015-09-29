@@ -639,7 +639,7 @@ def TranslateModuleToJava(filespec, string):
     {
       final Obj FILESPEC = X(%s);
       final Obj SOURCE = X(%s);
-      CODE_REGISTRY.setitem(FILESPEC, %s);
+      CODE_REGISTRY.getattr("__setitem__").call(FILESPEC, %s);
     }
     """ % (SanitizeStringForJava(filespec), SanitizeStringForJava(string), TranslateNodeToJava(node))
 
