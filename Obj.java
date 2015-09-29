@@ -72,6 +72,15 @@ public class Obj {
       }
     });
 
+    NUM_TYPE.setattr(X("__add__"), new Function() {
+      public Obj call(Obj... args) {
+        requireExactArgs(2, args);
+        requireInstanceOf(args[0], NUM_TYPE);
+        requireInstanceOf(args[1], NUM_TYPE);
+        return X(args[0].toDouble() + args[1].toDouble());
+      }
+    });
+
     // Note, Str.toString will not actually call this.
     STR_TYPE.setattr(X("__str__"), new Function() {
       public Obj call(Obj... args) {
@@ -88,10 +97,54 @@ public class Obj {
       } 
     });
 
+    LIST_TYPE.setattr(X("size"), new Function() {
+      public Obj call(Obj... args) {
+        requireExactArgs(1, args);
+        requireInstanceOf(args[0], LIST_TYPE);
+        return X(args[0].toArrayList().size());
+      } 
+    });
+
+    LIST_TYPE.setattr(X("__setitem__"), new Function() {
+      public Obj call(Obj... args) {
+        requireExactArgs(3, args);
+        requireInstanceOf(args[0], LIST_TYPE);
+        requireInstanceOf(args[1], NUM_TYPE);
+        args[0].toArrayList().set(args[1].toInteger(), args[2]);
+        return NIL;
+      } 
+    });
+
+    LIST_TYPE.setattr(X("__getitem__"), new Function() {
+      public Obj call(Obj... args) {
+        requireExactArgs(2, args);
+        requireInstanceOf(args[0], LIST_TYPE);
+        requireInstanceOf(args[1], NUM_TYPE);
+        return args[0].toArrayList().get(args[1].toInteger());
+      } 
+    });
+
     DICT_TYPE.setattr(X("__str__"), new Function() {
       public Obj call(Obj... args) {
         requireExactArgs(1, args);
         return X("<Dict>"); // TODO
+      } 
+    });
+
+    DICT_TYPE.setattr(X("__setitem__"), new Function() {
+      public Obj call(Obj... args) {
+        requireExactArgs(3, args);
+        requireInstanceOf(args[0], DICT_TYPE);
+        args[0].toHashMap().put(args[1], args[2]);
+        return NIL;
+      } 
+    });
+
+    DICT_TYPE.setattr(X("__getitem__"), new Function() {
+      public Obj call(Obj... args) {
+        requireExactArgs(2, args);
+        requireInstanceOf(args[0], DICT_TYPE);
+        return args[0].toHashMap().get(args[1]);
       } 
     });
   }

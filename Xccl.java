@@ -9,6 +9,22 @@ public class Xccl {
   public static Obj A(Obj... args) { return Obj.A(args); }
   public static Obj D(Obj... args) { return Obj.D(args); }
 
+  public static final Obj LAMBDA_TYPE = new Obj.Type(Obj.CALLABLE_TYPE);
+
+  public static class Lambda extends Obj.Callable {
+    public Obj context, node;
+    public Lambda(Obj context, Obj node) {
+      super(LAMBDA_TYPE);
+      this.context = context;
+      this.node = node;
+    }
+    public Obj call(Obj... args) {
+      Obj ctx = D(X("__parent__"), context);
+      // TODO: Fill ctx with argument values.
+      return eval(ctx, node.getattr("__getitem__").call(X("body")));
+    }
+  }
+
   //-------- Runtime
 
   public final Obj MAIN_FILESPEC;
@@ -26,17 +42,28 @@ public class Xccl {
     return D();
   }
 
-  public void assign(Obj context, Obj target, Obj value) {
+  public static Obj findContainingContext(Obj context, Obj name) {
+    if (context.getattr("__contains__").call(name)) {
+      return context;
+    }
+    else if (context.getattr("__contains__").call(X("__parent__"))) {
+      return findContainingContext(context, name);
+    }
+    return null;
+  }
+
+  public static void assign(Obj context, Obj target, Obj value) {
     Obj type = target.getattr("__getitem__").call(X("type"));
     if (type.eq(X("Name"))) {
-      context.getattr("__setitem__").call(target.getattr("__getitem__").call(X("name")), value);
+      Obj name = target.getattr("__getitem__").call(X("name"));
+      context.getattr("__setitem__").call(name, value);
     }
     else {
       throw new RuntimeException("You can't assign to " + type.toString());
     }
   }
 
-  public Obj eval(Obj context, Obj node) {
+  public static Obj eval(Obj context, Obj node) {
     Obj type = node.getattr("__getitem__").call(X("type"));
     if (type.eq(X("Module"))) {
       Obj last = X(0);
@@ -52,11 +79,29 @@ public class Xccl {
       int bound = stmts.getattr("size").call().toInteger();
       for (int i = 0; i < bound; i++)
         last = eval(context, stmts.getattr("__getitem__").call(X(i)));
+      return last;
     }
     else if (type.eq(X("Declaration"))) {
       Obj value = eval(context, node.getattr("__getitem__").call(X("value")));
       assign(context, node.getattr("__getitem__").call(X("target")), value);
       return value;
+    }
+    else if (type.eq(X("Expression"))) {
+      return eval(context, node.getattr("__getitem__").call(X("expr")));
+    }
+    else if (type.eq(X("Name"))) {
+      return 
+    }
+    else if (type.eq(X("Lambda"))) {
+      return new Lambda(context, node);
+    }
+    else if (type.eq(X("__call__"))) {
+      Obj f = eval(context, node.getattr("__getitem__").call(X("f")));
+      Obj argexprs = node.getattr("__getitem__").call(X("args"));
+      Obj[] args = new Obj[argexprs.getattr("size").call().toInteger()];
+      for (int i = 0; i < args.length; i++)
+        args[i] = eval(context, argexprs.getattr("__getitem__").call(X(i)));
+      return f.call(args);
     }
     throw new RuntimeException("Unrecognized node: " + type.toString());
   }
