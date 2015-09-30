@@ -14,4 +14,27 @@ public class Str extends Obj {
   public String toString() {
     return value;
   }
+
+  static {
+    TYPE.setattr("__str__", new Function("str.__str__") {
+      public Obj call(Obj... args) {
+        return args[0];
+      }
+    });
+
+    TYPE.setattr("__hash__", new Function("str.__hash__") {
+      public Obj call(Obj... args) {
+        return X(args[0].toString().hashCode());
+      }
+    });
+
+    TYPE.setattr("__eq__", new Function("str.__eq__") {
+      public Obj call(Obj... args) {
+        return X(args[1] instanceof Str && args[0].toString().equals(args[1].toString()));
+      }
+    });
+  }
+
+  public static void main(String[] args) {
+  }
 }

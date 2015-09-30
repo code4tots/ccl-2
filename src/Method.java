@@ -23,4 +23,7 @@ public class Method extends Callable {
 
     return callable.call(newargs);
   }
+
+  public static void main(String[] args) {
+  }
 }

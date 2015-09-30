@@ -44,8 +44,9 @@ public class Obj {
   }
 
   public static Obj eval(Obj context, Obj node) {
+    String type = node.m("__getitem__", X("type")).toString();
     // TODO
-    return null;
+    throw err("Unrecognized node type: " + type);
   }
 
   // ----- non-static ----

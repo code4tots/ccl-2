@@ -32,4 +32,7 @@ public class Lambda extends Callable {
 
     return eval(ctx, body);
   }
+
+  public static void main(String[] args) {
+  }
 }

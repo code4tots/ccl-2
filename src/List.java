@@ -13,4 +13,7 @@ public class List extends Obj {
     for (int i = 0; i < args.length; i++)
       value.add(args[i]);
   }
+
+  public static void main(String[] args) {
+  }
 }

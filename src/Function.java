@@ -13,4 +13,7 @@ abstract public class Function extends Callable {
   }
 
   abstract public Obj call(Obj... args);
+
+  public static void main(String[] args) {
+  }
 }

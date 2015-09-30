@@ -16,4 +16,7 @@ public class Dict extends Obj {
     for (int i = 0; i < args.length; i+=2)
       value.put(args[i], args[i+1]);
   }
+
+  public static void main(String[] args) {
+  }
 }
