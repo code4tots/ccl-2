@@ -138,6 +138,9 @@ func isdigit(c: Character) -> Bool {
   return c == "0" || c == "1" || c == "2" || c == "3" || c == "4" ||
          c == "5" || c == "6" || c == "7" || c == "8" || c == "9"
 }
+func isword(c: Character) -> Bool {
+  return true
+}
 func getLineCount(t: [Character], _ i: Int) -> Int {
   return t[0..<i].reduce(1, combine: { $0 + ($1 == "\n" ? 1 : 0) })
 }
@@ -242,6 +245,11 @@ func parse(fs: String, s: String) -> ListAst {
       }
       stack.last!.value.append(NumAst(fs, s, j, Num(Double(String(t[j..<i]))!)))
       continue
+    }
+
+    // Name
+    while i < t.count && isword(t[i]) {
+
     }
   }
   return stack[0]
