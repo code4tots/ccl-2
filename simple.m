@@ -1,6 +1,9 @@
 /* gcc -Wall -std=c99 simple.m -framework Foundation -lobjc && ./a.out */
 
 // header
+#include <ctype.h>
+#include <string.h>
+
 #import <Foundation/Foundation.h>
 
 @class Dict;
@@ -64,8 +67,8 @@
 
 Dict *getRootContext();
 
-List *parse(NSString *s);
-List *xparse(NSString *s);
+List *parse(const char *s);
+List *xparse(const char *s);
 
 // implementation
 
@@ -296,14 +299,26 @@ Dict *getRootContext() {
   return rctx;
 }
 
-List *parse(NSString *s) {
+List *parse(const char *s) {
   List *result = xparse(s);
   if (result == nil)
     err(@"Parser error.");
   return result;
 }
 
-List *xparse(NSString *s) {
+List *xparse(const char *s) {
+  int i = 0;
+  const int len = strlen(s);
+  while (true) {
+    while (i < len && isspace(s[i]))
+      i++;
+    if (i >= len)
+      break;
+    if (s[i] == '(') {
+      continue;
+    }
+    err(@"Shit");
+  }
   return nil;
 }
 
