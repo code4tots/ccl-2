@@ -3,6 +3,9 @@
 /* header */
 #import <Foundation/Foundation.h>
 
+#include <ctype.h>
+#include <string.h>
+
 @interface Macro : NSObject
 -(id)initWithBlock:(id(^)(NSMutableDictionary *ctx, NSArray *args)) block;
 @property (nonatomic, copy) id(^block)(NSMutableDictionary *ctx, NSArray *args);
