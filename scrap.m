@@ -65,21 +65,47 @@ id lookupVariable(NSMutableDictionary *ctx, NSString *key) {
 id eval(NSMutableDictionary *ctx, NSDictionary *node) {
   NSString *type = [node objectForKey: @"type"];
 
-  if ([type isEqualToString: @"number"])
-    return [node objectForKey: @"value"];
+  if ([type isEqualToString: @"assign"]) {
+    NSString *target = [node objectForKey: @"target"];
+    id val = eval(ctx, [node objectForKey: @"val"]);
+    // TOOD
+    return val;
+  }
 
-  if ([type isEqualToString: @"string"])
-    return lookupVariable(ctx, [node objectForKey: @"value"]);
+  if ([type isEqualToString: @"block"]) {
+    id last = nil;
+    NSArray *vals = [node objectForKey: @"exprs"];
+    int i, len = vals.count;
+
+    for (i = 0; i < len; i++)
+      last = eval(ctx, [vals objectAtIndex: i]);
+    return last;
+  }
+
+  if ([type isEqualToString: @"num"] || [type isEqualToString: @"str"])
+    return [node objectForKey: @"val"];
 
   if ([type isEqualToString: @"list"]) {
-    NSArray *n = [node objectForKey: @"items"];
-    NSArray *argexprs;
+    NSMutableArray *list = [[NSMutableArray alloc] init];
+    NSArray *vals = [node objectForKey: @"vals"];
+    int i, len = vals.count;
+
+    for (i = 0; i < len; i++)
+      [list addObject: eval(ctx, [vals objectAtIndex: i])];
+    return list;
+  }
+
+  if ([type isEqualToString: @"name"])
+    return lookupVariable(ctx, [node objectForKey: @"val"]);
+
+  if ([type isEqualToString: @"call"]) {
+    NSArray *n = [node objectForKey: @"items"], *argexprs;
     NSMutableArray *args;
     id func;
     int i;
 
     if (n.count == 0)
-      [NSException raise: @"Tried to eval an empty list" format:@""];
+      [NSException raise: @"Tried to eval an empty call list" format:@""];
 
     func = eval(ctx, [n objectAtIndex: 0]);
     argexprs = [n subarrayWithRange: NSMakeRange(1, n.count-1)];

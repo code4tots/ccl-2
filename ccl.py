@@ -10,7 +10,7 @@ def lex(s):
 
     j = i
 
-    if s[i] in ('(', ')', '[', ']', '.', '='):
+    if s[i] in ('(', ')', '[', ']', '{', '}', '.', ',', '='):
       toks.append((s[i], None))
       i += 1
       continue
@@ -30,7 +30,7 @@ def lex(s):
           i += 1
         while i < len(s) and s[i].isdigit():
           i += 1
-      toks.append(('number', float(s[j:i])))
+      toks.append(('num', float(s[j:i])))
       continue
     else:
       i = j
@@ -47,7 +47,7 @@ def lex(s):
         i += 2 if not raw and s[i] == '\\' else 1
       if i >= len(s):
         raise SyntaxError("Unterminated string")
-      toks.append(('string', eval(s[j:i])))
+      toks.append(('str', eval(s[j:i])))
       continue
 
     # name
@@ -62,45 +62,100 @@ def lex(s):
     raise SyntaxError("Unrecognized token: " + s[j:i])
   return toks
 
+
 class Parser(object):
 
   def __init__(self, s):
     self.toks = lex(s)
     self.i = 0
 
+  def at(self, type_):
+    return (any(self.at(t) for t in type_) if isinstance(type_, tuple) else
+            self.i < len(self.toks) and self.peek()[0] == type_)
+
+  def peek(self):
+    return self.toks[self.i]
+
+  def gettok(self):
+    tok = self.peek()
+    self.i += 1
+    return tok
+
+  def consume(self, type_):
+    if self.at(type_):
+      return self.gettok()
+
+  def expect(self, type_):
+    tok = self.consume(type_)
+    if not tok:
+      raise SyntaxError("Expected %s but found %s" % (type_, tok[0]))
+    return tok
+
   def parse_primary_expression(self):
-    type_, val = tok = self.toks[self.i]
-    if type_ in ('name', 'string', 'number'):
-      return {'type': type_, 'value': val}
-    raise SyntaxError(tok)
+    if self.at(('name', 'str', 'num')):
+      type_, val = self.gettok()
+      return {'type': type_, 'val': val}
+    elif self.consume('['):
+      vals = []
+      while not self.consume(']'):
+        vals.append(self.parse_expression())
+        self.consume(',')
+      return {'type': 'list', 'vals': vals}
+    elif self.consume('{'):
+      pairs = []
+      while not self.consume('}'):
+        key = self.parse_expression()
+        if self.consume(':'):
+          val = self.parse_expression()
+        else:
+          val = None
+        self.consume(',')
+        pairs.append((key, val))
+
+    raise SyntaxError(self.peek())
 
   def parse_postfix_expression(self):
     expr = self.parse_primary_expression()
     while True:
-      if self.i < len(self.toks) and self.toks[i] == '.':
-        pass
+      if self.consume('.'):
+        attr = self.expect('name')
+        if self.consume('='):
+          val = self.parse_expression()
+          expr = {'type': 'setattr', 'owner': expr, 'attr': attr, 'val': val}
+        else:
+          expr = {'type': 'getattr', 'owner': expr, 'attr': attr}
+      elif self.consume('='):
+        val = self.parse_expression()
+        if expr['type'] != 'name':
+          raise SyntaxError('You can only assign to names or variables')
+        expr = expr['val']
+        expr = {'type': 'assign', 'target': expr, 'val': val}
+      elif self.consume('('):
+        args = []
+        while not self.consume(')'):
+          args.append(self.parse_expression())
+          self.consume(',')
+        expr = {'type': 'call', 'f': expr, 'args': args}
+      else:
+        break
+    return expr
+
+  def parse_expression(self):
+    return self.parse_postfix_expression()
 
   def parse(self):
-    pass
+    exprs = []
+    while self.i < len(self.toks):
+      exprs.append(self.parse_expression())
+    return {'type': 'module', 'exprs': exprs}
+
 
 def parse(s):
-  toks = lex(s)
-  i = 0
-  stack = [[]]
+  return Parser(s).parse()
 
-  while i < len(toks):
-    kind = None
-    if toks[i][0] == '(':
-      stack.extend(([], 'call'))
-    elif toks[i][0] == ')':
-      assert stack.pop() == 'call'
-      kind = 'call'
-      val = stack.pop()
-    elif toks[i][0] == '[':
-      stack.extend(([], 'list'))
-    elif toks[i][0] == ']':
-      assert stack.pop() == 'list'
-      kind = 'list'
-      val = stack.pop()
 
+print(parse(r"""
+a.b = 4
+y = 5
+"""))
 
