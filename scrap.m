@@ -17,7 +17,7 @@
 @end
 
 id lookupVariable(NSMutableDictionary *ctx, NSString *key);
-id eval(NSMutableDictionary *ctx, id node);
+id eval(NSMutableDictionary *ctx, NSDictionary *node);
 
 NSMutableDictionary *getRootContext();
 
@@ -62,15 +62,17 @@ id lookupVariable(NSMutableDictionary *ctx, NSString *key) {
   return lookupVariable(parent, key);
 }
 
-id eval(NSMutableDictionary *ctx, id node) {
-  if ([node isKindOfClass: [NSNumber class]])
-    return node;
+id eval(NSMutableDictionary *ctx, NSDictionary *node) {
+  NSString *type = [node objectForKey: @"type"];
 
-  if ([node isKindOfClass: [NSString class]])
-    return lookupVariable(ctx, (NSString *) node);
+  if ([type isEqualToString: @"number"])
+    return [node objectForKey: @"value"];
 
-  if ([node isKindOfClass: [NSArray class]]) {
-    NSArray *n = (NSArray *) node;
+  if ([type isEqualToString: @"string"])
+    return lookupVariable(ctx, [node objectForKey: @"value"]);
+
+  if ([type isEqualToString: @"list"]) {
+    NSArray *n = [node objectForKey: @"items"];
     NSArray *argexprs;
     NSMutableArray *args;
     id func;
@@ -96,7 +98,7 @@ id eval(NSMutableDictionary *ctx, id node) {
     [NSException raise:@"Tried to call an uncallable type" format:@"type is %@", [func class]];
   }
 
-  [NSException raise:@"Invalid eval node type" format:@"node is of %@ type.", [node class]];
+  [NSException raise:@"Invalid eval node type" format:@"node is of %@ type.", type];
   return nil;
 }
 
@@ -127,7 +129,5 @@ NSMutableDictionary *getRootContext() {
 
 int main(int argc, char **argv) {
   @autoreleasepool {
-    eval(getRootContext(), @10);
-    eval(getRootContext(), @[@"quote", @"hi"]);
   }
 }
