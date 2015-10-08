@@ -1,4 +1,4 @@
-def lex(s):
+def lex(fs, s):
   i = 0
   toks = []
   while True:
@@ -30,6 +30,8 @@ def lex(s):
           i += 1
         while i < len(s) and s[i].isdigit():
           i += 1
+        if s[i-1] == '.':
+          i -= 1
       toks.append(('num', float(s[j:i])))
       continue
     else:
@@ -47,6 +49,7 @@ def lex(s):
         i += 2 if not raw and s[i] == '\\' else 1
       if i >= len(s):
         raise SyntaxError("Unterminated string")
+      i += len(q)
       toks.append(('str', eval(s[j:i])))
       continue
 
@@ -62,11 +65,10 @@ def lex(s):
     raise SyntaxError("Unrecognized token: " + s[j:i])
   return toks
 
-
 class Parser(object):
 
-  def __init__(self, s):
-    self.toks = lex(s)
+  def __init__(self, filespec, string):
+    self.toks = lex(filespec, string)
     self.i = 0
 
   def at(self, type_):
@@ -149,13 +151,43 @@ class Parser(object):
       exprs.append(self.parse_expression())
     return {'type': 'module', 'exprs': exprs}
 
+def parse(fs, s):
+  return Parser(fs, s).parse()
 
-def parse(s):
-  return Parser(s).parse()
+def parse_files(filespecs):
+  modules = dict()
+  for filespec in filespecs:
+    with open(filespec) as f:
+      string = f.read()
+    modules[filespec] = string
+  return modules
 
+def translate_node_to_objc(node):
+  if isinstance(node, dict):
+    return '@{%s}' % ', '.join(': '.join(map(translate_node_to_objc, pair)) for pair in node.items())
 
-print(parse(r"""
+  if isinstance(node, (list, tuple)):
+    return '@[%s]' % ', '.join(map(translate_node_to_objc, node))
+
+  if isinstance(node, str):
+    return '@"%s"' % node.replace('"', '\\"').replace('\n', '\\n')
+
+  if isinstance(node, float):
+    return '@%f' % node
+
+  raise ValueError(type(node))
+
+def translate_str_to_objc(filespec, string):
+  return translate_node_to_objc(parse(filespec, string))
+
+def translate_files_to_objc(filespecs):
+  return translate_node_to_objc(parse_files(filespecs))
+
+print(translate_str_to_objc('<test>', r"""
+import('blarg')
+
 a.b = 4
 y = 5
+1.add(4)
 """))
 
