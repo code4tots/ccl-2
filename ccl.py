@@ -1,3 +1,5 @@
+import sys
+
 def lex(fs, s):
   i = 0
   toks = []
@@ -181,13 +183,18 @@ def translate_str_to_objc(filespec, string):
   return translate_node_to_objc(parse(filespec, string))
 
 def translate_files_to_objc(filespecs):
-  return translate_node_to_objc(parse_files(filespecs))
+  return 'NSDictionary *getCclModules() { return %s; }' % translate_node_to_objc(parse_files(filespecs))
 
-print(translate_str_to_objc('<test>', r"""
-import('blarg')
 
-a.b = 4
-y = 5
-1.add(4)
-"""))
+def main():
+  outfile = sys.argv[1]
+  filespecs = sys.argv[2:]
+
+  with open(outfile, 'w') as f:
+    f.write(translate_files_to_objc(filespecs))
+
+
+if __name__ == '__main__':
+  main()
+
 
