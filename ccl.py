@@ -193,8 +193,6 @@ def main():
   with open(outfile, 'w') as f:
     f.write(translate_files_to_objc(filespecs))
 
-
 if __name__ == '__main__':
   main()
-
 
