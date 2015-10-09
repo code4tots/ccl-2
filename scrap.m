@@ -1,4 +1,4 @@
-/* gcc -Wall -Werror -Wpedantic -std=c89 scrap.m -framework Foundation -lobjc && ./a.out */
+/* gcc -Wall -Werror -Wpedantic -std=c89 *.m -framework Foundation -lobjc && ./a.out */
 
 /* header */
 #import <Foundation/Foundation.h>
@@ -16,6 +16,7 @@
 @property (nonatomic, copy) id(^block)(NSArray *args);
 @end
 
+NSMutableDictionary *find(NSMutableDictionary *ctx, NSString *key);
 id lookupVariable(NSMutableDictionary *ctx, NSString *key);
 id eval(NSMutableDictionary *ctx, NSDictionary *node);
 
@@ -47,19 +48,43 @@ static Function *makeFunc(id(^block)(NSArray *args)) {
   return [[Function alloc] initWithBlock: block];
 }
 
-id lookupVariable(NSMutableDictionary *ctx, NSString *key) {
-  id val = [ctx objectForKey: key];
+NSMutableDictionary *find(NSMutableDictionary *ctx, NSString *key) {
   id parent;
 
-  if (val != nil)
-    return val;
+  if ([ctx objectForKey: key] != nil)
+    return ctx;
 
   parent = [ctx objectForKey: @"__parent__"];
 
-  if (parent == nil)
+  if (parent != nil)
+    return find(parent, key);
+
+  return nil;
+}
+
+id lookupVariable(NSMutableDictionary *ctx, NSString *key) {
+  NSDictionary *c = find(ctx, key);
+
+  if (c == nil)
     [NSException raise:@"Variable not found" format:@"with name '%@'.", key];
 
-  return lookupVariable(parent, key);
+  return [c objectForKey: key];
+}
+
+void assign(NSMutableDictionary *ctx, NSString *target, id value, BOOL is_declaration) {
+  NSMutableDictionary *c = find(ctx, target);
+
+  if (c == nil) {
+    if (is_declaration) {
+      [ctx setObject: value forKey: target];
+    }
+    else {
+      [NSException raise:@"assigned to declared name" format:@"%@", target];
+    }
+  }
+  else {
+    [c setObject: value forKey: target];
+  }
 }
 
 id eval(NSMutableDictionary *ctx, NSDictionary *node) {
@@ -68,7 +93,7 @@ id eval(NSMutableDictionary *ctx, NSDictionary *node) {
   if ([type isEqualToString: @"assign"]) {
     NSString *target = [node objectForKey: @"target"];
     id val = eval(ctx, [node objectForKey: @"val"]);
-    // TOOD
+    assign(ctx, target, val, false);
     return val;
   }
 
@@ -152,6 +177,8 @@ NSMutableDictionary *getRootContext() {
     }),
   } mutableCopy];
 }
+
+/* main */
 
 int main(int argc, char **argv) {
   @autoreleasepool {

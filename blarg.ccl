@@ -1,0 +1,2 @@
+# python ccl.py a.m *.ccl && gcc -Wall -Werror -Wpedantic -std=c89 *.m -framework Foundation -lobjc && ./a.out
+1.go()

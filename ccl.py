@@ -1,4 +1,7 @@
+# python ccl.py a.m *.ccl
 import sys
+
+SYMBOLS = ('(', ')', '[', ']', '{', '}', '.', ',', '=', ':=')
 
 def lex(fs, s):
   i = 0
@@ -10,11 +13,17 @@ def lex(fs, s):
     if i >= len(s):
       break
 
+    if s[i] == '#':
+      while i < len(s) and s[i] != '\n':
+        i += 1
+      continue
+
     j = i
 
-    if s[i] in ('(', ')', '[', ']', '{', '}', '.', ',', '='):
-      toks.append((s[i], None))
-      i += 1
+    if any(s[i].startswith(sym) for sym in SYMBOLS):
+      sym = max(sym for sym in SYMBOLS if s[i].startswith(sym))
+      toks.append((sym, None))
+      i += len(sym)
       continue
 
     # number
@@ -131,9 +140,15 @@ class Parser(object):
       elif self.consume('='):
         val = self.parse_expression()
         if expr['type'] != 'name':
-          raise SyntaxError('You can only assign to names or variables')
+          raise SyntaxError('You can only assign to names')
         expr = expr['val']
         expr = {'type': 'assign', 'target': expr, 'val': val}
+      elif self.consume(':='):
+        val = self.parse_expression()
+        if expr['type'] != 'name':
+          raise SyntaxError('You can only declare names')
+        expr = expr['val']
+        expr = {'type': 'declare', 'target': expr, 'val': val}
       elif self.consume('('):
         args = []
         while not self.consume(')'):
@@ -161,7 +176,7 @@ def parse_files(filespecs):
   for filespec in filespecs:
     with open(filespec) as f:
       string = f.read()
-    modules[filespec] = string
+    modules[filespec] = parse(filespec, string)
   return modules
 
 def translate_node_to_objc(node):
@@ -183,7 +198,7 @@ def translate_str_to_objc(filespec, string):
   return translate_node_to_objc(parse(filespec, string))
 
 def translate_files_to_objc(filespecs):
-  return 'NSDictionary *getCclModules() { return %s; }' % translate_node_to_objc(parse_files(filespecs))
+  return '#import <Foundation/Foundation.h>\nNSDictionary *getCclModules() { return %s; }\n' % translate_node_to_objc(parse_files(filespecs))
 
 
 def main():
