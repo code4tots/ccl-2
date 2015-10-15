@@ -1,3 +1,6 @@
+#include <ctype.h>
+#include <stdlib.h>
+
 #import <Foundation/Foundation.h>
 
 NSMutableDictionary *find(NSMutableDictionary *ctx, NSString *name) {
@@ -55,6 +58,101 @@ id eval(NSMutableDictionary *ctx, id node) {
   return nil;
 }
 
+id parse(NSString *string) {
+  int i = 0, j, len = string.length, raw;
+  const char *s = string.UTF8String;
+  NSMutableArray *stack = [[NSMutableArray alloc] init];
+  [stack addObject: [[NSMutableArray alloc] init]];
+
+  while (1) {
+    while (i < len && isspace(s[i]))
+      i++;
+
+    if (i >= len)
+      break;
+
+    if (s[i] == '(') {
+      [stack addObject: [[NSMutableArray alloc] init]];
+      i++;
+      continue;
+    }
+
+    if (s[i] == ')') {
+      NSMutableArray *list = [stack lastObject];
+      [stack removeLastObject];
+      [[stack lastObject] addObject: list];
+      i++;
+      continue;
+    }
+
+    j = i;
+
+    /* number */
+    while (s[i] == '-' || s[i] == '.' ||  isdigit(s[i]))
+      i++;
+
+    if (j < i) {
+      [[stack lastObject] addObject: [NSNumber numberWithDouble: atof(s+j)]];
+      continue;
+    }
+
+    /* string literal */
+    raw = 0;
+    if (s[i] == 'r' && i+1 < len)
+      i++, raw = 1;
+    if (s[i] == '"' || s[i] == '\'') {
+      NSMutableString *ms = [[NSMutableString alloc] init];
+      char q = s[i];
+      i++;
+
+      while (i < len && s[i] != q) {
+        if (s[i] == '\\') {
+          i++;
+          if (i >= len)
+            [NSException raise:@"XXX" format:@""];
+          switch(s[i]) {
+          case 'n': [ms appendFormat: @"\n"]; break;
+          case 't': [ms appendFormat: @"\t"]; break;
+          default: [NSException raise:@"CCC" format:@""];
+          }
+        }
+        else
+          [ms appendFormat: @"%c", s[i]];
+        i++;
+      }
+
+      if (i >= len)
+        [NSException raise:@"Quote fin" format:@""];
+
+      i++;
+
+      [[stack lastObject] addObject: @[@"quote", ms]];
+
+      continue;
+    }
+    i = j;
+
+    /* name */
+    while (i < len && (s[i] == '_' || isalnum(s[i])))
+      i++;
+
+    if (j < i) {
+      [[stack lastObject] addObject: [string substringWithRange: NSMakeRange(j, i-j)]];
+      continue;
+    }
+
+    /* err */
+    [NSException raise:@"Unrecognized token" format: @"xxx"];
+  }
+
+  if ([stack count] != 1)
+    [NSException raise:@"Foo" format: @"Bar"];
+
+  return [stack lastObject];
+}
+
 int main(int argc, char **argv) {
+  NSLog(@"%@", @[@1, @2, @3]);
+  NSLog(@"\n%@", parse(@"1 2 3 'hi' there"));
   return 0;
 }
