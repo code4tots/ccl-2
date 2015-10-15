@@ -1,7 +1,27 @@
+/* header */
 #include <ctype.h>
 #include <stdlib.h>
 
 #import <Foundation/Foundation.h>
+
+extern NSMutableDictionary *ROOT;
+
+void init();
+NSMutableDictionary *makeChildContext(NSMutableDictionary *parent);
+id parse(NSString *s);
+id eval(NSMutableDictionary *ctx, id node);
+
+/* implementation */
+
+NSMutableDictionary *ROOT = nil;
+
+void init() {
+  ROOT = [@{} mutableCopy];
+}
+
+NSMutableDictionary *makeChildContext(NSMutableDictionary *parent) {
+  return [@{@"__parent__": parent} mutableCopy];
+}
 
 NSMutableDictionary *find(NSMutableDictionary *ctx, NSString *name) {
   NSMutableDictionary *parent;
@@ -78,7 +98,7 @@ id parse(NSString *string) {
     }
 
     if (s[i] == ')') {
-      NSMutableArray *list = [stack lastObject];
+      NSMutableDictionary *list = [stack lastObject];
       [stack removeLastObject];
       [[stack lastObject] addObject: list];
       i++;
@@ -150,6 +170,8 @@ id parse(NSString *string) {
 
   return [stack lastObject];
 }
+
+/* main */
 
 int main(int argc, char **argv) {
   NSLog(@"%@", @[@1, @2, @3]);
