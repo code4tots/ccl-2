@@ -180,7 +180,10 @@ NSMutableDictionary *getRootContext() {
 
 /* main */
 
+NSDictionary *getCclModules();
+
 int main(int argc, char **argv) {
   @autoreleasepool {
+    eval(getRootContext(), [getCclModules() objectForKey: @"blarg.ccl"]);
   }
 }

@@ -166,7 +166,7 @@ class Parser(object):
     exprs = []
     while self.i < len(self.toks):
       exprs.append(self.parse_expression())
-    return {'type': 'module', 'exprs': exprs}
+    return {'type': 'block', 'exprs': exprs}
 
 def parse(fs, s):
   return Parser(fs, s).parse()
