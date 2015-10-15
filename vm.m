@@ -1,77 +1,60 @@
 #import <Foundation/Foundation.h>
 
-typedef NSMutableDictionary Dict;
+NSMutableDictionary *find(NSMutableDictionary *ctx, NSString *name) {
+  NSMutableDictionary *parent;
 
-Dict *CCLFind(Dict *ctx, NSString *key, BOOL orelse) {
-  Dict *parent;
-
-  if ([ctx objectForKey: key] != nil)
+  if ([ctx objectForKey: name] != nil)
     return ctx;
 
   parent = [ctx objectForKey: @"__parent__"];
 
   if (parent != nil)
-    return CCLFind(parent, key, orelse);
-
-  if (orelse)
-    [NSException raise:@"Variable not found" format: @"with name '%@'.", key];
+    return find(parent, name);
 
   return nil;
 }
 
-Dict *CCLLookup(Dict *ctx, NSString *key, BOOL orelse) {
-  return [CCLFind(ctx, key, orelse) objectForKey: key];
+id lookup(NSMutableDictionary *ctx, NSString *name) {
+  NSMutableDictionary *c = find(ctx, name);
+  if (c == nil)
+    [NSException raise:@"Variable not found" format: @"with name '%@'.", name];
+  return [c objectForKey: name];
 }
 
-void CCLAssign(Dict *ctx, NSString *key, Dict *value) {
-  [CCLFind(ctx, key, YES) setObject: value forKey: key];
+void assign(NSMutableDictionary *ctx, NSString *name, id val) {
+  NSMutableDictionary *c = find(ctx, name);
+  if (c == nil)
+    [NSException raise:@"Variable not found" format: @"with name '%@'.", name];
+  [c setObject: val forKey: name];
 }
 
-void CCLDeclare(Dict *ctx, NSString *key, Dict *value) {
-  [ctx setObject: value forKey: key];
+void declare(NSMutableDictionary *ctx, NSString *name, id val) {
+  [ctx setObject: val forKey: name];
 }
 
-Dict *CCLEval(Dict *ctx, NSDictionary *node) {
-  NSString *type = [node objectForKey: @"type"];
+id eval(NSMutableDictionary *ctx, id node) {
+  if ([node isKindOfClass: [NSNumber class]])
+    return node;
 
-  if ([type isEqualToString: @"num"] || [type isEqualToString: @"str"])
-    return [node mutableCopy];
+  if ([node isKindOfClass: [NSString class]])
+    return lookup(ctx, (NSString*) node);
 
-  if ([type isEqualToString: @"name"])
-    return CCLLookup(ctx, [node objectForKey: @"val"], YES);
+  if ([node isKindOfClass: [NSArray class]]) {
+    NSArray *n = node;
+    id (^f)(NSMutableDictionary *, id) = eval(ctx, [n objectAtIndex: 0]);
+    NSMutableArray *args = [[NSMutableArray alloc] init];
+    int len = [n count], i;
 
-  if ([type isEqualToString: @"call"]) {
-    Dict *f = CCLEval(ctx, [node objectForKey: @"f"]);
-    NSArray *args = [node objectForKey: @"args"];
+    for (i = 1; i < len; i++)
+      [args addObject: [n objectAtIndex: i]];
 
-    if ([[f objectForKey: @"type"] isEqualToString: @"macro"])
-      return [f objectForKey: @"f"](ctx, args);
+    return f(ctx, args);
   }
 
-  [NSException raise:@"Invalid eval node type" format:@"node is of %@ type.", type];
+  [NSException raise:@"Can't eval an object of type" format: @"%@", [node class]];
   return nil;
 }
 
-Dict *CCLEvalBlock(Dict *ctx, NSArray *items) {
-  Dict *last = [@{@"type": @"num", @"val": @0} mutableCopy];
-  int len = [items count], i;
-
-  for (i = 0; i < len; i++)
-    last = CCLEval(ctx, [items objectAtIndex: i]);
-
-  return last;
-}
-
-Dict *CCLEvalList(Dict *ctx, NSArray *items) {
-  NSMutableArray *arr = [[NSMutableArray alloc] init];
-  int len = [items count], i;
-
-  for (i = 0; i < len; i++)
-    [arr addObject: CCLEval(ctx, [items objectAtIndex: i])];
-
-  return [@{@"type": @"list", @"val": arr} mutableCopy];
-}
-
-int main() {
+int main(int argc, char **argv) {
   return 0;
 }
