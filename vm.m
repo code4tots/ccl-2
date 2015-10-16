@@ -15,14 +15,6 @@ id eval(NSMutableDictionary *ctx, id node);
 
 NSMutableDictionary *ROOT = nil;
 
-void init() {
-  ROOT = [@{} mutableCopy];
-}
-
-NSMutableDictionary *makeChildContext(NSMutableDictionary *parent) {
-  return [@{@"__parent__": parent} mutableCopy];
-}
-
 NSMutableDictionary *find(NSMutableDictionary *ctx, NSString *name) {
   NSMutableDictionary *parent;
 
@@ -76,6 +68,18 @@ id eval(NSMutableDictionary *ctx, id node) {
 
   [NSException raise:@"Can't eval an object of type" format: @"%@", [node class]];
   return nil;
+}
+
+void init() {
+  ROOT = [@{
+    @"quote": id^(NSMutableDictionary *ctx, NSArray *args) {
+
+    },
+  } mutableCopy];
+}
+
+NSMutableDictionary *makeChildContext(NSMutableDictionary *parent) {
+  return [@{@"__parent__": parent} mutableCopy];
 }
 
 id parse(NSString *string) {
