@@ -1,5 +1,7 @@
+/* gcc -std=c89 -framework Foundation -lobjc -Wall -Werror -Wpedantic vm.m */
 /* header */
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #import <Foundation/Foundation.h>
@@ -16,7 +18,36 @@ id eval(NSMutableDictionary *ctx, id node);
 NSMutableDictionary *ROOT = nil;
 
 void init() {
-  ROOT = [@{} mutableCopy];
+  if (ROOT != nil)
+    return;
+
+  ROOT = [@{
+    @"begin": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      int len = [args count], i;
+      id last = nil;
+
+      for (i = 0; i < len; i++)
+        last = eval(ctx, [args objectAtIndex: i]);
+
+      return last;
+    },
+    @"quote": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      return [args objectAtIndex: 0];
+    },
+    @"print": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      NSLog(@"%@", eval(ctx, [args objectAtIndex: 0]));
+      return nil;
+    },
+    @"add": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      id a = [args objectAtIndex: 0], b = [args objectAtIndex: 1];
+
+      if ([a isKindOfClass: [NSNumber class]] && [b isKindOfClass: [NSNumber class]])
+        return [NSNumber numberWithDouble: [a doubleValue] + [b doubleValue]];
+
+      [NSException raise:@"Cannot add objects of types" format:@"%@ and %@", [a class], [b class]];
+      return nil;
+    }
+  } mutableCopy];
 }
 
 NSMutableDictionary *makeChildContext(NSMutableDictionary *parent) {
@@ -56,6 +87,7 @@ void declare(NSMutableDictionary *ctx, NSString *name, id val) {
 }
 
 id eval(NSMutableDictionary *ctx, id node) {
+
   if ([node isKindOfClass: [NSNumber class]])
     return node;
 
@@ -64,7 +96,7 @@ id eval(NSMutableDictionary *ctx, id node) {
 
   if ([node isKindOfClass: [NSArray class]]) {
     NSArray *n = node;
-    id (^f)(NSMutableDictionary *, id) = eval(ctx, [n objectAtIndex: 0]);
+    id (^f)(NSMutableDictionary*, NSArray*) = eval(ctx, [n objectAtIndex: 0]);
     NSMutableArray *args = [[NSMutableArray alloc] init];
     int len = [n count], i;
 
@@ -168,13 +200,29 @@ id parse(NSString *string) {
   if ([stack count] != 1)
     [NSException raise:@"Foo" format: @"Bar"];
 
-  return [stack lastObject];
+  return [@[@"begin"] arrayByAddingObjectsFromArray: [stack lastObject]];
 }
 
 /* main */
 
 int main(int argc, char **argv) {
-  NSLog(@"%@", @[@1, @2, @3]);
-  NSLog(@"\n%@", parse(@"1 2 3 'hi' there"));
+  if (argc != 2) {
+    fprintf(stderr, "Usage: %s <file-name>\n", argv[0]);
+    return 1;
+  }
+  @autoreleasepool {
+    NSString *path = [NSString stringWithUTF8String: argv[1]];
+    NSError *error = nil;
+    NSString *source = [NSString stringWithContentsOfFile: path encoding: NSUTF8StringEncoding error:&error];
+    id node;
+
+    if (error) {
+      fprintf(stderr, "Could not read file %s", argv[1]);
+      return 1;
+    }
+    node = parse(source);
+    init();
+    eval(ROOT, node);
+  }
   return 0;
 }
