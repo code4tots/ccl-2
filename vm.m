@@ -67,17 +67,68 @@ void init() {
       return [args objectAtIndex: 0];
     },
     @"print": ^id(NSMutableDictionary *ctx, NSArray *args) {
-      NSLog(@"%@", eval(ctx, [args objectAtIndex: 0]));
+      int len = args.count, i;
+      NSMutableString *s = [[NSMutableString alloc] init];
+      for (i = 0; i < len; i++)
+        [s appendString: ((NSObject*) eval(ctx, [args objectAtIndex: i])).description];
+      printf("%s\n", s.UTF8String);
       return nil;
     },
     @"add": ^id(NSMutableDictionary *ctx, NSArray *args) {
-      id a = [args objectAtIndex: 0], b = [args objectAtIndex: 1];
+      id a = eval(ctx, [args objectAtIndex: 0]), b = eval(ctx, [args objectAtIndex: 1]);
+
+      if (args.count != 2)
+        [NSException raise: @"Expected args.count == 2" format:@"args.count = %ld", args.count];
 
       if ([a isKindOfClass: [NSNumber class]] && [b isKindOfClass: [NSNumber class]])
         return [NSNumber numberWithDouble: [a doubleValue] + [b doubleValue]];
 
+      if ([a isKindOfClass: [NSString class]] && [b isKindOfClass: [NSString class]])
+        return [NSString stringWithFormat: @"%@%@", a, b];
+
       [NSException raise:@"Cannot add objects of types" format:@"%@ and %@", [a class], [b class]];
       return nil;
+    },
+    @"append": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      id a = eval(ctx, [args objectAtIndex: 0]), b = eval(ctx, [args objectAtIndex: 1]);
+
+      if (args.count != 2)
+        [NSException raise: @"Expected args.count == 2" format:@"args.count = %ld", args.count];
+
+      if ([a isKindOfClass: [NSMutableArray class]]) {
+        [a addObject: b];
+        return a;
+      }
+
+      [NSException raise:@"Cannot append objects of types" format:@"%@ and %@", [a class], [b class]];
+      return nil;
+    },
+    @"extend": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      id a = eval(ctx, [args objectAtIndex: 0]), b = eval(ctx, [args objectAtIndex: 1]);
+
+      if (args.count != 2)
+        [NSException raise: @"Expected args.count == 2" format:@"args.count = %ld", args.count];
+
+      if ([a isKindOfClass: [NSMutableArray class]] && [b isKindOfClass: [NSArray class]]) {
+        NSMutableArray *aa = (NSMutableArray*) a;
+        NSArray *bb = (NSArray*) b;
+        int len = bb.count, i;
+        for (i = 0; i < len; i++)
+          [aa addObject: [bb objectAtIndex: i]];
+        return aa;
+      }
+
+      [NSException raise:@"Cannot extend objects of types" format:@"%@ and %@", [a class], [b class]];
+      return nil;
+    },
+    @"strcat": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      NSMutableString *s = [[NSMutableString alloc] init];
+      int len = args.count, i;
+
+      for (i = 0; i < len; i++)
+        [s appendString: eval(ctx, [args objectAtIndex: i])];
+
+      return s;
     }
   } mutableCopy];
 }
