@@ -17,10 +17,6 @@ id eval(NSMutableDictionary *ctx, id node);
 
 NSMutableDictionary *ROOT = nil;
 
-NSMutableDictionary *makeChildContext(NSMutableDictionary *parent) {
-  return [@{@"__parent__": parent} mutableCopy];
-}
-
 NSMutableDictionary *find(NSMutableDictionary *ctx, NSString *name) {
   NSMutableDictionary *parent;
 
@@ -86,6 +82,10 @@ void init() {
   } mutableCopy];
 }
 
+NSMutableDictionary *makeChildContext(NSMutableDictionary *parent) {
+  return [@{@"__parent__": parent} mutableCopy];
+}
+
 id eval(NSMutableDictionary *ctx, id node) {
 
   if ([node isKindOfClass: [NSNumber class]])
@@ -108,10 +108,6 @@ id eval(NSMutableDictionary *ctx, id node) {
 
   [NSException raise:@"Can't eval an object of type" format: @"%@", [node class]];
   return nil;
-}
-
-NSMutableDictionary *makeChildContext(NSMutableDictionary *parent) {
-  return [@{@"__parent__": parent} mutableCopy];
 }
 
 id parse(NSString *string) {
