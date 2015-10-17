@@ -17,39 +17,6 @@ id eval(NSMutableDictionary *ctx, id node);
 
 NSMutableDictionary *ROOT = nil;
 
-void init() {
-  if (ROOT != nil)
-    return;
-
-  ROOT = [@{
-    @"begin": ^id(NSMutableDictionary *ctx, NSArray *args) {
-      int len = [args count], i;
-      id last = nil;
-
-      for (i = 0; i < len; i++)
-        last = eval(ctx, [args objectAtIndex: i]);
-
-      return last;
-    },
-    @"quote": ^id(NSMutableDictionary *ctx, NSArray *args) {
-      return [args objectAtIndex: 0];
-    },
-    @"print": ^id(NSMutableDictionary *ctx, NSArray *args) {
-      NSLog(@"%@", eval(ctx, [args objectAtIndex: 0]));
-      return nil;
-    },
-    @"add": ^id(NSMutableDictionary *ctx, NSArray *args) {
-      id a = [args objectAtIndex: 0], b = [args objectAtIndex: 1];
-
-      if ([a isKindOfClass: [NSNumber class]] && [b isKindOfClass: [NSNumber class]])
-        return [NSNumber numberWithDouble: [a doubleValue] + [b doubleValue]];
-
-      [NSException raise:@"Cannot add objects of types" format:@"%@ and %@", [a class], [b class]];
-      return nil;
-    }
-  } mutableCopy];
-}
-
 NSMutableDictionary *makeChildContext(NSMutableDictionary *parent) {
   return [@{@"__parent__": parent} mutableCopy];
 }
@@ -86,6 +53,39 @@ void declare(NSMutableDictionary *ctx, NSString *name, id val) {
   [ctx setObject: val forKey: name];
 }
 
+void init() {
+  if (ROOT != nil)
+    return;
+
+  ROOT = [@{
+    @"begin": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      int len = [args count], i;
+      id last = nil;
+
+      for (i = 0; i < len; i++)
+        last = eval(ctx, [args objectAtIndex: i]);
+
+      return last;
+    },
+    @"quote": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      return [args objectAtIndex: 0];
+    },
+    @"print": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      NSLog(@"%@", eval(ctx, [args objectAtIndex: 0]));
+      return nil;
+    },
+    @"add": ^id(NSMutableDictionary *ctx, NSArray *args) {
+      id a = [args objectAtIndex: 0], b = [args objectAtIndex: 1];
+
+      if ([a isKindOfClass: [NSNumber class]] && [b isKindOfClass: [NSNumber class]])
+        return [NSNumber numberWithDouble: [a doubleValue] + [b doubleValue]];
+
+      [NSException raise:@"Cannot add objects of types" format:@"%@ and %@", [a class], [b class]];
+      return nil;
+    }
+  } mutableCopy];
+}
+
 id eval(NSMutableDictionary *ctx, id node) {
 
   if ([node isKindOfClass: [NSNumber class]])
@@ -108,6 +108,10 @@ id eval(NSMutableDictionary *ctx, id node) {
 
   [NSException raise:@"Can't eval an object of type" format: @"%@", [node class]];
   return nil;
+}
+
+NSMutableDictionary *makeChildContext(NSMutableDictionary *parent) {
+  return [@{@"__parent__": parent} mutableCopy];
 }
 
 id parse(NSString *string) {
