@@ -20,16 +20,17 @@ public class CclVirtualMachine {
         return new Nil();
       if (getTypeId() != x.getTypeId())
         return new List(
-            new Str("Different types"),                               // 0: Type of diff
+            new Str("Different types"),                               // 0: Reason the two are different
             new Num((double) getTypeId().compareTo(x.getTypeId())),   // 1: result of compareTo
             new List(new Str(getTypeId()), new Str(x.getTypeId())));  // 2: Evidence
       return diffWithObjectOfThisType(x);
     }
     abstract public Obj diffWithObjectOfThisType(Obj x);
-    public int compareTo(Obj x) { return ((Num)((List)diff(x)).val.get(1)).val.intValue(); }
+    public int compareTo(Obj x) { Obj dx = diff(x); return (dx instanceof Nil) ? 0 : ((Num)((List)dx).val.get(1)).val.intValue(); }
     public boolean equals(Obj x) { return diff(x) instanceof Nil; }
 
-    // toString is important for debugging purposes
+    // toString and repr are important for debugging purposes
+    // toString should be overriden only by Str.
     public String toString() { return repr(); }
     abstract public String repr();
   }
@@ -146,7 +147,7 @@ public class CclVirtualMachine {
         Obj key = it.next();
         if (!first)
           sb.append(", ");
-        first = true;
+        first = false;
         sb.append(key.repr());
         sb.append(": ");
         sb.append(val.get(key).repr());
@@ -183,5 +184,10 @@ public class CclVirtualMachine {
     System.out.println(new Num(4.0).diff(new Num(5.0)));
     System.out.println(new List(new Num(4.0)).diff(new Num(5.0)));
     System.out.println(new List(new Num(4.0)).diff(new List(new Num(5.0))));
+    Dict d = new Dict();
+    d.val.put(new Str("hi"), new Str("there"));
+    d.val.put(new Str("hi"), new Num(555.666));
+    d.val.put(new Num(123.0), new Num(456.0));
+    System.out.println(d);
   }
 }
