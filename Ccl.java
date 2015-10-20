@@ -53,6 +53,15 @@ public class Ccl {
     for (int i = 1; i < items.size(); i++)
       args.add(items.get(i));
 
+    if (f instanceof Macro)
+      return ((Macro)f).invoke(context, args);
+
+    if (f instanceof Func) {
+      for (int i = 0; i < args.size(); i++)
+        args.set(i, eval(context, args.get(i)));
+      return ((Func)f).invoke(args);
+    }
+
     throw err("Tried to invoke an object of type: " + f.getClass().toString());
   }
 
@@ -72,6 +81,76 @@ public class Ccl {
     public final String name;
     public Func(String name) { this.name = name; }
     abstract public Object invoke(ArrayList args);
+  }
+
+  //*** parse
+  public static ArrayList parse(String s) {
+    return new Parser(s).parse();
+  }
+
+  private static class Parser {
+    public final String s;
+    public int i;
+
+    public Parser(String s) {
+      this.s = s;
+      i = 0;
+    }
+
+    public ArrayList parse() {
+      ArrayList items = new ArrayList();
+      items.add("block");
+      skipSpaces();
+      while (i < s.length()) {
+        items.add(parseOne())
+        skipSpaces();
+      }
+      return items;
+    }
+
+    public ArrayList parseMany() {
+      ArrayList items = new ArrayList();
+      skipSpaces();
+      while (s.get(i) != ')') {
+        items.add(parseOne())
+        skipSpaces();
+      }
+      return items;
+    }
+
+    private Object parseOne() {
+      char c = s.get(i);
+      if (c == '-' || c == '.' || Character.isDigit(c))
+        return parseNumber();
+
+      if (c == '"' || c == '\'' || s.startsWith("r'", i) || s.startsWith("r\"", i))
+        return parseStringLiteral();
+
+      if (c == '(')
+        return parseForm();
+
+      return parseName();
+    }
+
+    private Double parseNumber() {
+      int j = i;
+      while (i < s.length() && s.get(i) != ')')
+        i++;
+    }
+
+    private ArrayList parseStringLiteral() {
+      StringBuilder sb = new StringBuilder();
+
+      ArrayList lit = new ArrayList();
+      lit.add("quote");
+      lit.add(sb.toString());
+      return lit;
+    }
+
+    private void skipSpaces() {
+      while (i < s.length() && (Character.isWhitespaceChar(s.get(i))))
+        i++;
+    }
   }
 
   //*** main
