@@ -2,3 +2,5 @@ a.out
 *.pyc
 *.class
 *.gen.c
+*.exe
+*.obj
