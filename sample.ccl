@@ -1,5 +1,0 @@
-(print "hi")
-(print (type-of "hi"))
-(print print)
-(print (add 1 2 3))
-(print (join))
