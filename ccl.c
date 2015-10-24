@@ -1,10 +1,5 @@
 #include "ccl.h"
 
-/** static function headers */
-static CCL_Object *CCL_malloc(int type);
-
-/** implementation */
-
 #define CCL_MAX_INTERNED_NUM 200
 #define CCL_MIN_LIST_SIZE 10
 
@@ -19,6 +14,16 @@ CCL_Object *CCL_false = &CCL_false_object;
 
 static CCL_Object nonnegative_nums[CCL_MAX_INTERNED_NUM];
 static CCL_Object negative_nums[CCL_MAX_INTERNED_NUM];
+
+/** static implementation */
+
+static CCL_Object *CCL_malloc(int type) {
+  CCL_Object *obj = malloc(sizeof(CCL_Object));
+  obj->type = type;
+  return obj;
+}
+
+/** implementation */
 
 void CCL_init() {
   int i;
@@ -132,7 +137,7 @@ CCL_Object *CCL_dict_new(int argc, ...) {
   for (; argc; argc -= 2) {
     CCL_Object *key = va_arg(ap, CCL_Object*);
     CCL_Object *value = va_arg(ap, CCL_Object*);
-    CCL_dict_setitem(dict, key, value);
+    CCL_dict_set(dict, key, value);
   }
 
   va_end(ap);
@@ -144,9 +149,9 @@ size_t CCL_dict_size(CCL_Object *dict) {
   return dict->value.as_dict == NULL ? 0 : dict->value.as_dict->size;
 }
 
-void CCL_dict_setitem(CCL_Object *dict, CCL_Object *key, CCL_Object *value) {
+void CCL_dict_set(CCL_Object *dict, CCL_Object *key, CCL_Object *value) {
   /* TODO: Weight balance the tree on insertion */
-  int cmp, new_key = CCL_dict_getitem(dict, key) == NULL;
+  int cmp, new_key = CCL_dict_get(dict, key) == NULL;
   CCL_dict **nodeptr = &dict->value.as_dict;
 
   while (*nodeptr != NULL && (cmp = CCL_cmp(key, (*nodeptr)->key)) != 0) {
@@ -167,11 +172,11 @@ void CCL_dict_setitem(CCL_Object *dict, CCL_Object *key, CCL_Object *value) {
   (*nodeptr)->value = value;
 }
 
-void CCL_dict_delitem(CCL_Object *dict, CCL_Object *key) {
+void CCL_dict_del(CCL_Object *dict, CCL_Object *key) {
   assert(0); /* TODO */
 }
 
-CCL_Object *CCL_dict_getitem(CCL_Object *dict, CCL_Object *key) {
+CCL_Object *CCL_dict_get(CCL_Object *dict, CCL_Object *key) {
   CCL_dict *node = dict->value.as_dict;
 
   assert(dict->type == CCL_DICT);
@@ -215,8 +220,71 @@ CCL_Object *CCL_strcat(CCL_Object *list_of_str) {
   return ret;
 }
 
-static CCL_Object *CCL_malloc(int type) {
-  CCL_Object *obj = malloc(sizeof(CCL_Object));
-  obj->type = type;
-  return obj;
+CCL_Object *CCL_HR_integer_to_words(int num) {
+  /* Right now, only positive integers less than 100 are supportd. */
+  switch(num) {
+  case 1: return CCL_str_new("one");
+  case 2: return CCL_str_new("two");
+  case 3: return CCL_str_new("three");
+  case 4: return CCL_str_new("four");
+  case 5: return CCL_str_new("five");
+  case 6: return CCL_str_new("six");
+  case 7: return CCL_str_new("seven");
+  case 8: return CCL_str_new("eight");
+  case 9: return CCL_str_new("nine");
+  case 10: return CCL_str_new("ten");
+  case 11: return CCL_str_new("eleven");
+  case 12: return CCL_str_new("twelve");
+  case 13: return CCL_str_new("thirteen");
+  case 14: return CCL_str_new("fourteen");
+  case 15: return CCL_str_new("fifteen");
+  case 16: return CCL_str_new("sixteen");
+  case 17: return CCL_str_new("seventeen");
+  case 18: return CCL_str_new("eighteen");
+  case 19: return CCL_str_new("nineteen");
+  case 20: return CCL_str_new("twenty");
+  case 30: return CCL_str_new("thirty");
+  case 40: return CCL_str_new("forty");
+  case 50: return CCL_str_new("fifty");
+  case 60: return CCL_str_new("sixty");
+  case 70: return CCL_str_new("seventy");
+  case 80: return CCL_str_new("eighty");
+  case 90: return CCL_str_new("ninety");
+  }
+
+  if (num > 0 && num < 100) {
+    int tens = (num / 10) * 10, ones = num % 10;
+
+    return CCL_strcat(CCL_list_new(3, CCL_HR_integer_to_words(tens), CCL_str_new(" "), CCL_HR_integer_to_words(ones)));
+  }
+
+  fprintf(stderr, "Converting integer of value %d to words not yet supported", num);
+  exit(1);
 }
+
+CCL_Object *CCL_HR_time_to_words(int hour, int minute) {
+  int nexthour = hour == 12 ? 1 : hour + 1;
+
+  if (minute == 0)
+    return CCL_strcat(CCL_list_new(2, CCL_HR_integer_to_words(hour), CCL_str_new(" o' clock")));
+
+  if (minute == 15)
+    return CCL_strcat(CCL_list_new(2, CCL_str_new("quarter past "), CCL_HR_integer_to_words(hour)));
+
+  if (minute == 30)
+    return CCL_strcat(CCL_list_new(2, CCL_str_new("half past "), CCL_HR_integer_to_words(hour)));
+
+  if (minute == 45)
+    return CCL_strcat(CCL_list_new(2, CCL_str_new("quarter to "), CCL_HR_integer_to_words(nexthour)));
+
+  if (minute >= 60) {
+    fprintf(stderr, "Invalid minute: %d value passd to CCL_HR_time_to_words\n", minute);
+    exit(1);
+  }
+
+  if (minute > 30)
+    return CCL_strcat(CCL_list_new(3, CCL_HR_integer_to_words(60 - minute), CCL_str_new(60 - minute == 1 ? " minute to " : " minutes to "), CCL_HR_integer_to_words(nexthour)));
+
+  return CCL_strcat(CCL_list_new(3, CCL_HR_integer_to_words(minute), CCL_str_new(minute == 1 ? " minute past " : " minutes past "), CCL_HR_integer_to_words(hour)));
+}
+

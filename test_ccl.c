@@ -38,28 +38,49 @@ void CCL_test() {
     CCL_Object *dict = CCL_dict_new(0), *one = CCL_num_new(1), *two = CCL_num_new(2);
 
     assert(CCL_dict_size(dict) == 0);
-    assert(CCL_dict_getitem(dict, CCL_nil) == NULL);
+    assert(CCL_dict_get(dict, CCL_nil) == NULL);
 
-    CCL_dict_setitem(dict, CCL_nil, CCL_nil);
+    CCL_dict_set(dict, CCL_nil, CCL_nil);
     assert(CCL_dict_size(dict) == 1);
-    assert(CCL_dict_getitem(dict, CCL_nil) == CCL_nil);
+    assert(CCL_dict_get(dict, CCL_nil) == CCL_nil);
 
-    CCL_dict_setitem(dict, one, two);
+    CCL_dict_set(dict, one, two);
     assert(CCL_dict_size(dict) == 2);
-    assert(CCL_dict_getitem(dict, CCL_nil) == CCL_nil);
-    assert(CCL_dict_getitem(dict, one) == two);
+    assert(CCL_dict_get(dict, CCL_nil) == CCL_nil);
+    assert(CCL_dict_get(dict, one) == two);
 
-    CCL_dict_setitem(dict, CCL_nil, one);
+    CCL_dict_set(dict, CCL_nil, one);
     assert(CCL_dict_size(dict) == 2);
-    assert(CCL_dict_getitem(dict, CCL_nil) == one);
-    assert(CCL_dict_getitem(dict, one) == two);
+    assert(CCL_dict_get(dict, CCL_nil) == one);
+    assert(CCL_dict_get(dict, one) == two);
 
-    CCL_dict_setitem(dict, two, CCL_nil);
+    CCL_dict_set(dict, two, CCL_nil);
     assert(CCL_dict_size(dict) == 3);
-    assert(CCL_dict_getitem(dict, CCL_nil) == one);
-    assert(CCL_dict_getitem(dict, one) == two);
-    assert(CCL_dict_getitem(dict, two) == CCL_nil);
-    assert(CCL_dict_getitem(dict, CCL_true) == NULL);
+    assert(CCL_dict_get(dict, CCL_nil) == one);
+    assert(CCL_dict_get(dict, one) == two);
+    assert(CCL_dict_get(dict, two) == CCL_nil);
+    assert(CCL_dict_get(dict, CCL_true) == NULL);
+  }
+  /* hackerrank tests */
+  {
+    /* the-time-in-words */
+    {
+      assert(CCL_cmp(CCL_str_new("twenty six"), CCL_HR_integer_to_words(26)) == 0);
+      assert(CCL_cmp(CCL_str_new("fifty five"), CCL_HR_integer_to_words(55)) == 0);
+
+      /* tests in the samples */
+      assert(CCL_cmp(CCL_str_new("five o' clock"), CCL_HR_time_to_words(5, 0)) == 0);
+      assert(CCL_cmp(CCL_str_new("one minute past five"), CCL_HR_time_to_words(5, 1)) == 0);
+      assert(CCL_cmp(CCL_str_new("ten minutes past five"), CCL_HR_time_to_words(5, 10)) == 0);
+      assert(CCL_cmp(CCL_str_new("half past five"), CCL_HR_time_to_words(5, 30)) == 0);
+      assert(CCL_cmp(CCL_str_new("quarter to six"), CCL_HR_time_to_words(5, 45)) == 0);
+      assert(CCL_cmp(CCL_str_new("thirteen minutes to six"), CCL_HR_time_to_words(5, 47)) == 0);
+      assert(CCL_cmp(CCL_str_new("twenty eight minutes past five"), CCL_HR_time_to_words(5, 28)) == 0);
+
+      /* other tests */
+      assert(CCL_cmp(CCL_str_new("quarter past one"), CCL_HR_time_to_words(1, 15)) == 0);
+      assert(CCL_cmp(CCL_str_new("quarter to one"), CCL_HR_time_to_words(12, 45)) == 0);
+    }
   }
 }
 

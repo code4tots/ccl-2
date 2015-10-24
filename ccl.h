@@ -72,8 +72,12 @@ void CCL_list_add(CCL_Object *list, CCL_Object *item);
 CCL_Object *CCL_list_pop(CCL_Object *list);
 CCL_Object *CCL_dict_new(int argc, ...);
 size_t CCL_dict_size(CCL_Object *dict);
-void CCL_dict_setitem(CCL_Object *dict, CCL_Object *key, CCL_Object *value);
-void CCL_dict_delitem(CCL_Object *dict, CCL_Object *key);
-CCL_Object *CCL_dict_getitem(CCL_Object *dict, CCL_Object *key);
+void CCL_dict_set(CCL_Object *dict, CCL_Object *key, CCL_Object *value);
+void CCL_dict_del(CCL_Object *dict, CCL_Object *key);
+CCL_Object *CCL_dict_get(CCL_Object *dict, CCL_Object *key);
 
 CCL_Object *CCL_strcat(CCL_Object *list_of_str);
+
+/* Specialized utilities for solving hackerrank problems */
+CCL_Object *CCL_HR_integer_to_words(int num);
+CCL_Object *CCL_HR_time_to_words(int hour, int minute);
