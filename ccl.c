@@ -79,6 +79,7 @@ CCL_Object *CCL_dict_getitem(CCL_Object *dict, CCL_Object *key);
 CCL_Object *CCL_strcat(CCL_Object *list_of_str);
 
 /** static function headers */
+static CCL_Object *CCL_malloc(int type);
 
 /** implementation */
 
@@ -149,20 +150,18 @@ CCL_Object *CCL_num_new(double value) {
   if (value == (int) value && value < CCL_MAX_INTERNED_NUM && -CCL_MAX_INTERNED_NUM < value)
     return value < 0 ? &negative_nums[-(int) value] : &nonnegative_nums[(int) value];
 
-  num = malloc(sizeof(CCL_Object));
-  num->type = CCL_NUM;
+  num = CCL_malloc(CCL_NUM);
   num->value.as_num = value;
   return num;
 }
 
 CCL_Object *CCL_str_new(const char *value) {
-  CCL_Object *str = malloc(sizeof(CCL_Object));
+  CCL_Object *str = CCL_malloc(CCL_STR);
   size_t size = strlen(value);
   char *buffer = malloc(sizeof(char) * (size+1));
 
   strcpy(buffer, value);
 
-  str->type = CCL_STR;
   str->value.as_str.size = size;
   str->value.as_str.buffer = buffer;
 
@@ -170,12 +169,11 @@ CCL_Object *CCL_str_new(const char *value) {
 }
 
 CCL_Object *CCL_list_new(int argc, ...) {
-  CCL_Object *list = malloc(sizeof(CCL_Object));
+  CCL_Object *list = CCL_malloc(CCL_LIST);
   int i;
   va_list ap;
   va_start(ap, argc);
 
-  list->type = CCL_LIST;
   list->value.as_list.size = argc;
   list->value.as_list.capacity = argc < CCL_MIN_LIST_SIZE ? CCL_MIN_LIST_SIZE : argc;
   list->value.as_list.buffer = malloc(sizeof(CCL_Object*) * list->value.as_list.capacity);
@@ -201,11 +199,10 @@ CCL_Object *CCL_list_pop(CCL_Object *list) {
 }
 
 CCL_Object *CCL_dict_new(int argc, ...) {
-  CCL_Object *dict = malloc(sizeof(CCL_Object));
+  CCL_Object *dict = CCL_malloc(CCL_DICT);
   va_list ap;
   va_start(ap, argc);
 
-  dict->type = CCL_DICT;
   dict->value.as_dict = NULL;
 
   assert(argc % 2 == 0);
@@ -296,6 +293,11 @@ CCL_Object *CCL_strcat(CCL_Object *list_of_str) {
   return ret;
 }
 
+static CCL_Object *CCL_malloc(int type) {
+  CCL_Object *obj = malloc(sizeof(CCL_Object));
+  obj->type = type;
+  return obj;
+}
 /** tests */
 
 void CCL_test() {
