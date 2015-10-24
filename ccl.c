@@ -76,6 +76,8 @@ void CCL_dict_setitem(CCL_Object *dict, CCL_Object *key, CCL_Object *value);
 void CCL_dict_delitem(CCL_Object *dict, CCL_Object *key);
 CCL_Object *CCL_dict_getitem(CCL_Object *dict, CCL_Object *key);
 
+CCL_Object *CCL_strcat(CCL_Object *list_of_str);
+
 /** static function headers */
 
 /** implementation */
@@ -133,6 +135,8 @@ int CCL_cmp(CCL_Object *left, CCL_Object *right) {
     return left->value.as_list.size - right->value.as_list.size;
   }
   case CCL_DICT: /* TODO */
+  case CCL_FUNC:
+  case CCL_LAMBDA: return (char*) left - (char*) right;
   default:
     fprintf(stderr, "Invalid type: %d", left->type);
     exit(1);
@@ -265,6 +269,33 @@ CCL_Object *CCL_dict_getitem(CCL_Object *dict, CCL_Object *key) {
   return NULL;
 }
 
+CCL_Object *CCL_strcat(CCL_Object *list_of_str) {
+  size_t i, total_size = 0;
+  char *buffer, *end;
+  CCL_Object *ret;
+
+  for (i = 0; i < list_of_str->value.as_list.size; i++) {
+    CCL_Object *str = list_of_str->value.as_list.buffer[i];
+    assert(str->type == CCL_STR);
+    total_size += str->value.as_str.size;
+  }
+
+  buffer = end = malloc(sizeof(char) * (total_size+1));
+  *end = '\0';
+
+  for (i = 0; i < list_of_str->value.as_list.size; i++) {
+    CCL_Object *str = list_of_str->value.as_list.buffer[i];
+    strcpy(end, str->value.as_str.buffer);
+    end += str->value.as_str.size;
+  }
+
+  ret = CCL_str_new(buffer);
+
+  free(buffer);
+
+  return ret;
+}
+
 /** tests */
 
 void CCL_test() {
@@ -273,6 +304,13 @@ void CCL_test() {
     assert(CCL_num_new(0) == CCL_num_new(0));
     assert(CCL_num_new(0)->value.as_num == 0);
     assert(CCL_num_new(1)->value.as_num == 1);
+  }
+  /* str tests */
+  {
+    assert(CCL_str_new("abcdef")->value.as_str.size == 6);
+    assert(CCL_strcat(CCL_list_new(3, CCL_str_new("abc"), CCL_str_new("def"), CCL_str_new("123")))->value.as_str.size == 9);
+    assert(CCL_cmp(CCL_strcat(CCL_list_new(3, CCL_str_new("abc"), CCL_str_new("def"), CCL_str_new("123"))),
+                   CCL_str_new("abcdef123")) == 0);
   }
   /* list tests */
   {
