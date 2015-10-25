@@ -28,7 +28,7 @@ typedef struct CCL_Object CCL_Object;
 
 struct CCL_str {
   size_t size;
-  const char *buffer;
+  char *buffer;
 };
 
 struct CCL_list {
@@ -43,7 +43,7 @@ struct CCL_dict {
 };
 
 struct CCL_lambda {
-  CCL_Object *context, *node;
+  CCL_Object *context, (*func)(CCL_Object*, int, ...);
 };
 
 struct CCL_Object {
@@ -62,8 +62,11 @@ struct CCL_Object {
 extern CCL_Object *CCL_nil;
 extern CCL_Object *CCL_true;
 extern CCL_Object *CCL_false;
+extern CCL_Object *CCL_memory_pool;
 
 void CCL_init(); /* must be called before any other things */
+void CCL_init_memory_pool();
+void CCL_free_memory_pool();
 int CCL_cmp(CCL_Object *left, CCL_Object *right);
 CCL_Object *CCL_num_new(double value);
 CCL_Object *CCL_str_new(const char *value);
@@ -75,7 +78,7 @@ size_t CCL_dict_size(CCL_Object *dict);
 void CCL_dict_set(CCL_Object *dict, CCL_Object *key, CCL_Object *value);
 void CCL_dict_del(CCL_Object *dict, CCL_Object *key);
 CCL_Object *CCL_dict_get(CCL_Object *dict, CCL_Object *key);
-
+void CCL_free(CCL_Object *obj);
 CCL_Object *CCL_strcat(CCL_Object *list_of_str);
 
 /* Specialized utilities for solving hackerrank problems */

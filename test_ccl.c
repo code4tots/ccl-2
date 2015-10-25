@@ -2,6 +2,17 @@
 #include "ccl.h"
 
 void CCL_test() {
+  /* memory tests
+   * memory tests here are really just no-crash tests...
+   * It's difficult to properly test that all memory was properly freed.
+   */
+  {
+    assert(CCL_memory_pool == NULL);
+    CCL_init_memory_pool();
+    assert(CCL_memory_pool != NULL);
+    CCL_free_memory_pool();
+    assert(CCL_memory_pool == NULL);
+  }
   /* num tests */
   {
     assert(CCL_num_new(0) == CCL_num_new(0));

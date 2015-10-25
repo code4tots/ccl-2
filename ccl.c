@@ -5,6 +5,8 @@
 
 static int CCL_initialized = 0;
 
+CCL_Object *CCL_memory_pool = NULL;
+
 static CCL_Object CCL_nil_object = { CCL_NIL };
 CCL_Object *CCL_nil = &CCL_nil_object;
 static CCL_Object CCL_true_object = {CCL_BOOL, {1}};
@@ -23,6 +25,15 @@ static CCL_Object *CCL_malloc(int type) {
   return obj;
 }
 
+static void CCL_free_tree(CCL_dict *dict) {
+  if (dict == NULL)
+    return;
+
+  CCL_free_tree(dict->children[0]);
+  CCL_free_tree(dict->children[1]);
+  free(dict);
+}
+
 /** implementation */
 
 void CCL_init() {
@@ -39,6 +50,28 @@ void CCL_init() {
     negative_nums[i].type = CCL_NUM;
     negative_nums[i].value.as_num = -i;
   }
+}
+
+void CCL_init_memory_pool() {
+  if (CCL_memory_pool != NULL) {
+    fprintf(stderr, "Tried to initialize an already initialized memory pool");
+    exit(1);
+  }
+
+  CCL_memory_pool = CCL_list_new(0);
+}
+
+void CCL_free_memory_pool() {
+  int i;
+
+  assert(CCL_memory_pool->type == CCL_LIST);
+
+  for (i = 0; i < CCL_memory_pool->value.as_list.size; i++)
+    CCL_free(CCL_memory_pool->value.as_list.buffer[i]);
+
+  CCL_free(CCL_memory_pool);
+
+  CCL_memory_pool = NULL;
 }
 
 int CCL_cmp(CCL_Object *left, CCL_Object *right) {
@@ -193,6 +226,35 @@ CCL_Object *CCL_dict_get(CCL_Object *dict, CCL_Object *key) {
   return NULL;
 }
 
+void CCL_free(CCL_Object *obj) {
+  switch(obj->type) {
+  case CCL_NIL:
+  case CCL_BOOL:
+  case CCL_NUM:
+  case CCL_FUNC:
+    free(obj);
+    return;
+  case CCL_STR:
+    free(obj->value.as_str.buffer);
+    free(obj);
+    return;
+  case CCL_LIST:
+    free(obj->value.as_list.buffer);
+    free(obj);
+    return;
+  case CCL_DICT:
+    CCL_free_tree(obj->value.as_dict);
+    free(obj);
+    return;
+  case CCL_LAMBDA:
+    CCL_free(obj->value.as_lambda.context);
+    free(obj);
+    return;
+  }
+  fprintf(stderr, "Tried to free an object of unknown type: %d\n", obj->type);
+  exit(1);
+}
+
 CCL_Object *CCL_strcat(CCL_Object *list_of_str) {
   size_t i, total_size = 0;
   char *buffer, *end;
@@ -287,4 +349,3 @@ CCL_Object *CCL_HR_time_to_words(int hour, int minute) {
 
   return CCL_strcat(CCL_list_new(3, CCL_HR_integer_to_words(minute), CCL_str_new(minute == 1 ? " minute past " : " minutes past "), CCL_HR_integer_to_words(hour)));
 }
-
