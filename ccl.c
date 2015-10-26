@@ -21,6 +21,8 @@ static CCL_Object negative_nums[CCL_MAX_INTERNED_NUM];
 
 static CCL_Object *CCL_malloc(int type) {
   CCL_Object *obj = malloc(sizeof(CCL_Object));
+  if (CCL_memory_pool != NULL)
+    CCL_list_add(CCL_memory_pool, obj);
   obj->type = type;
   return obj;
 }

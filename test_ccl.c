@@ -1,4 +1,5 @@
-/** gcc -Wall -Werror -Wpedantic -std=c89 ccl.c test_ccl.c && ./a.out */
+/* gcc -Wall -Werror -Wpedantic -std=c89 ccl.c test_ccl.c && ./a.out */
+/* cl /Za test_ccl.c ccl.c && test_ccl */
 #include "ccl.h"
 
 void CCL_test() {
