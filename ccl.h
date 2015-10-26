@@ -5,9 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CCL_RED 0
-#define CCL_BLACK 1
-
 #define CCL_LEFT 0
 #define CCL_RIGHT 1
 
@@ -19,6 +16,7 @@
 #define CCL_DICT 5
 #define CCL_FUNC 6
 #define CCL_LAMBDA 7
+#define CCL_MACRO 8
 
 typedef struct CCL_str CCL_str;
 typedef struct CCL_list CCL_list;
@@ -43,7 +41,7 @@ struct CCL_dict {
 };
 
 struct CCL_lambda {
-  CCL_Object *context, (*func)(CCL_Object*, int, ...);
+  CCL_Object *context, *argument_names, *body;
 };
 
 struct CCL_Object {
@@ -54,8 +52,9 @@ struct CCL_Object {
     CCL_str as_str;
     CCL_list as_list;
     CCL_dict *as_dict;
-    CCL_Object *(*as_func)(int, ...);
+    CCL_Object *(*as_func)(CCL_Object *argument_list);
     CCL_lambda as_lambda;
+    CCL_Object *(*as_macro)(CCL_Object *context, CCL_Object *raw_argument_list);
   } value;
 };
 
