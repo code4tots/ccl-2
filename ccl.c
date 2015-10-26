@@ -284,6 +284,39 @@ CCL_Object *CCL_strcat(CCL_Object *list_of_str) {
   return ret;
 }
 
+CCL_Object *CCL_parse(const char *s) {
+  int i = 0, len = strlen(s);
+  CCL_Object *stack = CCL_list_new(0);
+
+  while (1) {
+    while (i < len && isspace(s[i]))
+      i++;
+
+    if (i >= len)
+      break;
+
+    if (s[i] == '(') {
+      CCL_list_add(stack, CCL_list_new(0));
+      continue;
+    }
+
+    
+
+    /* Unrecognized token.
+     * TODO: better error handling here.
+     */
+    fprintf(stderr, "Unrecognized token: %.10s", s+i);
+    exit(1);
+  }
+
+  /* Verify that there aren't any missing close parenthesis.
+   * TODO: better error handling here.
+   */
+  assert(stack->value.as_list.size == 1);
+
+  return stack->value.as_list.buffer[0];
+}
+
 CCL_Object *CCL_HR_integer_to_words(int num) {
   /* Right now, only positive integers less than 100 are supportd. */
   switch(num) {

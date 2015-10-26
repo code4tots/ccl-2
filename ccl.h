@@ -1,5 +1,6 @@
 /** header */
 #include <assert.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,6 +80,8 @@ void CCL_dict_del(CCL_Object *dict, CCL_Object *key);
 CCL_Object *CCL_dict_get(CCL_Object *dict, CCL_Object *key);
 void CCL_free(CCL_Object *obj);
 CCL_Object *CCL_strcat(CCL_Object *list_of_str);
+
+CCL_Object *CCL_parse(const char *string);
 
 /* Specialized utilities for solving hackerrank problems */
 CCL_Object *CCL_HR_integer_to_words(int num);
