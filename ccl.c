@@ -38,8 +38,18 @@ struct CCL_Data_Number {
 };
 
 struct CCL_Data_String {
-  size_t size;
   char *buffer;
+  size_t size;
+};
+
+struct CCL_Data_List {
+  CCL_Object **buffer;
+  size_t size, capacity;
+};
+
+struct CCL_Data_Table {
+  CCL_Data_Table *parent, *children[2];
+  size_t size;
 };
 
 /* test */
