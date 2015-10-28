@@ -1,4 +1,4 @@
-HEADER_PRELUDE = r"""
+/* header */
 #include <stddef.h>
 
 typedef struct CCL_Type CCL_Type;
@@ -26,9 +26,7 @@ const char* CCL_String_buffer(CCL_Object*);
 CCL_Object *CCL_List_new(int, ...);
 CCL_Object *CCL_Table_new(int, ...);
 
-"""
-
-IMPLEMENTATION_PRELUDE = r"""
+/* implementation */
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,4 +42,13 @@ struct CCL_Data_String {
   char *buffer;
 };
 
-"""
+/* test */
+void CCL_test() {
+
+}
+
+/* main */
+int main(int argc, char **argv) {
+  CCL_test();
+  return 0;
+}
