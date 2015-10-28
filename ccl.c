@@ -15,7 +15,7 @@ struct CCL_Object {
   void *data;
 };
 
-void CCL_inititialize();
+void CCL_inititialize(void);
 int CCL_has_attribute(CCL_Object*, const char*);
 CCL_Object *CCL_get_attribute(CCL_Object*, const char*);
 void CCL_set_attribute(CCL_Object*, const char*, CCL_Object*);
@@ -23,27 +23,27 @@ CCL_Object *CCL_invoke_method(CCL_Object*, const char*, int, ...);
 
 /** nil header */
 extern CCL_Object *CCL_nil;
-void CCL_inititialize_Nil();
+void CCL_inititialize_Nil(void);
 
 /** bool header */
 extern CCL_Object *CCL_true;
 extern CCL_Object *CCL_false;
-void CCL_inititialize_Bool();
+void CCL_inititialize_Bool(void);
 
 /** number header */
-void CCL_inititialize_Number();
+void CCL_inititialize_Number(void);
 CCL_Object *CCL_new_Number(double);
 
 /** string header */
-void CCL_inititialize_String();
+void CCL_inititialize_String(void);
 CCL_Object *CCL_new_String(const char*);
 
 /** list header */
-void CCL_inititialize_List();
+void CCL_inititialize_List(void);
 CCL_Object *CCL_new_List(int, ...);
 
 /** table header */
-void CCL_inititialize_Table();
+void CCL_inititialize_Table(void);
 CCL_Object *CCL_new_Table(int, ...);
 
 /** test */
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
 
 static int CCL_inititialized = 0;
 
-void CCL_inititialize() {
+void CCL_inititialize(void) {
   if (CCL_inititialized)
     return;
 
@@ -114,13 +114,13 @@ CCL_Object *CCL_invoke_method(CCL_Object *me, const char *name, int argc, ...) {
 
 /** nil implementation */
 CCL_Object *CCL_nil;
-void CCL_inititialize_Nil() {
+void CCL_inititialize_Nil(void) {
 }
 
 /** bool implementation */
 CCL_Object *CCL_true;
 CCL_Object *CCL_false;
-void CCL_inititialize_Bool() {
+void CCL_inititialize_Bool(void) {
 }
 
 /** number implementation */
@@ -130,7 +130,7 @@ struct CCL_Data_Number {
   double value;
 };
 
-void CCL_inititialize_Number() {
+void CCL_inititialize_Number(void) {
 }
 
 CCL_Object *CCL_new_Number(double value);
@@ -143,7 +143,7 @@ struct CCL_Data_String {
   size_t size;
 };
 
-void CCL_inititialize_String() {
+void CCL_inititialize_String(void) {
 }
 
 CCL_Object *CCL_new_String(const char*);
@@ -156,7 +156,7 @@ struct CCL_Data_List {
   size_t size, capacity;
 };
 
-void CCL_inititialize_List() {
+void CCL_inititialize_List(void) {
 }
 
 CCL_Object *CCL_new_List(int, ...);
@@ -169,7 +169,7 @@ struct CCL_Data_Table {
   size_t size;
 };
 
-void CCL_inititialize_Table() {
+void CCL_inititialize_Table(void) {
 }
 
 CCL_Object *CCL_new_Table(int, ...);
