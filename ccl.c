@@ -87,14 +87,23 @@ int CCL_has_attribute(CCL_Object *me, const char *name) {
 CCL_Object *CCL_get_attribute(CCL_Object *me, const char *name) {
   CCL_Object **pointer = me->type->get_pointer_to_attribute(me, name);
 
-  return pointer == NULL ? NULL : *pointer;
+  if (pointer == NULL) {
+  	fprintf(stderr, "get_attribute: Object of type '%s' does not have attribute named '%s'\n", me->type->name, name);
+  	exit(1);
+  }
+
+  return *pointer;
 }
 
 void CCL_set_attribute(CCL_Object *me, const char *name, CCL_Object *value) {
   CCL_Object **pointer = me->type->get_pointer_to_attribute(me, name);
 
-  if (pointer != NULL)
-    *pointer = value;
+  if (pointer == NULL) {
+  	fprintf(stderr, "set_attribute: Object of type '%s' does not have attribute named '%s'\n", me->type->name, name);
+  	exit(1);
+  }
+
+  *pointer = value;
 }
 
 CCL_Object *CCL_invoke_method(CCL_Object *me, const char *name, int argc, ...) {
@@ -112,6 +121,12 @@ CCL_Object *CCL_invoke_method(CCL_Object *me, const char *name, int argc, ...) {
   free(argv);
 
   va_end(ap);
+
+  if (result == NULL) {
+    fprintf(stderr, "invoke_method: Object of type '%s' does not have method named '%s'\n", me->type->name, name);
+    eixt(1);
+  }
+
   return result;
 }
 
