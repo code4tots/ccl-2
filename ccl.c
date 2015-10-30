@@ -3,14 +3,17 @@ gcc -std=c89 -pedantic -Wall -Wmissing-braces -Wextra -Wmissing-field-initialize
 */
 /** header */
 #include <stddef.h>
+#include <stdio.h>
 
 typedef struct CCL_Type CCL_Type;
 typedef struct CCL_Object CCL_Object;
+typedef CCL_Object **(*CCL_GetAttribute)(CCL_Object*, const char*);
+typedef CCL_Object *(*CCL_InvokeMethod)(CCL_Object*, const char*, int, CCL_Object**);
 
 struct CCL_Type {
   const char *name;
-  CCL_Object **(*get_pointer_to_attribute)(CCL_Object*, const char*);
-  CCL_Object *(*invoke_method)(CCL_Object*, const char*, int, CCL_Object**);
+  CCL_GetAttribute get_pointer_to_attribute;
+  CCL_InvokeMethod invoke_method;
 };
 
 struct CCL_Object {
@@ -23,8 +26,10 @@ int CCL_has_attribute(CCL_Object*, const char*);
 CCL_Object *CCL_get_attribute(CCL_Object*, const char*);
 void CCL_set_attribute(CCL_Object*, const char*, CCL_Object*);
 CCL_Object *CCL_invoke_method(CCL_Object*, const char*, int, ...);
+CCL_Type *CCL_make_Type(const char *name, CCL_GetAttribute get_pointer_to_attribute, CCL_InvokeMethod invoke_method);
 
 /** nil header */
+extern CCL_Type *CCL_Type_Nil;
 extern CCL_Object *CCL_nil;
 void CCL_inititialize_Nil(void);
 
@@ -36,10 +41,13 @@ void CCL_inititialize_Bool(void);
 /** number header */
 void CCL_inititialize_Number(void);
 CCL_Object *CCL_new_Number(double);
+double CCL_Number_value(CCL_Object*);
 
 /** string header */
 void CCL_inititialize_String(void);
 CCL_Object *CCL_new_String(const char*);
+size_t CCL_String_size(CCL_Object*);
+const char *CCL_String_buffer(CCL_Object*);
 
 /** list header */
 void CCL_inititialize_List(void);
@@ -124,14 +132,25 @@ CCL_Object *CCL_invoke_method(CCL_Object *me, const char *name, int argc, ...) {
 
   if (result == NULL) {
     fprintf(stderr, "invoke_method: Object of type '%s' does not have method named '%s'\n", me->type->name, name);
-    eixt(1);
+    exit(1);
   }
 
   return result;
 }
 
+CCL_Type *CCL_make_Type(const char *name, CCL_GetAttribute get_pointer_to_attribute, CCL_InvokeMethod invoke_method) {
+  CCL_Type *type = malloc(sizeof(CCL_Type));
+  type->name = name;
+  type->get_pointer_to_attribute = get_pointer_to_attribute;
+  type->invoke_method = invoke_method;
+  return type;
+}
+
 /** nil implementation */
-CCL_Object *CCL_nil;
+CCL_Type CCL_Type_Nil_instance = {"Nil", NULL};
+CCL_Type *CCL_Type_Nil = &CCL_Type_Nil_instanceN;
+CCL_Object CCL_Object_nil_instance = {&CCL_Type_Nil};
+CCL_Object *CCL_nil = &CCL_Object_nil;
 void CCL_inititialize_Nil(void) {
 }
 
@@ -142,11 +161,6 @@ void CCL_inititialize_Bool(void) {
 }
 
 /** number implementation */
-typedef struct CCL_Data_Number CCL_Data_Number;
-
-struct CCL_Data_Number {
-  double value;
-};
 
 void CCL_inititialize_Number(void) {
 }
