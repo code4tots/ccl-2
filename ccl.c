@@ -29,8 +29,8 @@ CCL_Object *CCL_invoke_method(CCL_Object*, const char*, int, ...);
 CCL_Type *CCL_make_Type(const char *name, CCL_GetAttribute get_pointer_to_attribute, CCL_InvokeMethod invoke_method);
 
 /** nil header */
-extern CCL_Type *CCL_Type_Nil;
-extern CCL_Object *CCL_nil;
+extern CCL_Type CCL_Type_Nil;
+extern CCL_Object CCL_nil;
 void CCL_inititialize_Nil(void);
 
 /** bool header */
@@ -147,10 +147,8 @@ CCL_Type *CCL_make_Type(const char *name, CCL_GetAttribute get_pointer_to_attrib
 }
 
 /** nil implementation */
-CCL_Type CCL_Type_Nil_instance = {"Nil", NULL};
-CCL_Type *CCL_Type_Nil = &CCL_Type_Nil_instanceN;
-CCL_Object CCL_Object_nil_instance = {&CCL_Type_Nil};
-CCL_Object *CCL_nil = &CCL_Object_nil;
+CCL_Type CCL_Type_Nil = {"Nil", NULL};
+CCL_Object CCL_nil = {&CCL_Type_Nil, NULL};
 void CCL_inititialize_Nil(void) {
 }
 
