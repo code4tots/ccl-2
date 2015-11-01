@@ -12,12 +12,13 @@ void CCL_set_attribute(CCL_Object*, const char*, CCL_Object*);
 CCL_Object *CCL_invoke_method(CCL_Object *me, const char *name, int argc, ...) {
   va_list ap;
   int i;
+  size_t j;
   CCL_Implementation implementation = NULL;
   CCL_Object **argv, *result;
 
-  for (i = 0; i < me->type->number_of_methods; i++) {
-    if (strcmp(name, me->type->methods[i].name) == 0) {
-      implementation = me->type->methods[i].implementation;
+  for (j = 0; j < me->type->number_of_methods; j++) {
+    if (strcmp(name, me->type->methods[j].name) == 0) {
+      implementation = me->type->methods[j].implementation;
       break;
     }
   }
