@@ -1,5 +1,7 @@
 #include "ccl_bool.h"
 
+#include <stdio.h>
+
 static CCL_Object *method___str__(CCL_Object*, int, CCL_Object**);
 
 static CCL_Method methods[] = {
