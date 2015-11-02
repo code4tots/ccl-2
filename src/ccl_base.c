@@ -158,3 +158,8 @@ void CCL_expect_type_of_argument(CCL_Type *type, CCL_Object **argv, int index) {
   if (argv[index]->type != type)
     CCL_err("Expected argument %d to be of type '%s', but found type '%s'", index, type, argv[index]->type);
 }
+
+void CCL_expect_type_of_object(CCL_Type *type, CCL_Object *me) {
+  if (me->type != type)
+    CCL_err("Expected object to be of type '%s', but found '%s'", type, me->type);
+}

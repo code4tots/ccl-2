@@ -38,5 +38,6 @@ CCL_Object *CCL_new(CCL_Type*, int, ...);
 void CCL_err(const char*, ...);
 void CCL_expect_number_of_arguments(int expected, int actual);
 void CCL_expect_type_of_argument(CCL_Type*, CCL_Object**, int);
+void CCL_expect_type_of_object(CCL_Type*, CCL_Object*);
 
 #endif/*CCL_BASE_H*/

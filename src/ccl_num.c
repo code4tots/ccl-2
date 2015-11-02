@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define INT_DATA(me) (*(double*)(me->pointer_to.raw_data))
+#define NUM_DATA(me) (*(double*)(me->pointer_to.raw_data))
 
 static CCL_Object *method___str__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method___add__(CCL_Object*, int, CCL_Object**);
@@ -23,7 +23,7 @@ static CCL_Object *method___str__(CCL_Object* me, int argc, CCL_Object** argv) {
 static CCL_Object *method___add__(CCL_Object *me, int argc, CCL_Object **argv) {
   CCL_expect_number_of_arguments(1, argc);
   CCL_expect_type_of_argument(CCL_Type_Num, argv, 0);
-  return CCL_new_Num(INT_DATA(me) + INT_DATA(argv[0]));
+  return CCL_new_Num(NUM_DATA(me) + NUM_DATA(argv[0]));
 }
 
 CCL_Object *CCL_new_Num(double value) {
@@ -31,4 +31,9 @@ CCL_Object *CCL_new_Num(double value) {
   me->pointer_to.raw_data = malloc(sizeof(double));
   *((double*) me->pointer_to.raw_data) = value;
   return me;
+}
+
+double CCL_as_Num(CCL_Object *me) {
+  CCL_expect_type_of_object(CCL_Type_Num, me);
+  return NUM_DATA(me);
 }

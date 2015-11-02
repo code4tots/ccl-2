@@ -9,7 +9,8 @@ OS X: gcc -std=c89 -pedantic -Wall -Wmissing-braces -Wextra -Wmissing-field-init
 void test() {
   CCL_invoke_method(CCL_nil, "__str__", 0);
   CCL_invoke_method(CCL_new_Num(5), "__str__", 0);
-  CCL_invoke_method(CCL_new_Num(5), "__add__", 0);
+  printf("%lf\n", CCL_as_Num(CCL_invoke_method(CCL_new_Num(5), "__add__", 1, CCL_new_Num(4))));
+  assert(CCL_as_Num(CCL_invoke_method(CCL_new_Num(5), "__add__", 1, CCL_new_Num(4))) == 9);
 }
 
 int main(int argc, char **argv) {

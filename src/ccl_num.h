@@ -7,5 +7,6 @@
 extern CCL_Type CCL_Type_Num_s;
 
 CCL_Object *CCL_new_Num(double value);
+double CCL_as_Num(CCL_Object*);
 
 #endif/*CCL_NUM_H*/
