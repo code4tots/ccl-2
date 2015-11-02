@@ -4,10 +4,10 @@
 #include <stdlib.h>
 
 static CCL_Object *method___str__(CCL_Object*, int, CCL_Object**);
-static CCL_Object *method___Add__(CCL_Object*, int, CCL_Object**);
+static CCL_Object *method___add__(CCL_Object*, int, CCL_Object**);
 
 static CCL_Method methods[] = {
-  {"__Add__", &method___Add__},
+  {"__add__", &method___add__},
   {"__str__", &method___str__}
 };
 CCL_Type CCL_Type_Num_s = {"Num", 0, NULL, sizeof(methods)/sizeof(CCL_Method), methods, 0};
@@ -17,7 +17,7 @@ static CCL_Object *method___str__(CCL_Object* me, int argc, CCL_Object** argv) {
   return NULL;
 }
 
-static CCL_Object *method___Add__(CCL_Object *me, int argc, CCL_Object **argv) {
+static CCL_Object *method___add__(CCL_Object *me, int argc, CCL_Object **argv) {
   return NULL;
 }
 
