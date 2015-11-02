@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define INT_DATA(me) (*(double*)(me->pointer_to.raw_data))
+
 static CCL_Object *method___str__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method___add__(CCL_Object*, int, CCL_Object**);
 
@@ -14,11 +16,14 @@ CCL_Type CCL_Type_Num_s = {"Num", 0, NULL, sizeof(methods)/sizeof(CCL_Method), m
 
 static CCL_Object *method___str__(CCL_Object* me, int argc, CCL_Object** argv) {
   printf("Inside Num#__str__\n");
+  CCL_expect_number_of_arguments(0, argc);
   return NULL;
 }
 
 static CCL_Object *method___add__(CCL_Object *me, int argc, CCL_Object **argv) {
-  return NULL;
+  CCL_expect_number_of_arguments(1, argc);
+  CCL_expect_type_of_argument(CCL_Type_Num, argv, 0);
+  return CCL_new_Num(INT_DATA(me) + INT_DATA(argv[0]));
 }
 
 CCL_Object *CCL_new_Num(double value) {

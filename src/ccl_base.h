@@ -36,5 +36,7 @@ CCL_Object *CCL_invoke_method(CCL_Object*, const char*, int, ...);
 CCL_Object *CCL_malloc_with_type(CCL_Type*);
 CCL_Object *CCL_new(CCL_Type*, int, ...);
 void CCL_err(const char*, ...);
+void CCL_expect_number_of_arguments(int expected, int actual);
+void CCL_expect_type_of_argument(CCL_Type*, CCL_Object**, int);
 
 #endif/*CCL_BASE_H*/

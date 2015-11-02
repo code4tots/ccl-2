@@ -9,6 +9,7 @@ OS X: gcc -std=c89 -pedantic -Wall -Wmissing-braces -Wextra -Wmissing-field-init
 void test() {
   CCL_invoke_method(CCL_nil, "__str__", 0);
   CCL_invoke_method(CCL_new_Num(5), "__str__", 0);
+  CCL_invoke_method(CCL_new_Num(5), "__add__", 0);
 }
 
 int main(int argc, char **argv) {

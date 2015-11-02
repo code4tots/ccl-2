@@ -13,6 +13,7 @@ CCL_Object CCL_true_s = {CCL_Type_Bool, {NULL}};
 CCL_Object CCL_false_s = {CCL_Type_Bool, {NULL}};
 
 static CCL_Object *method___str__(CCL_Object* me, int argc, CCL_Object** argv) {
+  CCL_expect_number_of_arguments(0, argc);
   printf("Inside Bool#__str__");
   return NULL;
 }
