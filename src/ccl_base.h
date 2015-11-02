@@ -8,20 +8,21 @@ typedef struct CCL_Object CCL_Object;
 typedef CCL_Object *(*CCL_Implementation)(CCL_Object*, int, CCL_Object**);
 
 struct CCL_Method {
-  const char *name;
-  CCL_Implementation implementation;
+  const char *const name;
+  const CCL_Implementation implementation;
 };
 
 struct CCL_Type {
-  const char *name;
-  size_t number_of_attributes;
-  const char **attribute_names;
-  size_t number_of_methods;
-  CCL_Method *methods;
+  const char *const name;
+  const int number_of_attributes;
+  const char *const *const attribute_names;
+  const int number_of_methods;
+  const CCL_Method *const methods;
+  const int constructible; /* false for e.g. builtins and singletons */
 };
 
 struct CCL_Object {
-  CCL_Type *type;
+  CCL_Type *const type;
   union {
     void *raw_data;
     CCL_Object **attributes;
@@ -32,5 +33,8 @@ int CCL_has_attribute(CCL_Object*, const char*);
 CCL_Object *CCL_get_attribute(CCL_Object*, const char*);
 void CCL_set_attribute(CCL_Object*, const char*, CCL_Object*);
 CCL_Object *CCL_invoke_method(CCL_Object*, const char*, int, ...);
+CCL_Object *CCL_malloc_with_type(CCL_Type*);
+CCL_Object *CCL_new(CCL_Type*, int, ...);
+void CCL_err(const char*, ...);
 
 #endif/*CCL_BASE_H*/
