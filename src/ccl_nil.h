@@ -7,4 +7,5 @@
 
 extern CCL_Type CCL_Type_Nil_s;
 extern CCL_Object CCL_nil_s;
+
 #endif/*CCL_NIL_H*/

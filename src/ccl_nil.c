@@ -1,4 +1,4 @@
-#include "ccl_nil.h"
+#include "ccl.h"
 
 #include <stdio.h>
 
@@ -11,6 +11,6 @@ CCL_Type CCL_Type_Nil_s = {"Nil", 0, NULL, sizeof(methods)/sizeof(CCL_Method), m
 CCL_Object CCL_nil_s = {CCL_Type_Nil, NULL};
 
 static CCL_Object *method___str__(CCL_Object* me, int argc, CCL_Object** argv) {
-  printf("Inside nil#__str__");
+  printf("Inside Nil#__str__");
   return NULL;
 }
