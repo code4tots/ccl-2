@@ -14,9 +14,11 @@ struct CCL_Method {
 
 struct CCL_Type {
   const char *const name;
-  const int number_of_attributes;
+  const int number_of_ancestors;
+  CCL_Type *const *const ancestors; /* in mro order */
+  const int number_of_attributes; /* number of direct attributes */
   const char *const *const attribute_names;
-  const int number_of_methods;
+  const int number_of_methods; /* number of direct methods */
   const CCL_Method *const methods;
   const int constructible; /* false for e.g. builtins and singletons */
 };

@@ -12,7 +12,7 @@ static CCL_Method methods[] = {
   {"__add__", &method___add__},
   {"__str__", &method___str__}
 };
-CCL_Type CCL_s_Type_Num = {"Num", 0, NULL, sizeof(methods)/sizeof(CCL_Method), methods, 0};
+CCL_Type CCL_s_Type_Num = {"Num", 0, NULL, 0, NULL, sizeof(methods)/sizeof(CCL_Method), methods, 0};
 
 static CCL_Object *method___str__(CCL_Object* me, int argc, CCL_Object** argv) {
   printf("Inside Num#__str__\n");

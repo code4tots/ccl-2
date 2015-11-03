@@ -8,7 +8,7 @@ static CCL_Method methods[] = {
   {"__str__", &method___str__}
 };
 
-CCL_Type CCL_s_Type_Bool = {"Bool", 0, NULL, sizeof(methods)/sizeof(CCL_Method), methods, 0};
+CCL_Type CCL_s_Type_Bool = {"Bool", 0, NULL, 0, NULL, sizeof(methods)/sizeof(CCL_Method), methods, 0};
 CCL_Object CCL_s_true = {CCL_Type_Bool, {NULL}};
 CCL_Object CCL_s_false = {CCL_Type_Bool, {NULL}};
 

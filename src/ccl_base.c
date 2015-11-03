@@ -8,10 +8,18 @@
 #define MAX_RECURSION_DEPTH 1000
 
 static struct {
-  const char *class_name, *method_name;
+  const char *class_name; /* the name of the class of the receiver */
+  const char *method_name; /* the name of the method that was called */
+  const char *source_class_name; /* the anme of the class where the actual code for this method is */
 } stack_trace[MAX_RECURSION_DEPTH];
 
 static int recursion_depth = 0;
+
+static int get_total_number_of_attributes(CCL_Type *type) {
+  return type->number_of_ancestors ?
+         type->number_of_attributes + get_total_number_of_attributes(type->ancestors[0]) :
+         type->number_of_attributes;
+}
 
 static int get_index_of_attribute(CCL_Type *type, const char *name) {
   int i;
@@ -20,10 +28,16 @@ static int get_index_of_attribute(CCL_Type *type, const char *name) {
     if (strcmp(name, type->attribute_names[i]) == 0)
       return i;
 
+  if (type->number_of_ancestors) {
+    i = get_index_of_attribute(type->ancestors[0], name);
+    if (i != -1)
+      return type->number_of_attributes + i;
+  }
+
   return -1;
 }
 
-static const CCL_Method *get_method(CCL_Type *type, const char *name) {
+static const CCL_Method *get_direct_method(CCL_Type *type, const char *name) {
   int i;
 
   for (i = 0; i < type->number_of_methods; i++)
@@ -33,19 +47,46 @@ static const CCL_Method *get_method(CCL_Type *type, const char *name) {
   return NULL;
 }
 
+static const CCL_Method *get_method_and_owner_type(CCL_Type *type, const char *name, CCL_Type **pointer_to_owner_type) {
+  int i;
+  const CCL_Method *method = get_direct_method(type, name);
+
+  if (method != NULL) {
+    *pointer_to_owner_type = type;
+    return method;
+  }
+
+  for (i = 0; i < type->number_of_ancestors; i++) {
+    method = get_direct_method(type->ancestors[i], name);
+    if (method != NULL) {
+      *pointer_to_owner_type = type->ancestors[i];
+      return method;
+    }
+  }
+
+  return NULL;
+}
+
+static const CCL_Method *get_method(CCL_Type *type, const char *name) {
+  CCL_Type *dummy_type_pointer;
+  return get_method_and_owner_type(type, name, &dummy_type_pointer);
+}
+
 static CCL_Object *invoke_method(CCL_Object *me, const char *name, int argc, CCL_Object **argv) {
   int i;
   const CCL_Method *method = NULL;
   CCL_Implementation implementation = NULL;
   CCL_Object *result;
+  CCL_Type *owner_type;
 
-  method = get_method(me->type, name);
+  method = get_method_and_owner_type(me->type, name, &owner_type);
 
   if (method == NULL)
     CCL_err("Object of type '%s' doesn't have method named '%s'", me->type->name, name);
 
   stack_trace[recursion_depth].class_name = me->type->name;
   stack_trace[recursion_depth].method_name = method->name;
+  stack_trace[recursion_depth].source_class_name = owner_type->name;
   recursion_depth++;
 
   if (recursion_depth >= MAX_RECURSION_DEPTH)
@@ -87,7 +128,6 @@ void CCL_set_attribute(CCL_Object *me, const char *name, CCL_Object *value) {
 CCL_Object *CCL_invoke_method(CCL_Object *me, const char *name, int argc, ...) {
   va_list ap;
   int i;
-  CCL_Implementation implementation = NULL;
   CCL_Object **argv, *result;
 
   argv = malloc(sizeof(CCL_Object*));
@@ -118,26 +158,34 @@ CCL_Object *CCL_malloc_with_type(CCL_Type *type) {
 
 CCL_Object *CCL_new(CCL_Type *type, int argc, ...) {
   va_list ap;
-  int i;
-  CCL_Object **attributes, *result;
+  int i, n;
+  CCL_Object **argv, *me;
 
   if (!type->constructible)
-    CCL_err("Tried to construct an object of type '%s', but '%s' is not constructible", type->name, type->name);
+    CCL_err("Tried to construct an object of type '%s', but '%s' is not constructible",
+            type->name, type->name);
 
   if (type->number_of_attributes != argc)
-    CCL_err("Type '%s' expects %d arguments in its constructor, but found %d arguments", type->name, type->number_of_attributes, argc);
+    CCL_err("Type '%s' expects %d arguments in its constructor, but found %d arguments",
+            type->name, type->number_of_attributes, argc);
 
-  attributes = malloc(sizeof(CCL_Object*) * argc);
+  argv = malloc(sizeof(CCL_Object*) * argc);
 
   va_start(ap, argc);
   for (i = 0; i < argc; i++)
-    attributes[i] = va_arg(ap, CCL_Object*);
+    argv[i] = va_arg(ap, CCL_Object*);
   va_end(ap);
 
-  result = CCL_malloc_with_type(type);
-  result->pointer_to.attributes = attributes;
+  n = get_total_number_of_attributes(type);
+  me = CCL_malloc_with_type(type);
+  me->pointer_to.attributes = malloc(sizeof(CCL_Object*) * n);
 
-  return result;
+  for (i = 0; i < n; i++)
+    me->pointer_to.attributes[i] = CCL_nil;
+
+  invoke_method(me, "__init__", argc, argv);
+
+  return me;
 }
 
 void CCL_err(const char *format, ...) {
@@ -153,7 +201,10 @@ void CCL_err(const char *format, ...) {
   fprintf(stderr, "\n");
 
   for (i = recursion_depth-1; i >= 0; i--)
-    fprintf(stderr, "in method %s#%s\n", stack_trace[i].class_name, stack_trace[i].method_name);
+    fprintf(stderr, "  in method %s->%s#%s\n",
+            stack_trace[i].class_name,
+            stack_trace[i].source_class_name,
+            stack_trace[i].method_name);
 
   exit(1);
 }
@@ -165,7 +216,8 @@ void CCL_expect_number_of_arguments(int expected, int actual) {
 
 void CCL_expect_type_of_argument(CCL_Type *type, CCL_Object **argv, int index) {
   if (argv[index]->type != type)
-    CCL_err("Expected argument %d to be of type '%s', but found type '%s'", index, type, argv[index]->type);
+    CCL_err("Expected argument %d to be of type '%s', but found type '%s'",
+            index, type, argv[index]->type);
 }
 
 void CCL_expect_type_of_object(CCL_Type *type, CCL_Object *me) {
