@@ -4,6 +4,7 @@ OS X: gcc -std=c89 -pedantic -Wall -Wmissing-braces -Wextra -Wmissing-field-init
 */
 #include "ccl.h"
 
+#include <assert.h>
 #include <stdio.h>
 
 void test() {
