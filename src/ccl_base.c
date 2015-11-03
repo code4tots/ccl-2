@@ -23,34 +23,43 @@ static int get_index_of_attribute(CCL_Type *type, const char *name) {
   return -1;
 }
 
+static const CCL_Method *get_method(CCL_Type *type, const char *name) {
+  int i;
+
+  for (i = 0; i < type->number_of_methods; i++)
+    if (strcmp(name, type->methods[i].name) == 0)
+      return &type->methods[i];
+
+  return NULL;
+}
+
 static CCL_Object *invoke_method(CCL_Object *me, const char *name, int argc, CCL_Object **argv) {
   int i;
+  const CCL_Method *method = NULL;
   CCL_Implementation implementation = NULL;
   CCL_Object *result;
 
-  for (i = 0; i < me->type->number_of_methods; i++) {
-    if (strcmp(name, me->type->methods[i].name) == 0) {
-      name = me->type->methods[i].name;
-      implementation = me->type->methods[i].implementation;
-      break;
-    }
-  }
+  method = get_method(me->type, name);
 
-  if (implementation == NULL)
+  if (method == NULL)
     CCL_err("Object of type '%s' doesn't have method named '%s'", me->type->name, name);
 
   stack_trace[recursion_depth].class_name = me->type->name;
-  stack_trace[recursion_depth].method_name = name;
+  stack_trace[recursion_depth].method_name = method->name;
   recursion_depth++;
 
   if (recursion_depth >= MAX_RECURSION_DEPTH)
     CCL_err("Exceeded max recursion depth (max depth is set to: %d)", MAX_RECURSION_DEPTH);
 
-  result = implementation(me, argc, argv);
+  result = method->implementation(me, argc, argv);
 
   recursion_depth--;
 
   return result;
+}
+
+int CCL_has_method(CCL_Type *type, const char *name) {
+  return get_method(type, name) != NULL;
 }
 
 int CCL_has_attribute(CCL_Object *me, const char *name) {

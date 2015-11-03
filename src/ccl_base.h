@@ -29,6 +29,7 @@ struct CCL_Object {
   } pointer_to;
 };
 
+int CCL_has_method(CCL_Type*, const char*);
 int CCL_has_attribute(CCL_Object*, const char*);
 CCL_Object *CCL_get_attribute(CCL_Object*, const char*);
 void CCL_set_attribute(CCL_Object*, const char*, CCL_Object*);
