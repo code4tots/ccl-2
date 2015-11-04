@@ -1,6 +1,7 @@
 #include "ccl.h"
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -33,6 +34,47 @@ CCL_Object *CCL_new(CCL_Class *cls, int argc, ...) {
   return result;
 }
 
+int CCL_has_attribute(CCL_Class *cls, const char *name) {
+  return CCL_get_index_of_attribute(cls, name) != -1;
+}
+
+void CCL_set_attribute(CCL_Object *me, const char *name, CCL_Object *value) {
+  int i = CCL_get_index_of_attribute(me->cls, name);
+
+  if (i == -1)
+    CCL_err("Class '%s' has no attribute '%s'", me->cls->name, name);
+
+  me->pointer_to.attributes[i] = value;
+}
+
+CCL_Object *CCL_get_attribute(CCL_Object *me, const char *name) {
+  int i = CCL_get_index_of_attribute(me->cls, name);
+
+  if (i == -1)
+    CCL_err("Class '%s' has no attribute '%s'", me->cls->name, name);
+
+  return me->pointer_to.attributes[i];
+}
+
+int CCL_has_method(CCL_Class *cls, const char *name) {
+  return CCL_find_method(cls, name) != NULL;
+}
+
+CCL_Object *CCL_invoke_method(CCL_Object *me, const char *name, int argc, ...) {
+  va_list ap;
+  CCL_Object **argv, *result;
+  int i;
+
+  argv = CCL_malloc(sizeof(CCL_Object*) * argc);
+  va_start(ap, argc);
+  for (i = 0; i < argc; i++)
+    argv[i] = va_arg(ap, CCL_Object*);
+  result = CCL_argv_invoke_method(me, name, argc, argv);
+  free(argv);
+
+  return result;
+}
+
 void CCL_err(const char *format, ...) {
   va_list ap;
 
@@ -50,7 +92,7 @@ void CCL_err(const char *format, ...) {
 }
 
 void CCL_initialize_class(CCL_Class *cls) {
-  int i, j, k, n;
+  int i, j, k, n, found;
   CCL_Class **ancestors;
   const char **attribute_names;
   const CCL_Method **methods;
@@ -75,67 +117,52 @@ void CCL_initialize_class(CCL_Class *cls) {
    * TODO: Investigate this. */
 
   /* Compute MRO */
-  for (i = n = 0; i < cls->number_of_bases; i++)
+  for (i = 0, n = 1; i < cls->number_of_bases; i++)
     n += cls->bases[i]->number_of_ancestors;
 
   ancestors = CCL_malloc(sizeof(CCL_Class*) * n);
 
-  for (i = k = 0; i < cls->number_of_bases; i++)
+  ancestors[0] = cls;
+  for (i = 0, n = 1; i < cls->number_of_bases; i++)
     for (j = 0; j < cls->bases[i]->number_of_ancestors; j++)
-      ancestors[k++] = cls->bases[i]->ancestors[j];
+      ancestors[n++] = cls->bases[i]->ancestors[j];
 
   for (i = n-1; i >= 0; i--)
     if (ancestors[i] != NULL)
-      for (j = i-1; j >= 0; j--)
+      for (j = 0; j < i; j++)
         if (ancestors[j] == ancestors[i])
           ancestors[j] = NULL;
 
-  for (n = i = 0; i < n; i++)
+  for (k = i = 0; i < n; i++)
     if (ancestors[i] != NULL)
-      ancestors[n++] = ancestors[i];
+      ancestors[k++] = ancestors[i];
 
-  cls->number_of_ancestors = n;
-  cls->ancestors = CCL_realloc(ancestors, sizeof(CCL_Class*) * n);
+  cls->number_of_ancestors = k;
+  cls->ancestors = CCL_realloc(ancestors, sizeof(CCL_Class*) * k);
 
   /* Compute attributes list */
-  n = cls->number_of_direct_attributes;
-  for (i = 0; i < cls->number_of_bases; i++)
-    n += cls->bases[i]->number_of_attributes;
+  for (i = n = 0; i < cls->number_of_ancestors; i++)
+    n += cls->ancestors[i]->number_of_direct_attributes;
 
   attribute_names = CCL_malloc(sizeof(char*) * n);
 
-  for (n = 0; n < cls->number_of_direct_attributes; n++)
-    attribute_names[n] = cls->direct_attribute_names[n];
+  for (i = n = 0; i < cls->number_of_ancestors; i++)
+    for (j = 0; j < cls->ancestors[i]->number_of_direct_attributes; j++)
+      attribute_names[n++] = cls->ancestors[i]->direct_attribute_names[j];
 
-  for (i = 0; i < cls->number_of_bases; i++)
-    for (j = 0; j < cls->bases[i]->number_of_attributes; j++) {
-      int found = 0;
-      for (k = 0; k < n; k++)
-        if (strcmp(cls->bases[i]->attribute_names[j], attribute_names[k]) == 0) {
-          found = 1;
-          break;
-        }
-      if (!found)
-        attribute_names[n++] = cls->bases[i]->attribute_names[j];
-    }
-
+  /* TODO: check that there aren't any duplicate attribute names */
   cls->number_of_attributes = n;
-  cls->attribute_names = CCL_realloc(attribute_names, sizeof(char*) * n);
+  cls->attribute_names = attribute_names;
 
   /* Compute methods list */
-  n = cls->number_of_direct_methods;
-  for (i = 0; i < cls->number_of_ancestors; i++)
-    n += cls->ancestors[i]->number_of_ancestors;
+  for (i = n = 0; i < cls->number_of_ancestors; i++)
+    n += cls->ancestors[i]->number_of_direct_methods;
 
   methods = CCL_malloc(sizeof(CCL_Method*) * n);
 
-  for (n = 0; n < cls->number_of_direct_methods; n++)
-    methods[n] = &cls->direct_methods[n];
-
   for (i = n = 0; i < cls->number_of_ancestors; i++)
     for (j = 0; j < cls->ancestors[i]->number_of_direct_methods; j++) {
-      int found = 0;
-      for (k = 0; k < n; k++)
+      for (k = found = 0; k < n && !found; k++)
         if (strcmp(cls->ancestors[i]->direct_methods[j].name, methods[k]->name) == 0) {
           found = 1;
           break;
@@ -144,13 +171,83 @@ void CCL_initialize_class(CCL_Class *cls) {
         methods[n++] = &cls->ancestors[i]->direct_methods[j];
     }
 
-    cls->number_of_methods = n;
-    cls->methods = CCL_realloc(methods, sizeof(CCL_Method*) * n);
+  cls->number_of_methods = n;
+  cls->methods = methods; /* realloc breaks const correctness */
+}
+
+const CCL_Method *CCL_find_direct_method(CCL_Class *cls, const char *name) {
+  int i;
+
+  for (i = 0; i < cls->number_of_direct_methods; i++)
+    if (strcmp(name, cls->direct_methods[i].name) == 0)
+      return &cls->direct_methods[i];
+
+  return NULL;
+}
+
+const CCL_Method *CCL_find_method_and_class(CCL_Class *cls, const char *name, CCL_Class **pointer_to_owner_class) {
+  int i;
+
+  for (i = 0; i < cls->number_of_ancestors; i++) {
+    const CCL_Method *method = CCL_find_direct_method(cls->ancestors[i], name);
+    if (method != NULL) {
+      *pointer_to_owner_class = cls->ancestors[i];
+      return method;
+    }
+  }
+
+  return NULL;
+}
+const CCL_Method *CCL_find_method(CCL_Class *cls, const char *name) {
+  CCL_Class *owner_class;
+  return CCL_find_method_and_class(cls, name, &owner_class);
 }
 
 CCL_Object *CCL_argv_new(CCL_Class *cls, int argc, CCL_Object **argv) {
-  /* TODO */
-  return NULL;
+  int i;
+  CCL_Object *me;
+
+  CCL_initialize_class(cls);
+
+  switch(cls->type) {
+  case CCL_CLASS_TYPE_BUILTIN:
+    if (cls->builtin_constructor == NULL)
+      CCL_err("Builtin class '%s' is not constructible", cls->name);
+    return cls->builtin_constructor(argc, argv);
+  case CCL_CLASS_TYPE_SINGLETON:
+    if ((me = cls->instance) != NULL)
+      break;
+  case CCL_CLASS_TYPE_DEFAULT:
+    me = CCL_allocate_memory_for_object_of_class(cls);
+    me->pointer_to.attributes = CCL_malloc(sizeof(CCL_Object*) * cls->number_of_attributes);
+    for (i = 0; i < cls->number_of_attributes; i++)
+      me->pointer_to.attributes[i] = CCL_nil;
+    break;
+  default:
+    CCL_err("Class '%s' has invalid type: %d", cls->name, cls->type);
+  }
+
+  CCL_argv_invoke_method(me, "__init__", argc, argv);
+
+  return me;
+}
+
+CCL_Object *CCL_argv_invoke_method(CCL_Object *me, const char *name, int argc, CCL_Object **argv) {
+  CCL_Class *source_class;
+  CCL_Object *result;
+  const CCL_Method *method = CCL_find_method_and_class(me->cls, name, &source_class);
+
+  if (method == NULL)
+    CCL_err("Class '%s' has no method '%s'", me->cls->name, name);
+
+  CCL_stack_trace[CCL_recursion_depth].class_name = me->cls->name;
+  CCL_stack_trace[CCL_recursion_depth].source_class_name = source_class->name;
+  CCL_stack_trace[CCL_recursion_depth].method_name = name;
+  CCL_recursion_depth++;
+  result = method->implementation(me, argc, argv);
+  CCL_recursion_depth--;
+
+  return result;
 }
 
 int CCL_get_index_of_attribute(CCL_Class *cls, const char *name) {
@@ -195,9 +292,8 @@ void CCL_print_stack_trace() {
   int i;
 
   for (i = CCL_recursion_depth-1; i >= 0; i--)
-    fprintf(stderr, "  in method %s->%s#%s (%d)\n",
+    fprintf(stderr, "  in method %s->%s#%s\n",
             CCL_stack_trace[i].class_name,
             CCL_stack_trace[i].source_class_name,
-            CCL_stack_trace[i].method_name,
-            CCL_stack_trace[i].tag);
+            CCL_stack_trace[i].method_name);
 }
