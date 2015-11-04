@@ -32,7 +32,7 @@ struct CCL_Class {
   /* Only meaningful if type == CCL_CLASS_TYPE_BUILTIN */
   CCL_Object *(*const builtin_constructor)(int, CCL_Object**);
 
-  /* --- EPILOGUE --- */
+  /* --- EPILOGUE: Fill in with CCL_CLASS_EPILOGUE in the initializer --- */
 
   /* Only meaningful if type == CCL_CLASS_TYPE_SINGLETON */
   CCL_Object *instance;
