@@ -3,6 +3,7 @@
 
 #include "ccl_core.h"
 
+#define CCL_Class_Object (&CCL_s_Class_Object)
 #define CCL_Class_Nil (&CCL_s_Class_Nil)
 #define CCL_Class_Bool (&CCL_s_Class_Bool)
 #define CCL_Class_Num (&CCL_s_Class_Num)
@@ -13,6 +14,7 @@
 #define CCL_true (&CCL_s_true)
 #define CCL_false (&CCL_s_false)
 
+extern CCL_Class CCL_s_Class_Object;
 extern CCL_Class CCL_s_Class_Nil;
 extern CCL_Class CCL_s_Class_Bool;
 extern CCL_Class CCL_s_Class_Num;

@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 #define CCL_MAX_RECURSION_DEPTH 1000
-#define CCL_CLASS_EPILOGUE 0,0,NULL,0,NULL,0,NULL
+#define CCL_CLASS_EPILOGUE NULL,0,0,NULL,0,NULL,0,NULL
 
 enum CCL_CLASS_TYPE {
   CCL_CLASS_TYPE_BUILTIN,
@@ -31,6 +31,8 @@ struct CCL_Class {
 
   /* Only meaningful if type == CCL_CLASS_TYPE_BUILTIN */
   CCL_Object *(*const builtin_constructor)(int, CCL_Object**);
+
+  /* --- EPILOGUE --- */
 
   /* Only meaningful if type == CCL_CLASS_TYPE_SINGLETON */
   CCL_Object *instance;
