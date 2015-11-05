@@ -116,7 +116,7 @@ CCL_Class CCL_s_Class_Dict = {
 
 CCL_Object CCL_s_nil = {CCL_Class_Nil, {NULL}};
 CCL_Object CCL_s_true = {CCL_Class_Bool, {NULL}};
-CCL_Object CCL_s_false = {CCL_Class_Bool, {NULL}};;
+CCL_Object CCL_s_false = {CCL_Class_Bool, {NULL}};
 
 static CCL_Object *method_Object___str__(CCL_Object *me, int argc, CCL_Object **argv) {
   CCL_expect_argument_size(0, argc);

@@ -85,10 +85,9 @@ void CCL_err(const char *format, ...) {
 }
 
 void CCL_initialize_class(CCL_Class *cls) {
-  int i, j, k, n, found;
+  int i, j, k, n;
   CCL_Class **ancestors;
   const char **attribute_names;
-  const CCL_Method **methods;
 
   if (cls->is_initialized)
     return;

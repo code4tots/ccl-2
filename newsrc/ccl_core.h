@@ -1,6 +1,7 @@
 #ifndef CCL_CORE_H
 #define CCL_CORE_H
 
+#include <stdarg.h>
 #include <stddef.h>
 
 #define CCL_MAX_RECURSION_DEPTH 1000
