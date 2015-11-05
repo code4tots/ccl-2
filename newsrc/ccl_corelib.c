@@ -20,6 +20,7 @@ struct CCL_Data_List {
 static CCL_Object *method_Object___str__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Object___repr__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Nil___repr__(CCL_Object*, int, CCL_Object**);
+static CCL_Object *method_Bool___repr__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Num___repr__(CCL_Object*, int, CCL_Object**);
 
 static const CCL_Method methods_Object[] = {
@@ -29,6 +30,10 @@ static const CCL_Method methods_Object[] = {
 
 static const CCL_Method methods_Nil[] = {
   {"__repr__", &method_Nil___repr__}
+};
+
+static const CCL_Method methods_Bool[] = {
+  {"__repr__", &method_Bool___repr__}
 };
 
 static const CCL_Method methods_Num[] = {
@@ -63,7 +68,7 @@ CCL_Class CCL_s_Class_Bool = {
   "Bool",
   sizeof(bases_Nil)/sizeof(CCL_Class*), bases_Nil, /* bases */
   0, NULL, /* direct attributes */
-  0, NULL, /* direct methods */
+  sizeof(methods_Bool)/sizeof(CCL_Method), methods_Bool, /* direct methods */
   CCL_CLASS_TYPE_BUILTIN,
   NULL, /* builtin_constructor */
   CCL_CLASS_EPILOGUE
@@ -132,7 +137,13 @@ static CCL_Object *method_Object___repr__(CCL_Object *me, int argc, CCL_Object *
 }
 
 static CCL_Object *method_Nil___repr__(CCL_Object *me, int argc, CCL_Object **argv) {
+  CCL_expect_argument_size(0, argc);
   return CCL_new_Str("nil");
+}
+
+static CCL_Object *method_Bool___repr__(CCL_Object *me, int argc, CCL_Object **argv) {
+  CCL_expect_argument_size(0, argc);
+  return CCL_new_Str(me == CCL_true ? "true" : "false");
 }
 
 static CCL_Object *method_Num___repr__(CCL_Object *me, int argc, CCL_Object **argv) {
