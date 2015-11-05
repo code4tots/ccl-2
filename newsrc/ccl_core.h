@@ -16,7 +16,7 @@ typedef enum CCL_CLASS_TYPE CCL_CLASS_TYPE;
 typedef struct CCL_Class CCL_Class;
 typedef struct CCL_Method CCL_Method;
 typedef struct CCL_Object CCL_Object;
-typedef struct CCL_StackEntry CCL_StackEntry;
+typedef struct CCL_StackFrame CCL_StackFrame;
 
 struct CCL_Class {
   /* Stuff filled in by the user/transpiler */
@@ -60,14 +60,14 @@ struct CCL_Object {
   } pointer_to;
 };
 
-struct CCL_StackEntry {
-  const char *class_name; /* name of class the method was called from */
-  const char *source_class_name; /* name of class the source of this code lives in */
-  const char *method_name; /* name of the method that was called */
+struct CCL_StackFrame {
+  CCL_Class *cls; /* class the method was called from */
+  int ancestor_index; /* index into the ancestor that defines this method */
+  int method_index; /* index into direct_methods of the ancestor with this method */
 };
 
 extern int CCL_recursion_depth;
-extern CCL_StackEntry CCL_stack_trace[CCL_MAX_RECURSION_DEPTH];
+extern CCL_StackFrame CCL_call_stack[CCL_MAX_RECURSION_DEPTH];
 
 /* basic functions for public consumption */
 CCL_Object *CCL_new(CCL_Class*, int, ...);
@@ -80,8 +80,7 @@ void CCL_err(const char*, ...);
 
 /* slightly more advanced usage functions */
 void CCL_initialize_class(CCL_Class*);
-const CCL_Method *CCL_find_direct_method(CCL_Class*, const char*);
-const CCL_Method *CCL_find_method_and_class(CCL_Class*, const char*, CCL_Class**);
+const CCL_Method *CCL_find_next_method_and_source(CCL_Class*, const char*, int*, int*);
 const CCL_Method *CCL_find_method(CCL_Class*, const char*);
 CCL_Object *CCL_argv_new(CCL_Class*, int, CCL_Object**);
 CCL_Object *CCL_argv_invoke_method(CCL_Object*, const char*, int, CCL_Object**);

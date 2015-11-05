@@ -6,7 +6,7 @@
 #include <string.h>
 
 int CCL_recursion_depth = 0;
-CCL_StackEntry CCL_stack_trace[CCL_MAX_RECURSION_DEPTH];
+CCL_StackFrame CCL_call_stack[CCL_MAX_RECURSION_DEPTH];
 
 CCL_Object *CCL_new(CCL_Class *cls, int argc, ...) {
   va_list ap;
@@ -131,57 +131,36 @@ void CCL_initialize_class(CCL_Class *cls) {
     for (j = 0; j < cls->ancestors[i]->number_of_direct_attributes; j++)
       attribute_names[n++] = cls->ancestors[i]->direct_attribute_names[j];
 
-  /* TODO: check that there aren't any duplicate attribute names */
   cls->number_of_attributes = n;
   cls->attribute_names = attribute_names;
 
-  /* Compute methods list */
-  for (i = n = 0; i < cls->number_of_ancestors; i++)
-    n += cls->ancestors[i]->number_of_direct_methods;
-
-  methods = CCL_malloc(sizeof(CCL_Method*) * n);
-
-  for (i = n = 0; i < cls->number_of_ancestors; i++)
-    for (j = 0; j < cls->ancestors[i]->number_of_direct_methods; j++) {
-      for (k = found = 0; k < n && !found; k++)
-        if (strcmp(cls->ancestors[i]->direct_methods[j].name, methods[k]->name) == 0) {
-          found = 1;
-          break;
-        }
-      if (!found)
-        methods[n++] = &cls->ancestors[i]->direct_methods[j];
-    }
-
-  cls->number_of_methods = n;
-  cls->methods = methods; /* ~ breaks const correctness */
+  /* TODO: Better error message when we encounter duplicate attribute names.
+   * In particular, tell which ancestors that this problematic attribute was
+   * derived from. */
+  for (i = 0; i < cls->number_of_attributes; i++)
+    for (j = i+1; j < cls->number_of_attributes; j++)
+      if (strcmp(attribute_names[i], attribute_names[j]) == 0)
+        CCL_err("In initializing class '%s', found that attribute '%s' was declared multiple times", cls->name, attribute_names[i]);
 }
 
-const CCL_Method *CCL_find_direct_method(CCL_Class *cls, const char *name) {
-  int i;
+const CCL_Method *CCL_find_next_method_and_source(CCL_Class *cls, const char *name, int *ancestor_index, int *method_index) {
 
-  for (i = 0; i < cls->number_of_direct_methods; i++)
-    if (strcmp(name, cls->direct_methods[i].name) == 0)
-      return &cls->direct_methods[i];
+  for (; *ancestor_index < cls->number_of_ancestors; ++*ancestor_index) {
+    CCL_Class *ancestor = cls->ancestors[*ancestor_index];
 
-  return NULL;
-}
+    for (; *method_index < ancestor->number_of_direct_methods; ++*method_index) {
+      const CCL_Method *method = &cls->direct_methods[*method_index];
 
-const CCL_Method *CCL_find_method_and_class(CCL_Class *cls, const char *name, CCL_Class **pointer_to_owner_class) {
-  int i;
-
-  for (i = 0; i < cls->number_of_ancestors; i++) {
-    const CCL_Method *method = CCL_find_direct_method(cls->ancestors[i], name);
-    if (method != NULL) {
-      *pointer_to_owner_class = cls->ancestors[i];
-      return method;
+      if (strcmp(name, method->name) == 0)
+        return method;
     }
   }
-
   return NULL;
 }
+
 const CCL_Method *CCL_find_method(CCL_Class *cls, const char *name) {
-  CCL_Class *owner_class;
-  return CCL_find_method_and_class(cls, name, &owner_class);
+  int a = 0, b = 0;
+  return CCL_find_next_method_and_source(cls, name, &a, &b);
 }
 
 CCL_Object *CCL_argv_new(CCL_Class *cls, int argc, CCL_Object **argv) {
@@ -214,16 +193,16 @@ CCL_Object *CCL_argv_new(CCL_Class *cls, int argc, CCL_Object **argv) {
 }
 
 CCL_Object *CCL_argv_invoke_method(CCL_Object *me, const char *name, int argc, CCL_Object **argv) {
-  CCL_Class *source_class;
+  int ancestor_index = 0, method_index = 0;
   CCL_Object *result;
-  const CCL_Method *method = CCL_find_method_and_class(me->cls, name, &source_class);
+  const CCL_Method *method = CCL_find_next_method_and_source(me->cls, name, &ancestor_index, &method_index);
 
   if (method == NULL)
     CCL_err("Class '%s' has no method '%s'", me->cls->name, name);
 
-  CCL_stack_trace[CCL_recursion_depth].class_name = me->cls->name;
-  CCL_stack_trace[CCL_recursion_depth].source_class_name = source_class->name;
-  CCL_stack_trace[CCL_recursion_depth].method_name = name;
+  CCL_call_stack[CCL_recursion_depth].cls = me->cls;
+  CCL_call_stack[CCL_recursion_depth].ancestor_index = ancestor_index;
+  CCL_call_stack[CCL_recursion_depth].method_index = method_index;
   CCL_recursion_depth++;
   result = method->implementation(me, argc, argv);
   CCL_recursion_depth--;
@@ -272,11 +251,14 @@ CCL_Object *CCL_alloc(CCL_Class *cls) {
 void CCL_print_stack_trace() {
   int i;
 
-  for (i = CCL_recursion_depth-1; i >= 0; i--)
-    fprintf(stderr, "  in method %s->%s#%s\n",
-            CCL_stack_trace[i].class_name,
-            CCL_stack_trace[i].source_class_name,
-            CCL_stack_trace[i].method_name);
+  for (i = CCL_recursion_depth-1; i >= 0; i--) {
+    CCL_Class *cls = CCL_call_stack[i].cls;
+    int ancestor_index = CCL_call_stack[i].ancestor_index, method_index = CCL_call_stack[i].method_index;
+    CCL_Class *ancestor = cls->ancestors[ancestor_index];
+    const CCL_Method *method = &ancestor->direct_methods[method_index];
+
+    fprintf(stderr, "  in method %s->%s#%s\n", cls->name, ancestor->name, method->name);
+  }
 }
 
 void CCL_vararg_err(const char *format, va_list ap) {
