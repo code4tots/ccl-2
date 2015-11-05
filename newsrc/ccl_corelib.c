@@ -79,12 +79,18 @@ CCL_Object CCL_s_true = {CCL_Class_Bool, {NULL}};
 CCL_Object CCL_s_false = {CCL_Class_Bool, {NULL}};;
 
 CCL_Object *CCL_new_Num(double value) {
+  CCL_Object *me = CCL_alloc(CCL_Class_Num);
+  double *data = CCL_malloc(sizeof(double));
+  *data = value;
+  me->pointer_to.raw_data = data;
+  return me;
 }
+
 CCL_Object *CCL_new_Str(const char*);
 CCL_Object *CCL_new_List(int, ...);
 CCL_Object *CCL_new_Dict(int, ...);
 
-double CCL_Num_value(CCL_Object*);
+double CCL_Num_value(CCL_Object *me);
 const char *CCL_Str_value(CCL_Object*);
 int CCL_Str_size(CCL_Object*);
 CCL_Object *const *CCL_List_buffer(CCL_Object*);
