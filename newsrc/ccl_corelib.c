@@ -77,3 +77,16 @@ CCL_Class CCL_s_Class_Dict = {
 CCL_Object CCL_s_nil = {CCL_Class_Nil, {NULL}};
 CCL_Object CCL_s_true = {CCL_Class_Bool, {NULL}};
 CCL_Object CCL_s_false = {CCL_Class_Bool, {NULL}};;
+
+CCL_Object *CCL_new_Num(double value) {
+}
+CCL_Object *CCL_new_Str(const char*);
+CCL_Object *CCL_new_List(int, ...);
+CCL_Object *CCL_new_Dict(int, ...);
+
+double CCL_Num_value(CCL_Object*);
+const char *CCL_Str_value(CCL_Object*);
+int CCL_Str_size(CCL_Object*);
+CCL_Object *const *CCL_List_buffer(CCL_Object*);
+int CCL_List_size(CCL_Object*);
+int CCL_Dict_size(CCL_Object*);

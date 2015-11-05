@@ -207,8 +207,7 @@ CCL_Object *CCL_argv_new(CCL_Class *cls, int argc, CCL_Object **argv) {
     if ((me = cls->instance) != NULL)
       break;
   case CCL_CLASS_TYPE_DEFAULT:
-    me = CCL_malloc(sizeof(CCL_Object));
-    me->cls = cls;
+    me = CCL_alloc(cls);
     me->pointer_to.attributes = CCL_malloc(sizeof(CCL_Object*) * cls->number_of_attributes);
     for (i = 0; i < cls->number_of_attributes; i++)
       me->pointer_to.attributes[i] = CCL_nil;
@@ -270,6 +269,12 @@ void *CCL_realloc(void *ptr, size_t size) {
   if (ptr == NULL)
     CCL_err("Out of memory in 'realloc'");
   return ptr;
+}
+
+CCL_Object *CCL_alloc(CCL_Class *cls) {
+  CCL_Object *me = CCL_malloc(sizeof(CCL_Object));
+  me->cls = cls;
+  return me;
 }
 
 void CCL_print_stack_trace() {
