@@ -1,5 +1,18 @@
 #include "ccl.h"
 
+typedef struct CCL_Data_Str CCL_Data_Str;
+typedef struct CCL_Data_List CCL_Data_List;
+
+struct CCL_Data_Str {
+  int size;
+  char *buffer;
+};
+
+struct CCL_Data_List {
+  int size, capacity;
+  CCL_Object **buffer;
+};
+
 static CCL_Class *bases_Nil[] = {
   CCL_Class_Object
 };
