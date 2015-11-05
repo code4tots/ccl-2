@@ -53,7 +53,7 @@ struct CCL_Method {
 };
 
 struct CCL_Object {
-  CCL_Class *const cls;
+  CCL_Class *cls;
   union {
     void *raw_data;
     CCL_Object **attributes;
@@ -86,7 +86,6 @@ const CCL_Method *CCL_find_method(CCL_Class*, const char*);
 CCL_Object *CCL_argv_new(CCL_Class*, int, CCL_Object**);
 CCL_Object *CCL_argv_invoke_method(CCL_Object*, const char*, int, CCL_Object**);
 int CCL_get_index_of_attribute(CCL_Class*, const char*);
-CCL_Object *CCL_allocate_memory_for_object_of_class(CCL_Class*);
 void *CCL_malloc(size_t);
 void *CCL_realloc(void*, size_t);
 void CCL_print_stack_trace();

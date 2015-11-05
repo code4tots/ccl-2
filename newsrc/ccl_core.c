@@ -5,19 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct Object Object;
-
 int CCL_recursion_depth = 0;
 CCL_StackEntry CCL_stack_trace[CCL_MAX_RECURSION_DEPTH];
-
-/* Object should mirror CCL_Object except that pointer to cls is not const. */
-struct Object {
-  CCL_Class *cls;
-  union {
-    void *raw_data;
-    CCL_Object **attributes;
-  } pointer_to;
-};
 
 CCL_Object *CCL_new(CCL_Class *cls, int argc, ...) {
   va_list ap;
@@ -172,7 +161,7 @@ void CCL_initialize_class(CCL_Class *cls) {
     }
 
   cls->number_of_methods = n;
-  cls->methods = methods; /* realloc breaks const correctness */
+  cls->methods = methods; /* ~ breaks const correctness */
 }
 
 const CCL_Method *CCL_find_direct_method(CCL_Class *cls, const char *name) {
@@ -218,7 +207,8 @@ CCL_Object *CCL_argv_new(CCL_Class *cls, int argc, CCL_Object **argv) {
     if ((me = cls->instance) != NULL)
       break;
   case CCL_CLASS_TYPE_DEFAULT:
-    me = CCL_allocate_memory_for_object_of_class(cls);
+    me = CCL_malloc(sizeof(CCL_Object));
+    me->cls = cls;
     me->pointer_to.attributes = CCL_malloc(sizeof(CCL_Object*) * cls->number_of_attributes);
     for (i = 0; i < cls->number_of_attributes; i++)
       me->pointer_to.attributes[i] = CCL_nil;
@@ -258,12 +248,6 @@ int CCL_get_index_of_attribute(CCL_Class *cls, const char *name) {
       return i;
 
   return -1;
-}
-
-CCL_Object *CCL_allocate_memory_for_object_of_class(CCL_Class *cls) {
-  Object *me = CCL_malloc(sizeof(CCL_Object*));
-  me->cls = cls;
-  return (CCL_Object*) me;
 }
 
 void *CCL_malloc(size_t size) {
