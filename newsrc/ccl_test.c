@@ -8,7 +8,7 @@ OS X: gcc -std=c89 -pedantic -Wall -Wmissing-braces -Wextra -Wmissing-field-init
 #include <string.h>
 
 void test() {
-  CCL_Object *x;
+  CCL_Object *x, *y;
 
   CCL_assert(
       CCL_Num_value(CCL_new_Num(5)) == 5,
@@ -24,6 +24,39 @@ void test() {
       strcmp("Hello world!", CCL_Str_buffer(x)) == 0,
       "Expected strcmp(\"Hello world!\", CCL_Str_buffer(x)) == 0, but "
       "CCL_Str_buffer(x) == \"%s\"", CCL_Str_buffer(x));
+
+  x = CCL_new_Num(5);
+
+  CCL_assert(CCL_Class_Object->is_initialized, "Expected Object to be initialized");
+  CCL_assert(CCL_Class_Num->is_initialized, "Expected Num to be initialized");
+  CCL_assert(CCL_Class_Num->number_of_ancestors == 2, "Expected Num to have exactly 2 ancestors");
+  CCL_assert(CCL_has_method(CCL_Class_Num, "__repr__"), "Expected Num to have method '__repr__'");
+  CCL_assert(CCL_has_method(CCL_Class_Object, "__str__"), "Expected Object to have method '__str__'");
+  CCL_assert(CCL_has_method(CCL_Class_Num, "__str__"), "Expected Num to have method '__str__'");
+
+  y = CCL_invoke_method(x, "__str__", 0);
+
+  CCL_assert(y->cls == CCL_Class_Str, "Expected y->cls == CCL_Class_Str");
+
+  CCL_assert(
+      strcmp("5", CCL_Str_buffer(y)) == 0,
+      "Expected strcmp(\"5\", CCL_Str_buffer(y)) == 0, but "
+      "CCL_Str_buffer(y) == \"%s\"", CCL_Str_buffer(y));
+
+  CCL_assert(
+      strcmp("nil", CCL_Str_buffer(CCL_invoke_method(CCL_nil, "__str__", 0))) == 0,
+      "Expected nil.__str__() == 'nil', but nil.__str__() == '%s'",
+      CCL_Str_buffer(CCL_invoke_method(CCL_nil, "__str__", 0)));
+
+  CCL_assert(
+      strcmp("true", CCL_Str_buffer(CCL_invoke_method(CCL_true, "__str__", 0))) == 0,
+      "Expected true.__str__() == 'true', but true.__str__() == '%s'",
+      CCL_Str_buffer(CCL_invoke_method(CCL_true, "__str__", 0)));
+
+  CCL_assert(
+      strcmp("false", CCL_Str_buffer(CCL_invoke_method(CCL_false, "__str__", 0))) == 0,
+      "Expected false.__str__() == 'false', but false.__str__() == '%s'",
+      CCL_Str_buffer(CCL_invoke_method(CCL_false, "__str__", 0)));
 
   fprintf(stderr, "----- All tests successful! -----");
 }

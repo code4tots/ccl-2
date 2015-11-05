@@ -8,6 +8,18 @@
 int CCL_recursion_depth = 0;
 CCL_StackFrame CCL_call_stack[CCL_MAX_RECURSION_DEPTH];
 
+/* Performs CCL_alloc then initializes all attributes to nil.
+ * This should be used for all object alloctaions except those
+ * that require pointer_to.raw_data. */
+static CCL_Object *CCL_alloc_normal(CCL_Class *cls) {
+  int i;
+  CCL_Object *me = CCL_alloc(cls);
+  me->pointer_to.attributes = CCL_malloc(sizeof(CCL_Object*) * cls->number_of_attributes);
+  for (i = 0; i < cls->number_of_attributes; i++)
+    me->pointer_to.attributes[i] = CCL_nil;
+  return me;
+}
+
 CCL_Object *CCL_new(CCL_Class *cls, int argc, ...) {
   va_list ap;
   CCL_Object **argv, *result;
@@ -149,11 +161,13 @@ const CCL_Method *CCL_find_next_method_and_source(CCL_Class *cls, const char *na
     CCL_Class *ancestor = cls->ancestors[*ancestor_index];
 
     for (; *method_index < ancestor->number_of_direct_methods; ++*method_index) {
-      const CCL_Method *method = &cls->direct_methods[*method_index];
+      const CCL_Method *method = &ancestor->direct_methods[*method_index];
 
       if (strcmp(name, method->name) == 0)
         return method;
     }
+
+    *method_index = 0;
   }
   return NULL;
 }
@@ -164,10 +178,7 @@ const CCL_Method *CCL_find_method(CCL_Class *cls, const char *name) {
 }
 
 CCL_Object *CCL_argv_new(CCL_Class *cls, int argc, CCL_Object **argv) {
-  int i;
   CCL_Object *me;
-
-  CCL_initialize_class(cls);
 
   switch(cls->type) {
   case CCL_CLASS_TYPE_BUILTIN:
@@ -175,13 +186,12 @@ CCL_Object *CCL_argv_new(CCL_Class *cls, int argc, CCL_Object **argv) {
       CCL_err("Builtin class '%s' is not constructible", cls->name);
     return cls->builtin_constructor(argc, argv);
   case CCL_CLASS_TYPE_SINGLETON:
-    if ((me = cls->instance) != NULL)
-      break;
+    if (cls->instance == NULL)
+      cls->instance = CCL_alloc_normal(cls);
+    me = cls->instance;
+    break;
   case CCL_CLASS_TYPE_DEFAULT:
-    me = CCL_alloc(cls);
-    me->pointer_to.attributes = CCL_malloc(sizeof(CCL_Object*) * cls->number_of_attributes);
-    for (i = 0; i < cls->number_of_attributes; i++)
-      me->pointer_to.attributes[i] = CCL_nil;
+    me = CCL_alloc_normal(cls);
     break;
   default:
     CCL_err("Class '%s' has invalid type: %d", cls->name, cls->type);
@@ -195,7 +205,16 @@ CCL_Object *CCL_argv_new(CCL_Class *cls, int argc, CCL_Object **argv) {
 CCL_Object *CCL_argv_invoke_method(CCL_Object *me, const char *name, int argc, CCL_Object **argv) {
   int ancestor_index = 0, method_index = 0;
   CCL_Object *result;
-  const CCL_Method *method = CCL_find_next_method_and_source(me->cls, name, &ancestor_index, &method_index);
+  const CCL_Method *method;
+
+  /* Initializing here is needed because of CCL_nil, CCL_true and CCL_false.
+   * TODO: Avoid this in some way, e.g. by making those constants private and
+   * instead using builtin_constructor, or by manually filling in the
+   * necessary values in the corresponding initializer list so that
+   * runtime initialization is not necessary. */
+  CCL_initialize_class(me->cls);
+
+  method = CCL_find_next_method_and_source(me->cls, name, &ancestor_index, &method_index);
 
   if (method == NULL)
     CCL_err("Class '%s' has no method '%s'", me->cls->name, name);
@@ -245,6 +264,7 @@ void *CCL_realloc(void *ptr, size_t size) {
 CCL_Object *CCL_alloc(CCL_Class *cls) {
   CCL_Object *me = CCL_malloc(sizeof(CCL_Object));
   me->cls = cls;
+  CCL_initialize_class(cls);
   return me;
 }
 
@@ -276,4 +296,9 @@ void CCL_assert(int cond, const char *format, ...) {
     CCL_vararg_err(format, ap);
     va_end(ap);
   }
+}
+
+void CCL_expect_argument_size(int expected, int actual) {
+  if (expected != actual)
+    CCL_err("Expected %d arguments but found %d", expected, actual);
 }

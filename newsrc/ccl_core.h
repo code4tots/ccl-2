@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 #define CCL_MAX_RECURSION_DEPTH 1000
-#define CCL_CLASS_EPILOGUE NULL,0,0,NULL,0,NULL,0,NULL
+#define CCL_CLASS_EPILOGUE NULL,0,0,NULL,0,NULL
 
 enum CCL_CLASS_TYPE {
   CCL_CLASS_TYPE_BUILTIN,
@@ -43,8 +43,6 @@ struct CCL_Class {
   CCL_Class **ancestors; /* in MRO order */
   int number_of_attributes;
   const char **attribute_names;
-  int number_of_methods;
-  const CCL_Method **methods;
 };
 
 struct CCL_Method {
@@ -91,5 +89,6 @@ CCL_Object *CCL_alloc(CCL_Class*);
 void CCL_print_stack_trace();
 void CCL_vararg_err(const char *format, va_list ap);
 void CCL_assert(int, const char*, ...);
+void CCL_expect_argument_size(int, int);
 
 #endif/*CCL_CORE_H*/
