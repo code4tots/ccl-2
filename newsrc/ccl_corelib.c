@@ -1,5 +1,7 @@
 #include "ccl.h"
 
+#include <string.h>
+
 typedef struct CCL_Data_Str CCL_Data_Str;
 typedef struct CCL_Data_List CCL_Data_List;
 
@@ -99,7 +101,22 @@ CCL_Object *CCL_new_Num(double value) {
   return me;
 }
 
-CCL_Object *CCL_new_Str(const char*);
+CCL_Object *CCL_new_Str(const char *value) {
+  CCL_Object *me;
+  int size = strlen(value);
+  char *buffer = CCL_malloc(sizeof(char) * (size+1));
+
+  strcpy(buffer, value);
+
+  me = CCL_alloc(CCL_Class_Str);
+  me->pointer_to.raw_data = CCL_malloc(sizeof(CCL_Data_Str));
+
+  ((CCL_Data_Str*) me->pointer_to.raw_data)->size = size;
+  ((CCL_Data_Str*) me->pointer_to.raw_data)->buffer = buffer;
+
+  return me;
+}
+
 CCL_Object *CCL_new_List(int, ...);
 CCL_Object *CCL_new_Dict(int, ...);
 
@@ -112,8 +129,24 @@ double CCL_Num_value(CCL_Object *me) {
   return *(double*) me->pointer_to.raw_data;
 }
 
-const char *CCL_Str_value(CCL_Object*);
-int CCL_Str_size(CCL_Object*);
+const char *CCL_Str_buffer(CCL_Object *me) {
+  CCL_assert(
+      me->cls == CCL_Class_Str,
+      "CCL_Str_buffer requires a Str argument but found '%s'",
+      me->cls->name);
+
+  return ((CCL_Data_Str*) me->pointer_to.raw_data)->buffer;
+}
+
+int CCL_Str_size(CCL_Object *me) {
+  CCL_assert(
+      me->cls == CCL_Class_Str,
+      "CCL_Str_size requires a Str argument but found '%s'",
+      me->cls->name);
+
+  return ((CCL_Data_Str*) me->pointer_to.raw_data)->size;
+}
+
 CCL_Object *const *CCL_List_buffer(CCL_Object*);
 int CCL_List_size(CCL_Object*);
 int CCL_Dict_size(CCL_Object*);

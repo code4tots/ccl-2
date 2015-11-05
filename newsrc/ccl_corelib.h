@@ -31,7 +31,7 @@ CCL_Object *CCL_new_List(int, ...);
 CCL_Object *CCL_new_Dict(int, ...);
 
 double CCL_Num_value(CCL_Object*);
-const char *CCL_Str_value(CCL_Object*);
+const char *CCL_Str_buffer(CCL_Object*);
 int CCL_Str_size(CCL_Object*);
 CCL_Object *const *CCL_List_buffer(CCL_Object*);
 int CCL_List_size(CCL_Object*);

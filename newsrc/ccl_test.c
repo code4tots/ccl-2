@@ -5,11 +5,27 @@ OS X: gcc -std=c89 -pedantic -Wall -Wmissing-braces -Wextra -Wmissing-field-init
 #include "ccl.h"
 
 #include <stdio.h>
+#include <string.h>
 
 void test() {
+  CCL_Object *x;
+
   CCL_assert(
       CCL_Num_value(CCL_new_Num(5)) == 5,
       "Expected CCL_Num_value(CCL_new_Num(5)) == 5");
+
+  x = CCL_new_Str("Hello world!");
+
+  CCL_assert(
+      CCL_Str_size(x) == 12,
+      "Expected CCL_Str_size(x) == 12");
+
+  CCL_assert(
+      strcmp("Hello world!", CCL_Str_buffer(x)) == 0,
+      "Expected strcmp(\"Hello world!\", CCL_Str_buffer(x)) == 0, but "
+      "CCL_Str_buffer(x) == \"%s\"", CCL_Str_buffer(x));
+
+  fprintf(stderr, "----- All tests successful! -----");
 }
 
 int main(int argc, char **argv) {
