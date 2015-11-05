@@ -90,5 +90,7 @@ void *CCL_malloc(size_t);
 void *CCL_realloc(void*, size_t);
 CCL_Object *CCL_alloc(CCL_Class*);
 void CCL_print_stack_trace();
+void CCL_vararg_err(const char *format, va_list ap);
+void CCL_assert(int, const char*, ...);
 
 #endif/*CCL_CORE_H*/

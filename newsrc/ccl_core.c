@@ -67,17 +67,9 @@ CCL_Object *CCL_invoke_method(CCL_Object *me, const char *name, int argc, ...) {
 void CCL_err(const char *format, ...) {
   va_list ap;
 
-  fprintf(stderr, "***** ERROR *****\n");
-
   va_start(ap, format);
-  vfprintf(stderr, format, ap);
+  CCL_vararg_err(format, ap);
   va_end(ap);
-
-  fprintf(stderr, "\n");
-
-  CCL_print_stack_trace();
-
-  exit(1);
 }
 
 void CCL_initialize_class(CCL_Class *cls) {
@@ -285,4 +277,21 @@ void CCL_print_stack_trace() {
             CCL_stack_trace[i].class_name,
             CCL_stack_trace[i].source_class_name,
             CCL_stack_trace[i].method_name);
+}
+
+void CCL_vararg_err(const char *format, va_list ap) {
+  fprintf(stderr, "***** ERROR *****\n");
+  vfprintf(stderr, format, ap);
+  fprintf(stderr, "\n");
+  CCL_print_stack_trace();
+  exit(EXIT_FAILURE);
+}
+
+void CCL_assert(int cond, const char *format, ...) {
+  if (!cond) {
+    va_list ap;
+    va_start(ap, format);
+    CCL_vararg_err(format, ap);
+    va_end(ap);
+  }
 }

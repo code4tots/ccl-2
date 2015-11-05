@@ -90,7 +90,15 @@ CCL_Object *CCL_new_Str(const char*);
 CCL_Object *CCL_new_List(int, ...);
 CCL_Object *CCL_new_Dict(int, ...);
 
-double CCL_Num_value(CCL_Object *me);
+double CCL_Num_value(CCL_Object *me) {
+  CCL_assert(
+      me->cls == CCL_Class_Num,
+      "CCL_Num_value requires a Num argument but found '%s'",
+      me->cls->name);
+
+  return *(double*) me->pointer_to.raw_data;
+}
+
 const char *CCL_Str_value(CCL_Object*);
 int CCL_Str_size(CCL_Object*);
 CCL_Object *const *CCL_List_buffer(CCL_Object*);
