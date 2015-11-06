@@ -30,6 +30,8 @@ CCL_Object *CCL_new_Str(const char*);
 CCL_Object *CCL_new_List(int, ...);
 CCL_Object *CCL_new_Dict(int, ...);
 
+int CCL_truthy(CCL_Object*);
+const char *CCL_repr(CCL_Object*);
 double CCL_Num_value(CCL_Object*);
 const char *CCL_Str_buffer(CCL_Object*);
 int CCL_Str_size(CCL_Object*);

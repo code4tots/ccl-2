@@ -21,7 +21,7 @@ gcc \
 #include <string.h>
 
 void test() {
-  CCL_Object *x, *y;
+  CCL_Object *x, *y, *z;
 
   CCL_assert(
       CCL_Num_value(CCL_new_Num(5)) == 5,
@@ -70,6 +70,17 @@ void test() {
       strcmp("false", CCL_Str_buffer(CCL_invoke_method(CCL_false, "__str__", 0))) == 0,
       "Expected false.__str__() == 'false', but false.__str__() == '%s'",
       CCL_Str_buffer(CCL_invoke_method(CCL_false, "__str__", 0)));
+
+  x = CCL_new_Dict(0);
+  y = CCL_new_Num(10);
+  z = CCL_new_Num(20);
+
+  CCL_assert(CCL_Dict_size(x) == 0, "Expected CCL_Dict_size(x) == 0, but found: %d", CCL_Dict_size(x));
+  CCL_invoke_method(x, "__setitem__", 2, y, z);
+  CCL_assert(CCL_Dict_size(x) == 1, "Expected CCL_Dict_size(x) == 1, but found: %d", CCL_Dict_size(x));
+  CCL_assert(CCL_invoke_method(x, "__getitem__", 1, y) == z, "Expected x[y] == z");
+  CCL_assert(CCL_truthy(CCL_invoke_method(x, "__contains__", 1, y)), "Expected y in x");
+  CCL_assert(!CCL_truthy(CCL_invoke_method(x, "__contains__", 1, z)), "Expected z not in x");
 
   fprintf(stderr, "----- All tests successful! -----\n");
 }
