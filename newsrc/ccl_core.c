@@ -18,6 +18,7 @@ CCL_Object *CCL_new(CCL_Class *cls, int argc, ...) {
   for (i = 0; i < argc; i++)
     argv[i] = va_arg(ap, CCL_Object*);
   result = CCL_argv_new(cls, argc, argv);
+  va_end(ap);
   free(argv);
 
   return result;
@@ -59,6 +60,7 @@ CCL_Object *CCL_invoke_method(CCL_Object *me, const char *name, int argc, ...) {
   for (i = 0; i < argc; i++)
     argv[i] = va_arg(ap, CCL_Object*);
   result = CCL_argv_invoke_method(me, name, argc, argv);
+  va_end(ap);
   free(argv);
 
   return result;
