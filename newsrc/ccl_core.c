@@ -8,18 +8,6 @@
 int CCL_recursion_depth = 0;
 CCL_StackFrame CCL_call_stack[CCL_MAX_RECURSION_DEPTH];
 
-/* Performs CCL_alloc then initializes all attributes to nil.
- * This should be used for all object alloctaions except those
- * that require pointer_to.raw_data. */
-static CCL_Object *CCL_alloc_normal(CCL_Class *cls) {
-  int i;
-  CCL_Object *me = CCL_alloc(cls);
-  me->pointer_to.attributes = CCL_malloc(sizeof(CCL_Object*) * cls->number_of_attributes);
-  for (i = 0; i < cls->number_of_attributes; i++)
-    me->pointer_to.attributes[i] = CCL_nil;
-  return me;
-}
-
 CCL_Object *CCL_new(CCL_Class *cls, int argc, ...) {
   va_list ap;
   CCL_Object **argv, *result;
@@ -264,6 +252,18 @@ CCL_Object *CCL_alloc(CCL_Class *cls) {
   CCL_Object *me = CCL_malloc(sizeof(CCL_Object));
   me->cls = cls;
   CCL_initialize_class(cls);
+  return me;
+}
+
+/* Performs CCL_alloc then initializes all attributes to nil.
+ * This should be used for all object alloctaions except those
+ * that require pointer_to.raw_data. */
+CCL_Object *CCL_alloc_normal(CCL_Class *cls) {
+  int i;
+  CCL_Object *me = CCL_alloc(cls);
+  me->pointer_to.attributes = CCL_malloc(sizeof(CCL_Object*) * cls->number_of_attributes);
+  for (i = 0; i < cls->number_of_attributes; i++)
+    me->pointer_to.attributes[i] = CCL_nil;
   return me;
 }
 
