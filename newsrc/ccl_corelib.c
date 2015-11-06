@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define MIN_LIST_CAPACITY 10
+
 typedef struct CCL_Data_Str CCL_Data_Str;
 typedef struct CCL_Data_List CCL_Data_List;
 
@@ -186,7 +188,26 @@ CCL_Object *CCL_new_Str(const char *value) {
   return me;
 }
 
-CCL_Object *CCL_new_List(int, ...);
+CCL_Object *CCL_new_List(int argc, ...) {
+  int i, capacity = argc < MIN_LIST_CAPACITY ? MIN_LIST_CAPACITY : argc;
+  CCL_Object *me = CCL_alloc(CCL_Class_List);
+  CCL_Data_List *data = CCL_malloc(sizeof(CCL_Data_List));
+  va_list ap;
+
+  data->size = argc;
+  data->capacity = capacity;
+  data->buffer = CCL_malloc(sizeof(CCL_Object*) * capacity);
+
+  me->pointer_to.raw_data = data;
+
+  va_start(ap, argc);
+  for (i = 0; i < argc; i++)
+    data->buffer[i] = va_arg(ap, CCL_Object*);
+  va_end(ap);
+
+  return me;
+}
+
 CCL_Object *CCL_new_Dict(int, ...);
 
 double CCL_Num_value(CCL_Object *me) {
@@ -216,6 +237,22 @@ int CCL_Str_size(CCL_Object *me) {
   return ((CCL_Data_Str*) me->pointer_to.raw_data)->size;
 }
 
-CCL_Object *const *CCL_List_buffer(CCL_Object*);
-int CCL_List_size(CCL_Object*);
+CCL_Object *const *CCL_List_buffer(CCL_Object *me) {
+  CCL_assert(
+      me->cls == CCL_Class_List,
+      "CCL_List_buffer requires a List argument but found '%s'",
+      me->cls->name);
+
+  return ((CCL_Data_List*) me->pointer_to.raw_data)->buffer;
+}
+
+int CCL_List_size(CCL_Object *me) {
+  CCL_assert(
+      me->cls == CCL_Class_List,
+      "CCL_List_size requires a List argument but found '%s'",
+      me->cls->name);
+
+  return ((CCL_Data_List*) me->pointer_to.raw_data)->size;
+}
+
 int CCL_Dict_size(CCL_Object*);
