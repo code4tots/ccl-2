@@ -86,6 +86,7 @@ CCL_Object *CCL_argv_invoke_method(CCL_Object*, const char*, int, CCL_Object**);
 int CCL_get_index_of_attribute(CCL_Class*, const char*);
 void *CCL_malloc(size_t);
 void *CCL_realloc(void*, size_t);
+void CCL_free(void*);
 CCL_Object *CCL_alloc(CCL_Class*);
 CCL_Object *CCL_alloc_normal(CCL_Class *cls);
 void CCL_print_stack_trace();

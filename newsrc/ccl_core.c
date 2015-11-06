@@ -250,6 +250,10 @@ void *CCL_realloc(void *ptr, size_t size) {
   return ptr;
 }
 
+void CCL_free(void *p) {
+  free(p);
+}
+
 CCL_Object *CCL_alloc(CCL_Class *cls) {
   CCL_Object *me = CCL_malloc(sizeof(CCL_Object));
   me->cls = cls;

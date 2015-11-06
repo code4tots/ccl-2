@@ -56,6 +56,7 @@ void test() {
       "Expected strcmp(\"5\", CCL_Str_buffer(y)) == 0, but "
       "CCL_Str_buffer(y) == \"%s\"", CCL_Str_buffer(y));
 
+  /* basic constants test */
   CCL_assert(
       strcmp("nil", CCL_Str_buffer(CCL_invoke_method(CCL_nil, "__str__", 0))) == 0,
       "Expected nil.__str__() == 'nil', but nil.__str__() == '%s'",
@@ -71,6 +72,7 @@ void test() {
       "Expected false.__str__() == 'false', but false.__str__() == '%s'",
       CCL_Str_buffer(CCL_invoke_method(CCL_false, "__str__", 0)));
 
+  /* basic Dict test */
   x = CCL_new_Dict(0);
   y = CCL_new_Num(10);
   z = CCL_new_Num(20);
@@ -81,6 +83,12 @@ void test() {
   CCL_assert(CCL_invoke_method(x, "__getitem__", 1, y) == z, "Expected x[y] == z");
   CCL_assert(CCL_truthy(CCL_invoke_method(x, "__contains__", 1, y)), "Expected y in x");
   CCL_assert(!CCL_truthy(CCL_invoke_method(x, "__contains__", 1, z)), "Expected z not in x");
+
+  /* basic Str test */
+  x = CCL_new_Str("hello\nthere");
+
+  CCL_assert(strcmp("hello\nthere", CCL_Str_buffer(CCL_invoke_method(x, "__str__", 0))) == 0, "Expect x == 'hello\nthere'");
+  CCL_assert(strcmp("\"hello\\nthere\"", CCL_repr(x)) == 0, "Expect x.__repr__() == \"hello\\nthere\"");
 
   fprintf(stderr, "----- All tests successful! -----\n");
 }

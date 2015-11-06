@@ -7,6 +7,14 @@ struct CCL_Data_Str {
   char *buffer;
 };
 
+static CCL_Object *method_Str___str__(CCL_Object*, int, CCL_Object**);
+static CCL_Object *method_Str___repr__(CCL_Object*, int, CCL_Object**);
+
+static const CCL_Method methods_Str[] = {
+  {"__str__", &method_Str___str__},
+  {"__repr__", &method_Str___repr__}
+};
+
 static CCL_Class *bases_Str[] = {
   CCL_Class_Object
 };
@@ -15,11 +23,61 @@ CCL_Class CCL_s_Class_Str = {
   "Str",
   sizeof(bases_Str)/sizeof(CCL_Class*), bases_Str,
   0, NULL, /* direct attributes */
-  0, NULL, /* direct methods */
+  sizeof(methods_Str)/sizeof(CCL_Method), methods_Str, /* direct methods */
   CCL_CLASS_TYPE_BUILTIN,
   NULL, /* builtin_constructor */
   CCL_CLASS_EPILOGUE
 };
+
+static char escchar(char c) {
+  switch(c) {
+  case '\n': return 'n';
+  case '\t': return 't';
+  case '\\': return '\\';
+  case '\"': return '\"';
+  default: return 0;
+  }
+}
+
+static CCL_Object *method_Str___str__(CCL_Object *me, int argc, CCL_Object **argv) {
+  CCL_expect_argument_size(0, argc);
+  return me;
+}
+
+static CCL_Object *method_Str___repr__(CCL_Object *me, int argc, CCL_Object **argv) {
+  const char *str;
+  char *buf;
+  int i, j, len, rlen;
+  CCL_Object *repr;
+
+  CCL_expect_argument_size(0, argc);
+
+  str = CCL_Str_buffer(me);
+  len = strlen(str);
+
+  for (i = rlen = 0; i < len; i++)
+    rlen += escchar(str[i]) ? 2 : 1;
+
+  buf = CCL_malloc(sizeof(char) * (rlen+3));
+
+  buf[0] = '"';
+  for (i = 0, j = 1; i < len; i++) {
+    if (escchar(str[i])) {
+      buf[j++] = '\\';
+      buf[j++] = escchar(str[i]);
+    }
+    else
+      buf[j++] = str[i];
+  }
+  buf[j++] = '"';
+  buf[j++] = '\0';
+
+  repr = CCL_new_Str(buf);
+
+  CCL_free(buf);
+
+  return repr;
+}
 
 CCL_Object *CCL_new_Str(const char *value) {
   CCL_Object *me;
