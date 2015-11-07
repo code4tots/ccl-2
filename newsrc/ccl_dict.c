@@ -17,11 +17,13 @@ struct CCL_Data_Dict {
   CCL_Object *key, *value;
 };
 
+static CCL_Object *method_Dict___size__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Dict___contains__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Dict___setitem__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Dict___getitem__(CCL_Object*, int, CCL_Object**);
 
 static const CCL_Method methods_Dict[] = {
+  {"__size__", &method_Dict___size__},
   {"__contains__", &method_Dict___contains__},
   {"__setitem__", &method_Dict___setitem__},
   {"__getitem__", &method_Dict___getitem__}
@@ -95,6 +97,8 @@ static void Dict_setitem(CCL_Object *me, CCL_Object *key, CCL_Object *value) {
 
     /* TODO: balance the tree here */
   }
+  else
+    d = *dp.pointer_to_node;
 
   d->value = value;
 }
@@ -103,6 +107,11 @@ static CCL_Object *Dict_getitem(CCL_Object *me, CCL_Object *key) {
   DictPointer dp = Dict_find(me, key);
 
   return *dp.pointer_to_node == NULL ? NULL : (*dp.pointer_to_node)->value;
+}
+
+static CCL_Object *method_Dict___size__(CCL_Object *me, int argc, CCL_Object **argv) {
+  CCL_expect_argument_size(0, argc);
+  return CCL_new_Num(CCL_Dict_size(me));
 }
 
 static CCL_Object *method_Dict___contains__(CCL_Object *me, int argc, CCL_Object **argv) {
@@ -133,7 +142,6 @@ CCL_Object *CCL_new_Dict(int argc, ...) {
   CCL_Object *me;
   va_list ap;
   int i;
-  CCL_Data_Dict *data;
 
   CCL_assert(argc % 2 == 0, "CCL_new_Dict requires an even number of arguments");
 

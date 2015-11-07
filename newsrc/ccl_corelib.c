@@ -13,6 +13,7 @@ struct CCL_Data_List {
   CCL_Object **buffer;
 };
 
+static CCL_Object *method_Object___typename__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Object___str__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Object___repr__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Nil___repr__(CCL_Object*, int, CCL_Object**);
@@ -22,6 +23,7 @@ static CCL_Object *method_Num___cmp__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Num___repr__(CCL_Object*, int, CCL_Object**);
 
 static const CCL_Method methods_Object[] = {
+  {"__typename__", &method_Object___typename__},
   {"__str__", &method_Object___str__},
   {"__repr__", &method_Object___repr__}
 };
@@ -98,6 +100,10 @@ CCL_Object CCL_s_nil = {CCL_Class_Nil, {NULL}};
 CCL_Object CCL_s_true = {CCL_Class_Bool, {NULL}};
 CCL_Object CCL_s_false = {CCL_Class_Bool, {NULL}};
 
+static CCL_Object *method_Object___typename__(CCL_Object *me, int argc, CCL_Object **argv) {
+  CCL_expect_argument_size(0, argc);
+  return CCL_new_Str(me->cls->name);
+}
 static CCL_Object *method_Object___str__(CCL_Object *me, int argc, CCL_Object **argv) {
   CCL_expect_argument_size(0, argc);
   return CCL_argv_invoke_method(me, "__repr__", argc, argv);

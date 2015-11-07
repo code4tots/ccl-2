@@ -1,5 +1,7 @@
 #include "ccl.h"
 
+#include <string.h>
+
 typedef struct CCL_Data_Str CCL_Data_Str;
 
 struct CCL_Data_Str {

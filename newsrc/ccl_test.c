@@ -80,6 +80,10 @@ void test() {
   CCL_assert(CCL_Dict_size(x) == 0, "Expected CCL_Dict_size(x) == 0, but found: %d", CCL_Dict_size(x));
   CCL_invoke_method(x, "__setitem__", 2, y, z);
   CCL_assert(CCL_Dict_size(x) == 1, "Expected CCL_Dict_size(x) == 1, but found: %d", CCL_Dict_size(x));
+  CCL_assert(
+      CCL_Num_value(CCL_invoke_method(x, "__size__", 0)) == 1,
+      "Expected x.__size__() == 1 but found: %s",
+      CCL_repr(CCL_invoke_method(x, "__size__", 0)));
   CCL_assert(CCL_invoke_method(x, "__getitem__", 1, y) == z, "Expected x[y] == z");
   CCL_assert(CCL_truthy(CCL_invoke_method(x, "__contains__", 1, y)), "Expected y in x");
   CCL_assert(!CCL_truthy(CCL_invoke_method(x, "__contains__", 1, z)), "Expected z not in x");
@@ -89,6 +93,14 @@ void test() {
 
   CCL_assert(strcmp("hello\nthere", CCL_Str_buffer(CCL_invoke_method(x, "__str__", 0))) == 0, "Expect x == 'hello\nthere'");
   CCL_assert(strcmp("\"hello\\nthere\"", CCL_repr(x)) == 0, "Expect x.__repr__() == \"hello\\nthere\"");
+
+  /* typename */
+  CCL_assert(
+      strcmp(
+          "Str", CCL_Str_buffer(CCL_invoke_method(x, "__typename__", 0))
+      ) == 0,
+      "Expected x.__typename__() == 'Str' but found %s",
+      CCL_Str_buffer(CCL_invoke_method(x, "__typename__", 0)));
 
   fprintf(stderr, "----- All tests successful! -----\n");
 }
