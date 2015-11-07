@@ -10,13 +10,13 @@ struct CCL_Data_Str {
 };
 
 static CCL_Object *method_Str___cmp__(CCL_Object*, int, CCL_Object**);
-static CCL_Object *method_Str___str__(CCL_Object*, int, CCL_Object**);
 static CCL_Object *method_Str___repr__(CCL_Object*, int, CCL_Object**);
+static CCL_Object *method_Str___str__(CCL_Object*, int, CCL_Object**);
 
 static const CCL_Method methods_Str[] = {
   {"__cmp__", &method_Str___cmp__},
-  {"__str__", &method_Str___str__},
   {"__repr__", &method_Str___repr__}
+  {"__str__", &method_Str___str__},
 };
 
 static CCL_Class *bases_Str[] = {
@@ -47,11 +47,6 @@ static CCL_Object *method_Str___cmp__(CCL_Object *me, int argc, CCL_Object **arg
   CCL_expect_argument_size(1, argc);
   if (argv[0]->cls != CCL_Class_Str)
     return CCL_typecmp(me, argv[0]);
-  return me;
-}
-
-static CCL_Object *method_Str___str__(CCL_Object *me, int argc, CCL_Object **argv) {
-  CCL_expect_argument_size(0, argc);
   return me;
 }
 
@@ -88,6 +83,11 @@ static CCL_Object *method_Str___repr__(CCL_Object *me, int argc, CCL_Object **ar
   CCL_free(buf);
 
   return repr;
+}
+
+static CCL_Object *method_Str___str__(CCL_Object *me, int argc, CCL_Object **argv) {
+  CCL_expect_argument_size(0, argc);
+  return me;
 }
 
 CCL_Object *CCL_new_Str(const char *value) {
