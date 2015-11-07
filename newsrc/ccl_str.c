@@ -15,7 +15,7 @@ static CCL_Object *method_Str___str__(CCL_Object*, int, CCL_Object**);
 
 static const CCL_Method methods_Str[] = {
   {"__cmp__", &method_Str___cmp__},
-  {"__repr__", &method_Str___repr__}
+  {"__repr__", &method_Str___repr__},
   {"__str__", &method_Str___str__},
 };
 
