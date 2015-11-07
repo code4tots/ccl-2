@@ -96,9 +96,7 @@ void test() {
 
   /* typename */
   CCL_assert(
-      strcmp(
-          "Str", CCL_Str_buffer(CCL_invoke_method(x, "__typename__", 0))
-      ) == 0,
+      strcmp("Str", CCL_Str_buffer(CCL_invoke_method(x, "__typename__", 0))) == 0,
       "Expected x.__typename__() == 'Str' but found %s",
       CCL_Str_buffer(CCL_invoke_method(x, "__typename__", 0)));
 
