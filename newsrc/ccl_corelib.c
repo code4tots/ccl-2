@@ -141,7 +141,7 @@ static CCL_Object *method_Num___cmp__(CCL_Object *me, int argc, CCL_Object **arg
   CCL_expect_argument_size(1, argc);
 
   if (argv[0]->cls != CCL_Class_Num)
-    return CCL_new_Num(strcmp(CCL_Class_Num->name, argv[0]->cls->name));
+    return CCL_typecmp(me, argv[0]);
 
   return CCL_new_Num(CCL_Num_value(me) - CCL_Num_value(argv[0]));
 }
@@ -237,4 +237,8 @@ int CCL_List_size(CCL_Object *me) {
       me->cls->name);
 
   return ((CCL_Data_List*) me->pointer_to.raw_data)->size;
+}
+
+CCL_Object *CCL_typecmp(CCL_Object *lhs, CCL_Object *rhs) {
+  return CCL_new_Num(strcmp(lhs->cls->name, rhs->cls->name));
 }

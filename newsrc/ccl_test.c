@@ -100,6 +100,17 @@ void test() {
       "Expected x.__typename__() == 'Str' but found %s",
       CCL_Str_buffer(CCL_invoke_method(x, "__typename__", 0)));
 
+  /* misc */
+  CCL_assert(
+      CCL_Num_value(CCL_invoke_method(
+          CCL_new_Num(45), "__cmp__", 1, CCL_new_Str("hi"))) < 0,
+      "If the types are incompatible, __cmp__ should compare by name of type ('Num' < 'Str').");
+
+  CCL_assert(
+      CCL_Num_value(CCL_invoke_method(
+           CCL_new_Str("hi"), "__cmp__", 1,CCL_new_Num(45))) > 0,
+      "If the types are incompatible, __cmp__ should compare by name of type ('Str' > 'Num').");
+
   fprintf(stderr, "----- All tests successful! -----\n");
 }
 

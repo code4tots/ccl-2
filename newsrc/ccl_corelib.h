@@ -29,5 +29,6 @@ const char *CCL_repr(CCL_Object*);
 double CCL_Num_value(CCL_Object*);
 CCL_Object *const *CCL_List_buffer(CCL_Object*);
 int CCL_List_size(CCL_Object*);
+CCL_Object *CCL_typecmp(CCL_Object*, CCL_Object*);
 
 #endif/*CCL_STDLIB_H*/
