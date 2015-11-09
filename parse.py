@@ -337,3 +337,10 @@ a.b(c)
 assert (
     parsed_expr == 'CCL_invoke_method(CCL_var_a, "b", 1, CCL_var_c)'
 ), parsed_expr
+
+parsed_expr = Parser().init('<test>', r"""
+a[5]
+""").parse_expression()
+assert (
+    parsed_expr == 'CCL_invoke_method(CCL_var_a, "__getitem__", 1, CCL_new_Num(5.0))'
+), parsed_expr
