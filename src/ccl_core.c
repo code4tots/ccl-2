@@ -28,13 +28,15 @@ int CCL_has_attribute(CCL_Class *cls, const char *name) {
   return CCL_get_index_of_attribute(cls, name) != -1;
 }
 
-void CCL_set_attribute(CCL_Object *me, const char *name, CCL_Object *value) {
+CCL_Object *CCL_set_attribute(CCL_Object *me, const char *name, CCL_Object *value) {
   int i = CCL_get_index_of_attribute(me->cls, name);
 
   if (i == -1)
     CCL_err("Class '%s' has no attribute '%s'", me->cls->name, name);
 
   me->pointer_to.attributes[i] = value;
+
+  return value;
 }
 
 CCL_Object *CCL_get_attribute(CCL_Object *me, const char *name) {

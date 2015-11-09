@@ -2,7 +2,7 @@
 
 KEYWORDS = (
     'include',
-    'true', 'false', 'nil',
+    'true', 'false', 'nil', 'self',
     'and', 'or',
     'private', # TODO: Allow classes and methods to be
     'public',  # qualified with private or public.
@@ -10,7 +10,7 @@ KEYWORDS = (
     'return',
     'if', 'elif', 'else',
     'while', 'break', 'continue',
-    'for', 'in',
+    'for', 'in', 'not',
 )
 
 BRACKET_TABLE = {
@@ -23,7 +23,8 @@ SYMBOLS = tuple(reversed(sorted([
     '+', '-', '*', '/', '%',
     '=',
     '.', ',',
-    ':',
+    '?', ':',
+    '<', '<=', '>', '>=', '==', '!=',
 ] + list(BRACKET_TABLE) + list(BRACKET_TABLE.values()))))
 
 class Source(object):

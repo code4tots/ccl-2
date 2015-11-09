@@ -2,6 +2,28 @@
 # By clean up, I mean, think through the design more.
 from lex import Lexer
 
+BINOPS = {
+  '*': '__mul__',
+  '/': '__div__',
+  '%': '__mod__',
+  '+': '__add__',
+  '-': '__sub__',
+  '<': '__lt__',
+  '<=': '__le__',
+  '>': '__gt__',
+  '>=': '__ge__',
+  '==': '__eq__',
+  '!=': '__ne__',
+
+  # TODO: Figure out a nice way to integrate these ops
+  # with the split system I already have of
+  # '__getitem__/__setitem__', variables, and attributes.
+  '+=': '__iadd__',
+  '-=': '__isub__',
+  '*=': '__imul__',
+  '/=': '__idiv__',
+  '%=': '__imod__',
+}
 
 class Parser(object):
 
@@ -152,19 +174,98 @@ class Parser(object):
       names = []
       while not self.consume('NEWLINE'):
         names.append(self.expect('NAME').value)
-      return 'CCL_Object %s;' % ', '.join('*CCL_var_' + n for n in names)
+      return '\nCCL_Object %s;' % ', '.join('*CCL_var_' + n for n in names)
     else:
       value = self.parse_expression()
       self.expect('NEWLINE')
       return '\n%s;' % value
 
-  # TODO: Right now operator precedence mirrors that of C
-  # so that I don't have to figure out precedence logic or
-  # figure out where to put in parenthesis. Resolve this in
-  # the future so that CCL operator precedence doesn't
-  # have to mirror C's.
+  # TODO: Some of the operations below are sensitive to
+  # C's precedence rules. In cleaning up, figure out whether
+  # this should be a concern.
 
   def parse_expression(self):
+    return self.parse_assign_expression()
+
+  def parse_assign_expression(self):
+    expr = self.parse_tenop_expression()
+    if self.consume('='):
+      rhs = self.parse_assign_expression()
+      expr = '%s = %s' % (expr, rhs)
+    return expr
+
+  def parse_tenop_expression(self):
+    expr = self.parse_or_expression()
+    if self.consume('?'):
+      lhs = self.parse_expression()
+      self.expect(':')
+      rhs = self.parse_tenop_expression()
+      expr = 'CCL_truthy(%s) ? %s : %s' % (expr, lhs, rhs)
+    return expr
+
+  def parse_or_expression(self):
+    parse_subexpr = self.parse_and_expression
+    expr = parse_subexpr()
+    while self.consume('or'):
+      expr = '(CCL_truthy(%s) || CCL_truthy(%s) ? CCL_true : CCL_false)' % (expr, parse_subexpr())
+    return expr    
+
+  def parse_and_expression(self):
+    parse_subexpr = self.parse_relational_expression
+    expr = parse_subexpr()
+    while self.consume('and'):
+      expr = '(CCL_truthy(%s) && CCL_truthy(%s) ? CCL_true : CCL_false)' % (expr, parse_subexpr())
+    return expr
+
+  def parse_relational_expression(self):
+    expr = self.parse_additive_expression()
+    for op in ('<', '<=', '>', '>=', '==', '!='):
+      if self.consume(op):
+        expr = 'CCL_invoke_method(%s, "%s", 1, %s)' % (
+            expr, BINOPS[op], self.parse_relational_expression())
+        break
+    else:
+      if self.consume('in'):
+        cont = self.parse_relational_expression()
+        expr = 'CCL_invoke_method(%s, "__contains__", 1, %s)' % (cont, expr)
+    return expr
+
+  def parse_additive_expression(self):
+    parse_subexpr = self.parse_multiplicative_expression
+    expr = parse_subexpr()
+    while True:
+      for op in ('+', '-'):
+        if self.consume(op):
+          expr = 'CCL_invoke_method(%s, "%s", 1, %s)' % (
+              expr, BINOPS[op], parse_subexpr())
+          break
+      else:
+        break
+    return expr
+
+  def parse_multiplicative_expression(self):
+    parse_subexpr = self.parse_prefix_expression
+    expr = parse_subexpr()
+    while True:
+      for op in ('*', '/', '%'):
+        if self.consume(op):
+          expr = 'CCL_invoke_method(%s, "%s", 1, %s)' % (
+              expr, BINOPS[op], parse_subexpr())
+          break
+      else:
+        break
+    return expr
+
+  def parse_prefix_expression(self):
+    if self.consume('-'):
+      return 'CCL_invoke_method(%s, "__neg__", 0)' % (
+          self.parse_postfix_expression())
+    if self.consume('+'):
+      return 'CCL_invoke_method(%s, "__pos__", 0)' % (
+          self.parse_postfix_expression())
+    if self.consume('not'):
+      return 'CCL_truthy(%s) ? CCL_false : CCL_true' % (
+          self.parse_postfix_expression())
     return self.parse_postfix_expression()
 
   def parse_postfix_expression(self):
@@ -179,6 +280,9 @@ class Parser(object):
             self.consume(',')
           expr = 'CCL_invoke_method(%s, "%s", %d, %s)' % (
               expr, attr, len(args), ', '.join(args))
+        elif self.consume('='):
+          val = self.parse_expression()
+          expr = 'CCL_set_attribute(%s, "%s", %s)' % (expr, attr, val)
         else:
           expr = 'CCL_get_attribute(%s, "%s")' % (expr, attr)
       elif self.consume('['):
@@ -241,6 +345,9 @@ class Parser(object):
 
     if self.consume('false'):
       return 'CCL_false'
+
+    if self.consume('self'):
+      return 'CCL_self'
 
     # TODO: Better error message
     raise SyntaxError('Expected expression')
@@ -306,6 +413,7 @@ class Blarg: Base
   var a b c
 
   def sample_method(x, y, z)
+    var d
     return x
 """).parse_class()
 assert parsed_class == {
@@ -320,6 +428,7 @@ assert parsed_class == {
           'args': ['x', 'y', 'z'],
           'body': """
 {
+  CCL_Object *CCL_var_d;
   return CCL_var_x;
 }""",
       }
@@ -343,4 +452,32 @@ a[5]
 """).parse_expression()
 assert (
     parsed_expr == 'CCL_invoke_method(CCL_var_a, "__getitem__", 1, CCL_new_Num(5.0))'
+), parsed_expr
+
+parsed_expr = Parser().init('<test>', r"""
+a * b * c
+""").parse_expression()
+assert (
+    parsed_expr == 'CCL_invoke_method(CCL_invoke_method(CCL_var_a, "__mul__", 1, CCL_var_b), "__mul__", 1, CCL_var_c)'
+), parsed_expr
+
+parsed_expr = Parser().init('<test>', r"""
+a = b - c
+""").parse_expression()
+assert (
+    parsed_expr == 'CCL_var_a = CCL_invoke_method(CCL_var_b, "__sub__", 1, CCL_var_c)'
+), parsed_expr
+
+parsed_expr = Parser().init('<test>', r"""
+a or b
+""").parse_expression()
+assert (
+    parsed_expr == '(CCL_truthy(CCL_var_a) || CCL_truthy(CCL_var_b) ? CCL_true : CCL_false)'
+), parsed_expr
+
+parsed_expr = Parser().init('<test>', r"""
+a and not b
+""").parse_expression()
+assert (
+    parsed_expr == '(CCL_truthy(CCL_var_a) && CCL_truthy(CCL_truthy(CCL_var_b) ? CCL_false : CCL_true) ? CCL_true : CCL_false)'
 ), parsed_expr

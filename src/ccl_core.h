@@ -71,7 +71,7 @@ extern CCL_StackFrame CCL_call_stack[CCL_MAX_RECURSION_DEPTH];
 /* basic functions for public consumption */
 CCL_Object *CCL_new(CCL_Class*, int, ...);
 int CCL_has_attribute(CCL_Class*, const char*);
-void CCL_set_attribute(CCL_Object*, const char*, CCL_Object*);
+CCL_Object *CCL_set_attribute(CCL_Object*, const char*, CCL_Object*);
 CCL_Object *CCL_get_attribute(CCL_Object*, const char*);
 int CCL_has_method(CCL_Class*, const char*);
 CCL_Object *CCL_invoke_method(CCL_Object*, const char*, int, ...);
