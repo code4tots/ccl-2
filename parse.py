@@ -73,12 +73,8 @@ class Parser(object):
     while not self.at('EOF'):
       if self.at('include'):
         includes.append(self.parse_include())
-      elif self.at('class'):
-        classes.append(self.parse_class())
       else:
-        # TODO: Better error message.
-        raise SyntaxError(
-            'Expected class or include but found %r' % self.peek())
+        classes.append(self.parse_class())
       self.skip_newlines()
 
     return {
@@ -97,7 +93,11 @@ class Parser(object):
     }
 
   def parse_class(self):
-    self.expect('class')
+    if self.consume('singleton'):
+      singleton = True
+    else:
+      self.expect('class')
+      singleton = False
     name = self.expect('NAME').value
     bases = []
     attrs = []
@@ -119,9 +119,13 @@ class Parser(object):
       else:
         methods.append(self.parse_method())
 
+    if not bases:
+      bases.append('Object')
+
     return {
         'type': 'class',
         'name': name,
+        'singleton': bool(singleton),
         'bases': bases,
         'attrs': attrs,
         'methods': methods,
@@ -369,7 +373,8 @@ class Blarg
 assert parsed_class == {
   'type': 'class',
   'name': 'Blarg',
-  'bases': [],
+  'singleton': False,
+  'bases': ['Object'],
   'attrs': [],
   'methods': [],
 }, parsed_class
@@ -381,6 +386,20 @@ class Blarg: Base
 assert parsed_class == {
   'type': 'class',
   'name': 'Blarg',
+  'singleton': False,
+  'bases': ['Base'],
+  'attrs': ['a', 'b', 'c'],
+  'methods': [],
+}, parsed_class
+
+parsed_class = Parser().init('<test>', r"""
+singleton Blarg: Base
+  var a b c
+""").parse_class()
+assert parsed_class == {
+  'type': 'class',
+  'name': 'Blarg',
+  'singleton': True,
   'bases': ['Base'],
   'attrs': ['a', 'b', 'c'],
   'methods': [],
@@ -396,6 +415,7 @@ class Blarg: Base
 assert parsed_class == {
   'type': 'class',
   'name': 'Blarg',
+  'singleton': False,
   'bases': ['Base'],
   'attrs': ['a', 'b', 'c'],
   'methods': [
@@ -419,6 +439,7 @@ class Blarg: Base
 assert parsed_class == {
   'type': 'class',
   'name': 'Blarg',
+  'singleton': False,
   'bases': ['Base'],
   'attrs': ['a', 'b', 'c'],
   'methods': [

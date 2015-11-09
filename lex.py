@@ -6,6 +6,7 @@ KEYWORDS = (
     'and', 'or',
     'private', # TODO: Allow classes and methods to be
     'public',  # qualified with private or public.
+    'singleton',
     'def', 'class', 'pass', 'var',
     'return',
     'if', 'elif', 'else',
