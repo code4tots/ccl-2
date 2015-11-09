@@ -1,16 +1,22 @@
+# TODO: Clean up this crap too.
+# By clean up, I mean, think through the design more.
 from lex import Lexer
+
 
 class Parser(object):
 
   ## public
 
   def parse(self, filespec, string):
-    self.tokens = Lexer().lex(filespec, string)
-    self.position = 0
-
+    self.init(filespec, string)
     return self.parse_module()
 
   ## private
+
+  def init(self, filespec, string):
+    self.tokens = Lexer().lex(filespec, string)
+    self.position = 0
+    return self
 
   def peek(self):
     return self.tokens[self.position]
@@ -30,6 +36,7 @@ class Parser(object):
   def expect(self, type_):
     token = self.consume(type_)
     if not token:
+      # TODO: Better error message (e.g. include location)
       raise SyntaxError('Expected %s but found %s' % (type_, self.peek()))
     return token
 
@@ -38,14 +45,14 @@ class Parser(object):
       pass
 
   def parse_module(self):
-    classes = []
     includes = []
+    classes = []
     self.skip_newlines()
     while not self.at('EOF'):
-      if self.at('class'):
-        classes.append(self.parse_class())
-      elif self.at('include'):
+      if self.at('include'):
         includes.append(self.parse_include())
+      elif self.at('class'):
+        classes.append(self.parse_class())
       else:
         # TODO: Better error message.
         raise SyntaxError(
@@ -54,34 +61,279 @@ class Parser(object):
 
     return {
         'type': 'module',
-        'classes': classes,
         'includes': includes,
+        'classes': classes,
     }
 
   def parse_include(self):
     self.expect('include')
-    path = self.expect('STRING').value
+    name = self.expect('NAME').value
     self.expect('NEWLINE')
     return {
         'type': 'include',
-        'path': path,
+        'name': name,
     }
 
+  def parse_class(self):
+    self.expect('class')
+    name = self.expect('NAME').value
+    bases = []
+    attrs = []
+    methods = []
 
-parsed_module = Parser().parse('<test>', r"""
+    if self.consume(':'):
+      while not self.at('NEWLINE'):
+        bases.append(self.expect('NAME').value)
+
+    self.expect('NEWLINE')
+    self.expect('INDENT')
+
+    while not self.consume('DEDENT'):
+      if self.consume('pass'):
+        self.expect('NEWLINE')
+      elif self.consume('var'):
+        while not self.consume('NEWLINE'):
+          attrs.append(self.expect('NAME').value)
+      else:
+        methods.append(self.parse_method())
+
+    return {
+        'type': 'class',
+        'name': name,
+        'bases': bases,
+        'attrs': attrs,
+        'methods': methods,
+    }
+
+  def parse_method(self):
+    self.expect('def')
+    name = self.expect('NAME').value
+    args = []
+    self.expect('(')
+    while not self.consume(')'):
+      args.append(self.expect('NAME').value)
+      self.consume(',')
+    self.expect('NEWLINE')
+    body = self.parse_statement_block()
+    return {
+        'type': 'method',
+        'name': name,
+        'args': args,
+        'body': body,
+    }
+
+  # TODO: Right now parse_statement* methods
+  # return C source as strings because I'm lazy.
+  # In the future though, I might want to actually
+  # return some sort of tree so that I can do other fun
+  # things with it.
+
+  def parse_statement_block(self):
+    stmts = []
+    self.expect('INDENT')
+    self.skip_newlines()
+    while not self.consume('DEDENT'):
+      if self.consume('pass'):
+        self.expect('NEWLINE')
+      else:
+        stmts.append(self.parse_statement())
+      self.skip_newlines()
+    return '\n{%s\n}' % ''.join(stmt.replace('\n', '\n  ') for stmt in stmts)
+
+  def parse_statement(self):
+    if self.consume('return'):
+      value = self.parse_expression()
+      self.expect('NEWLINE')
+      return '\nreturn %s;' % value
+    elif self.consume('break'):
+      self.expect('NEWLINE')
+      return '\nbreak;'
+    elif self.consume('var'):
+      names = []
+      while not self.consume('NEWLINE'):
+        names.append(self.expect('NAME').value)
+      return 'CCL_Object %s;' % ', '.join('*CCL_var_' + n for n in names)
+    else:
+      value = self.parse_expression()
+      self.expect('NEWLINE')
+      return '\n%s;' % value
+
+  # TODO: Right now operator precedence mirrors that of C
+  # so that I don't have to figure out precedence logic or
+  # figure out where to put in parenthesis. Resolve this in
+  # the future so that CCL operator precedence doesn't
+  # have to mirror C's.
+
+  def parse_expression(self):
+    return self.parse_postfix_expression()
+
+  def parse_postfix_expression(self):
+    expr = self.parse_primary_expression()
+    while True:
+      if self.consume('.'):
+        attr = self.expect('NAME').value
+        if self.consume('('):
+          args = []
+          while not self.consume(')'):
+            args.append(self.parse_expression())
+            self.consume(',')
+          expr = 'CCL_invoke_method(%s, "%s", %d, %s)' % (
+              expr, attr, len(args), ', '.join(args))
+        else:
+          expr = 'CCL_get_attribute(%s, "%s")' % (expr, attr)
+      elif self.consume('['):
+        arg = self.parse_expression()
+        self.expect(']')
+        if self.consume('='):
+          val = self.parse_expression()
+          expr = 'CCL_invoke_method(%s, "__setitem__", 2, %s, %s)' % (
+              expr, arg, val)
+        else:
+          expr = 'CCL_invoke_method(%s, "__getitem__", 1, %s)' % (expr, arg)
+      else:
+        break
+    return expr
+
+  def parse_primary_expression(self):
+    tok = self.consume('NAME')
+    if tok:
+      return 'CCL_var_' + tok.value
+
+    tok = self.consume('NUMBER')
+    if tok:
+      return 'CCL_new_Num(%s)' % tok.value
+
+    tok = self.consume('STRING')
+    if tok:
+      return 'CCL_new_Str("%s")' % (tok.value
+          .replace('\n', '\\n')
+          .replace('\t', '\\t')
+          .replace('"', '\\"'))
+
+    if self.consume('['):
+      items = []
+      while not self.consume(']'):
+        items.append(self.parse_expression())
+        self.consume(',')
+      return 'CCL_new_List(%d, %s)' % (len(items), ', '.join(items))
+
+    if self.consume('{'):
+      items = []
+      while not self.consume('}'):
+        items.append(self.parse_expression())
+        if self.consume(':'):
+          items.append(self.parse_expression())
+        else:
+          items.append('CCL_true')
+        self.consume(',')
+      return 'CCL_new_Dict(%d, %s)' % (len(items), ', '.join(items))
+
+    if self.consume('('):
+      expr = self.parse_expression()
+      self.expect(')')
+      return '(%s)' % expr
+
+    if self.consume('nil'):
+      return 'CCL_nil'
+
+    if self.consume('true'):
+      return 'CCL_true'
+
+    if self.consume('false'):
+      return 'CCL_false'
+
+    # TODO: Better error message
+    raise SyntaxError('Expected expression')
+
+### Tests
+
+parsed_include = Parser().init('<test>', r"""
 include blarglib
+""").parse_include()
+assert parsed_include == {
+  'type': 'include',
+  'name': 'blarglib',
+}, parsed_include
 
+parsed_class = Parser().init('<test>', r"""
 class Blarg
   pass
+""").parse_class()
+assert parsed_class == {
+  'type': 'class',
+  'name': 'Blarg',
+  'bases': [],
+  'attrs': [],
+  'methods': [],
+}, parsed_class
 
-class Blarg : Object Num
+parsed_class = Parser().init('<test>', r"""
+class Blarg: Base
+  var a b c
+""").parse_class()
+assert parsed_class == {
+  'type': 'class',
+  'name': 'Blarg',
+  'bases': ['Base'],
+  'attrs': ['a', 'b', 'c'],
+  'methods': [],
+}, parsed_class
 
-  var x y z
+parsed_class = Parser().init('<test>', r"""
+class Blarg: Base
+  var a b c
 
-  m()
-    return a + b
+  def sample_method(x, y, z)
+    pass
+""").parse_class()
+assert parsed_class == {
+  'type': 'class',
+  'name': 'Blarg',
+  'bases': ['Base'],
+  'attrs': ['a', 'b', 'c'],
+  'methods': [
+      {
+          'type': 'method',
+          'name': 'sample_method',
+          'args': ['x', 'y', 'z'],
+          'body': '\n{\n}',
+      }
+  ],
+}, parsed_class
 
+parsed_class = Parser().init('<test>', r"""
+class Blarg: Base
+  var a b c
 
-""")
+  def sample_method(x, y, z)
+    return x
+""").parse_class()
+assert parsed_class == {
+  'type': 'class',
+  'name': 'Blarg',
+  'bases': ['Base'],
+  'attrs': ['a', 'b', 'c'],
+  'methods': [
+      {
+          'type': 'method',
+          'name': 'sample_method',
+          'args': ['x', 'y', 'z'],
+          'body': """
+{
+  return CCL_var_x;
+}""",
+      }
+  ],
+}, parsed_class
 
-print(parsed_module)
+parsed_expr = Parser().init('<test>', r"""
+hi
+""").parse_expression()
+assert parsed_expr == 'CCL_var_hi', parsed_expr
+
+parsed_expr = Parser().init('<test>', r"""
+a.b(c)
+""").parse_expression()
+assert (
+    parsed_expr == 'CCL_invoke_method(CCL_var_a, "b", 1, CCL_var_c)'
+), parsed_expr

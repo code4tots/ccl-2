@@ -1,29 +1,30 @@
+# TODO: Clean up this crap.
+
 KEYWORDS = (
     'include',
-
-    # TODO: Allow classes and methods to be
-    # qualified with private or public.
-    'private',
-    'public',
-
-    'class',
-
-    'pass',
-
-    'for',
-    'while',
-    'in',
+    'true', 'false', 'nil',
+    'and', 'or',
+    'private', # TODO: Allow classes and methods to be
+    'public',  # qualified with private or public.
+    'def', 'class', 'pass', 'var',
+    'return',
+    'if', 'elif', 'else',
+    'while', 'break', 'continue',
+    'for', 'in',
 )
 
-SYMBOLS = tuple(reversed(sorted([
-    '+',
-    '++',
-    '=',
-    ',',
-    ':',
-    '(', ')', '[', ']', '{', '}',
-])))
+BRACKET_TABLE = {
+  '(': ')',
+  '[': ']',
+  '{': '}',
+}
 
+SYMBOLS = tuple(reversed(sorted([
+    '+', '-', '*', '/', '%',
+    '=',
+    '.', ',',
+    ':',
+] + list(BRACKET_TABLE) + list(BRACKET_TABLE.values()))))
 
 class Source(object):
 
@@ -53,6 +54,7 @@ class Lexer(object):
     self.string = string
     self.position = 0
     self.indent_stack = ['']
+    self.bracket_stack = []
     self.tokens = []
 
     while True:
@@ -124,7 +126,7 @@ class Lexer(object):
     return self.position >= len(self.string)
 
   def at_line_end(self):
-    return self.at_end() or self.string[self.position] in '#\n'
+    return self.at_end() or self.string[self.position] in '\n'
 
   def process_indents(self):
     indent = self.extract_indent()
@@ -146,10 +148,18 @@ class Lexer(object):
       raise SyntaxError('Invalid indentation')
 
   def skip_spaces(self):
+    spaces = ' \t\n' if self.bracket_stack else ' \t'
     i = self.position
     s = self.string
-    while i < len(s) and s[i] in ' \t':
-      i += 1
+    while True:
+      while i < len(s) and s[i] in spaces:
+        i += 1
+      if s[i] == '#':
+        while i < len(s) and s[i] != '\n':
+          i += 1
+      if i < len(s) and s[i] in spaces:
+        continue
+      break
     self.position = i
 
   def extract_indent(self):
@@ -195,6 +205,13 @@ class Lexer(object):
       if self.string.startswith(symbol, self.position):
         i = self.position
         self.position += len(symbol)
+        if symbol in BRACKET_TABLE.keys():
+          self.bracket_stack.append(symbol)
+        elif symbol in BRACKET_TABLE.values():
+          if BRACKET_TABLE[self.bracket_stack[-1]] != symbol:
+            raise SyntaxError(
+                'Bracket mismatch %r %r' % (self.bracket_stack[-1], symbol))
+          self.bracket_stack.pop()
         return self.make_token(symbol, None, i)
 
   def lex_string_literal(self):
@@ -327,3 +344,35 @@ assert items == [
     'DEDENT',
     'EOF',
 ], items
+
+tokens = Lexer().lex('<test>', r"""
+a (
+  b + c
+  d
+    e # some comments
+  f+g
+)
+""")
+items = [t.type if t.value is None else (t.type, t.value) for t in tokens]
+assert items == [
+    ('NAME', 'a'), '(',
+        ('NAME', 'b'), '+', ('NAME', 'c'),
+        ('NAME', 'd'),
+            ('NAME', 'e'),
+        ('NAME', 'f'), '+', ('NAME', 'g'),
+    ')', 'NEWLINE',
+    'EOF',
+], items
+
+try:
+  tokens = Lexer().lex('<test>',
+r"""
+(})
+""")
+except SyntaxError:
+  pass
+else:
+  # TODO: Better error message
+  raise Exception(
+      'Expected "(})" to raise a bracket mismatch error, '
+      'but succeeded: %r' % tokens)
