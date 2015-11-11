@@ -2,28 +2,6 @@
 # By clean up, I mean, think through the design more.
 from lex import Lexer
 
-BINOPS = {
-  '*': '__mul__',
-  '/': '__div__',
-  '%': '__mod__',
-  '+': '__add__',
-  '-': '__sub__',
-  '<': '__lt__',
-  '<=': '__le__',
-  '>': '__gt__',
-  '>=': '__ge__',
-  '==': '__eq__',
-  '!=': '__ne__',
-
-  # TODO: Figure out a nice way to integrate these ops
-  # with the split system I already have of
-  # '__getitem__/__setitem__', variables, and attributes.
-  '+=': '__iadd__',
-  '-=': '__isub__',
-  '*=': '__imul__',
-  '/=': '__idiv__',
-  '%=': '__imod__',
-}
 
 class Parser(object):
 
@@ -86,6 +64,7 @@ class Parser(object):
     return {
         'type': 'module',
         'classes': classes,
+        'includes', includes,
     }
 
   def parse_include(self):
@@ -99,6 +78,7 @@ class Parser(object):
     attrs = []
     self.expect('class')
     class_name = self.expect('NAME').value
+    while not 
     self.expect('NEWLINE')
     self.expect('INDENT')
     self.skip_newlines()
@@ -107,6 +87,9 @@ class Parser(object):
         self.expect('NEWLINE')
       elif self.at('def'):
         methods.append(self.parse_method())
+      elif self.consume('var'):
+        while not self.consume('NEWLINE'):
+          attrs.append(self.expect('NAME').value)
       else:
         raise SyntaxError()
       self.skip_newlines()
@@ -115,6 +98,3 @@ class Parser(object):
         'methods': methods,
         'attrs': attrs,
     }
-
-  def parse_decl(self):
-    pass
