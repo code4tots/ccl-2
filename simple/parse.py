@@ -50,21 +50,29 @@ class Parser(object):
     classes = []
     includes = []
     funcs = []
+    vars_ = []
+    stmts = []
     self.skip_newlines()
     while not self.at('EOF'):
       if self.at('include'):
         includes.append(self.parse_include())
       elif self.at('class'):
         classes.append(self.parse_class())
+      elif self.consume('var'):
+        while not self.consume('NEWLINE'):
+          vars_.append(self.expect('NAME').value)
+      elif self.at('def'):
+        funcs.append(self.parse_method())
       else:
-        raise SyntaxError(
-            'Expected class include or function but found %r' %
-            self.peek())
+        stmts.append(self.parse_statement())
       self.skip_newlines()
     return {
         'type': 'module',
         'classes': classes,
-        'includes', includes,
+        'includes': includes,
+        'funcs': funcs,
+        'vars': vars_,
+        'stmts': stmts,
     }
 
   def parse_include(self):
@@ -78,8 +86,8 @@ class Parser(object):
     attrs = []
     self.expect('class')
     class_name = self.expect('NAME').value
-    while not 
-    self.expect('NEWLINE')
+    while not self.consume('NEWLINE'):
+      bases.append(self.expect('NAME').value)
     self.expect('INDENT')
     self.skip_newlines()
     while not self.consume('DEDENT'):
@@ -95,6 +103,246 @@ class Parser(object):
       self.skip_newlines()
     return {
         'type': 'class',
+        'bases': bases,
+        'name': class_name,
         'methods': methods,
         'attrs': attrs,
     }
+
+  def parse_method(self):
+    self.expect('def')
+    method_name = self.expect('NAME').value
+    self.expect('(')
+    args = []
+    vararg = None
+    while not self.consume(')'):
+      if self.consume('*'):
+        vararg = self.expect('NAME').value
+        self.expect(')')
+        break
+      else:
+        args.append(self.expect('NAME').value)
+        self.consume(',')
+    return {
+        'type': 'method',
+        'name': method_name,
+        'args': args,
+        'vararg': vararg,
+        'body': self.parse_statement_block()
+    }
+
+  def parse_statement_block(self):
+    self.expect('INDENT')
+    stmts = []
+    while not self.expect('DEDENT'):
+      if self.consume('pass'):
+        self.expect('NEWLINE')
+      else:
+        stmts.append(self.parse_statement())
+    return {
+        'type': 'block',
+        'stmts': stmts,
+    }
+
+  def parse_statement(self):
+    if self.at('if'):
+      return self.parse_if_statement()
+    elif self.consume('while'):
+      cond = self.parse_expression()
+      self.expect('NEWLINE')
+      body = self.parse_statement_block()
+      return {
+          'type': 'while',
+          'cond': cond,
+          'body': body,
+      }
+    elif self.consume('break'):
+      self.expect('NEWLINE')
+      return {'type': 'break'}
+    elif self.consume('continue'):
+      self.expect('NEWLINE')
+      return {'type': 'continue'}
+    elif self.consume('return'):
+      value = self.parse_expression()
+      self.expect('NEWLINE')
+      return {
+          'type': 'return',
+          'value': value,
+      }
+    else:
+      expr = self.parse_expression()
+      self.expect('NEWLINE')
+      return {
+          'type': 'expr',
+          'expr': expr,
+      }
+
+  def parse_if_statement(self):
+    self.expect('if')
+    cond = self.parse_expression()
+    self.expect('NEWLINE')
+    body = self.parse_statement_block()
+    if self.consume('else'):
+      if self.consume('NEWLINE'):
+        otherwise = self.parse_statement_block()
+      else:
+        otherwise = self.parse_if_statement()
+    else:
+      otherwise = None
+    return {
+        'type': 'if',
+        'cond': cond,
+        'body': body,
+        'else': otherwise,
+    }
+
+  def parse_expression(self):
+    return self.parse_postfix_expression()
+
+  def parse_postfix_expression(self):
+    expr = self.parse_primary_expression()
+    while True:
+      if self.consume('.'):
+        attr = self.expect('NAME').value
+        if self.at('('):
+          args, vararg = self.parse_arglist()
+          expr = {
+              'type': 'call-method',
+              'owner': expr,
+              'name': attr,
+              'args': args,
+              'vararg': vararg,
+          }
+        elif self.consume('='):
+          value = self.parse_expression()
+          expr = {
+              'type': 'setattr',
+              'owner': expr,
+              'name': attr,
+              'value': value,
+          }
+        else:
+          expr = {
+              'type': 'getattr',
+              'owner': expr,
+              'name': attr,
+          }
+      elif self.consume('['):
+        index = self.parse_expression()
+        self.expect(']')
+        if self.consume('='):
+          expr = {
+              'type': 'setitem',
+              'owner': expr,
+              'index': index,
+              'value': self.parse_expression(),
+          }
+        else:
+          expr = {
+              'type': 'getitem',
+              'owner': expr,
+              'index': index,
+          }
+      else:
+        break
+    return expr
+
+  def parse_primary_expression(self):
+    if self.consume('('):
+      expr = self.parse_expression()
+      self.expect(')')
+      return expr
+    elif self.at('NUMBER'):
+      return {
+          'type': 'num',
+          'value': self.expect('NUMBER').value,
+      }
+    elif self.at('NAME'):
+      name = self.expect('NAME').value
+      if self.at('('):
+        args, vararg = self.parse_arglist()
+        return {
+            'type': 'call-func',
+            'name': name,
+            'args': args,
+            'vararg': vararg,
+        }
+      elif self.consume('='):
+        return {
+            'type': 'assign',
+            'name': name,
+            'value': self.parse_expression(),
+        }
+      else:
+        return {
+            'type': 'name',
+            'value': name,
+        }
+    elif self.at('STRING'):
+      return {
+          'type': 'str',
+          'value': self.expect('STRING').value,
+      }
+    elif self.at('['):
+      values = []
+      while not self.consume(']'):
+        values.append(self.parse_expression())
+        self.consume(',')
+      return {
+          'type': 'list',
+          'values': values,
+      }
+    elif self.at('{'):
+      items = []
+      while not self.consume('}'):
+        key = self.parse_expression()
+        if self.consume(':'):
+          val = self.parse_expression()
+        else:
+          val = None
+        items.append((key, val))
+        self.consume(',')
+      return {
+          'type': 'dict',
+          'items': items,
+      }
+
+    raise SyntaxError('Expected expression')
+
+  def parse_arglist(self):
+    self.expect('(')
+    args = []
+    vararg = None
+    while not self.consume(')'):
+      if self.consume('*'):
+        vararg = self.parse_expression()
+        self.expect(')')
+        break
+      else:
+        args.append(self.parse_expression())
+        self.consume(',')
+    return args, vararg
+
+expr = Parser().init('<test>', 'x = 3').parse_expression()
+assert expr == {
+    'type': 'assign',
+    'name': 'x',
+    'value': {
+        'type': 'num',
+        'value': 3,
+    }
+}, expr
+
+expr = Parser().init('<test>', 'x = y.z').parse_expression()
+assert expr == {
+    'type': 'assign',
+    'name': 'x',
+    'value': {
+        'type': 'getattr',
+        'owner': {
+            'type': 'name',
+            'value': 'y',
+        },
+        'name': 'z',
+    }
+}, expr

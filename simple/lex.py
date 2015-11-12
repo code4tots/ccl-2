@@ -7,8 +7,11 @@ KEYWORDS = (
     'singleton',
     'def', 'class', 'pass', 'var',
     'return',
-    'if', 'elif', 'else',
+    'if', 'else',
     'while', 'break', 'continue',
+
+    # reserved words that may be used in the future.
+    'elif',
     'for', 'in', 'not',
 )
 
@@ -21,7 +24,7 @@ BRACKET_TABLE = {
 SYMBOLS = tuple(reversed(sorted([
     '+', '-', '*', '/', '%',
     '=',
-    '.', ',',
+    '.', ',', '...',
     '?', ':',
     '<', '<=', '>', '>=', '==', '!=',
 ] + list(BRACKET_TABLE) + list(BRACKET_TABLE.values()))))
@@ -154,7 +157,7 @@ class Lexer(object):
     while True:
       while i < len(s) and s[i] in spaces:
         i += 1
-      if s[i] == '#':
+      if i < len(s) and s[i] == '#':
         while i < len(s) and s[i] != '\n':
           i += 1
       if i < len(s) and s[i] in spaces:
@@ -257,8 +260,8 @@ class Lexer(object):
     i = j = self.position
     s = self.string
 
-    if s[j].isalnum() or s[j] == '_':
-      while s[j].isalnum() or s[j] == '_':
+    if j < len(s) and (s[j].isalnum() or s[j] == '_'):
+      while j < len(s) and (s[j].isalnum() or s[j] == '_'):
         j += 1
       word = s[i:j]
       self.position = j
