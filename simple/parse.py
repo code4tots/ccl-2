@@ -98,6 +98,7 @@ class Parser(object):
       elif self.consume('var'):
         while not self.consume('NEWLINE'):
           attrs.append(self.expect('NAME').value)
+          self.consume(',')
       else:
         raise SyntaxError()
       self.skip_newlines()
