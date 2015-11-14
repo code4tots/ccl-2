@@ -16,6 +16,8 @@ class Parser(object):
   def init(self, filespec, string):
     self.tokens = Lexer().lex(filespec, string)
     self.position = 0
+    self.module_vars = set()
+    self.func_vars = set()
     return self
 
   def peek(self):
@@ -61,6 +63,9 @@ class Parser(object):
       elif self.consume('var'):
         while not self.consume('NEWLINE'):
           vars_.append(self.expect('NAME').value)
+          if vars_[-1] in vars_[:-1]:
+            raise SyntaxError('Duplicate module var %r' % vars_[-1])
+          self.consume(',')
       elif self.at('def'):
         funcs.append(self.parse_method())
       else:
@@ -98,6 +103,8 @@ class Parser(object):
       elif self.consume('var'):
         while not self.consume('NEWLINE'):
           attrs.append(self.expect('NAME').value)
+          if attrs[-1] in attrs[:-1]:
+            raise SyntaxError('Duplicate class attribute %r' % attrs[-1])
           self.consume(',')
       else:
         raise SyntaxError()
@@ -124,18 +131,37 @@ class Parser(object):
       else:
         args.append(self.expect('NAME').value)
         self.consume(',')
+    self.expect('NEWLINE')
+    self.expect('INDENT')
+    stmts = []
+    vars_ = []
+    while not self.consume('DEDENT'):
+      if self.consume('pass'):
+        self.expect('NEWLINE')
+      elif self.consume('var'):
+        while not self.consume('NEWLINE'):
+          vars_.append(self.expect('NAME').value)
+          if vars_[-1] in vars_[:-1]:
+            raise SyntaxError('Duplicate method var %r' % vars_[-1])
+          self.consume(',')
+      else:
+        stmts.append(self.parse_statement())
     return {
         'type': 'method',
         'name': method_name,
         'args': args,
         'vararg': vararg,
-        'body': self.parse_statement_block()
+        'vars': vars_,
+        'body': {
+            'type': 'block',
+            'stmts': stmts,
+        },
     }
 
   def parse_statement_block(self):
     self.expect('INDENT')
     stmts = []
-    while not self.expect('DEDENT'):
+    while not self.consume('DEDENT'):
       if self.consume('pass'):
         self.expect('NEWLINE')
       else:
