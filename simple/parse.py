@@ -1,5 +1,7 @@
 # TODO: Clean up this crap too.
 # By clean up, I mean, think through the design more.
+import os.path
+
 from lex import Lexer
 
 
@@ -9,9 +11,15 @@ class Parser(object):
 
   def parse(self, filespec, string):
     self.init(filespec, string)
-    return self.parse_module()
+    return self.parse_module(self.deduce_module_name(filespec))
 
   ## private
+
+  def deduce_module_name(self, filespec):
+    filespec = os.path.basename(filespec)
+    if filespec.endswith('.ccl'):
+      filespec = filespec[:-4]
+    return filespec
 
   def init(self, filespec, string):
     self.tokens = Lexer().lex(filespec, string)
@@ -48,7 +56,7 @@ class Parser(object):
 
   ## Actual parsing methods.
 
-  def parse_module(self):
+  def parse_module(self, module_name):
     classes = []
     includes = []
     funcs = []
@@ -73,6 +81,7 @@ class Parser(object):
       self.skip_newlines()
     return {
         'type': 'module',
+        'name': module_name,
         'classes': classes,
         'includes': includes,
         'funcs': funcs,
@@ -513,6 +522,7 @@ def some_func()
 """)
 assert expr == {
     'type': 'module',
+    'name': '<test>',
     'includes': [
         'module_name',
     ],
