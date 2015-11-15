@@ -224,6 +224,42 @@ class Parser(object):
     }
 
   def parse_expression(self):
+    return self.parse_additive_expression()
+
+  def parse_additive_expression(self):
+    expr = self.parse_multiplicative_expression()
+    while any(self.at(op) for op in ('+', '-')):
+      op = self.next().type
+      rhs = self.parse_multiplicative_expression()
+      expr = {
+          'type': 'binop',
+          'op': op,
+          'lhs': expr,
+          'rhs': rhs,
+      }
+    return expr
+
+  def parse_multiplicative_expression(self):
+    expr = self.parse_prefix_expression()
+    while any(self.at(op) for op in ('*', '/', '%')):
+      op = self.next().type
+      rhs = self.parse_prefix_expression()
+      expr = {
+          'type': 'binop',
+          'op': op,
+          'lhs': expr,
+          'rhs': rhs,
+      }
+    return expr
+
+  def parse_prefix_expression(self):
+    if any(self.at(op) for op in ('-', '+')):
+      op = self.next().type
+      return {
+          'type': 'preop',
+          'op': op,
+          'expr': self.parse_postfix_expression(),
+      }
     return self.parse_postfix_expression()
 
   def parse_postfix_expression(self):
@@ -371,5 +407,42 @@ assert expr == {
             'value': 'y',
         },
         'name': 'z',
-    }
+    },
 }, expr
+
+expr = Parser().init('<test>', 'x + - 3').parse_expression()
+assert expr == {
+    'type': 'binop',
+    'op': '+',
+    'lhs': {
+        'type': 'name',
+        'value': 'x',
+    },
+    'rhs': {
+        'type': 'preop',
+        'op': '-',
+        'expr': {
+          'type': 'num',
+          'value': 3,
+        },
+    },
+}, expr
+
+expr = Parser().init('<test>', r"""
+
+def blarg(x, y, *z)
+  var a b c
+
+""").parse_method()
+assert expr == {
+    'type': 'method',
+    'name': 'blarg',
+    'args': ['x', 'y'],
+    'vararg': 'z',
+    'vars': ['a', 'b', 'c'],
+    'body': {
+        'type': 'block',
+        'stmts': [],
+    },
+}, expr
+
