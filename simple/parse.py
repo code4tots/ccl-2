@@ -369,6 +369,15 @@ class Parser(object):
           'type': 'dict',
           'items': items,
       }
+    elif self.consume('new'):
+      class_name = self.next().value
+      args, vararg = self.parse_arglist()
+      return {
+          'type': 'new',
+          'name': class_name,
+          'args': args,
+          'vararg': vararg,
+      }
 
     raise SyntaxError('Expected expression')
 
@@ -428,6 +437,55 @@ assert expr == {
     },
 }, expr
 
+expr = Parser().init('<test>', 'x + -3').parse_expression()
+assert expr == {
+    'type': 'binop',
+    'op': '+',
+    'lhs': {
+        'type': 'name',
+        'value': 'x',
+    },
+    'rhs': {
+      'type': 'num',
+      'value': -3,
+    },
+}, expr
+
+expr = Parser().init('<test>', 'x + -y').parse_expression()
+assert expr == {
+    'type': 'binop',
+    'op': '+',
+    'lhs': {
+        'type': 'name',
+        'value': 'x',
+    },
+    'rhs': {
+        'type': 'preop',
+        'op': '-',
+        'expr': {
+          'type': 'name',
+          'value': 'y',
+        },
+    },
+}, expr
+
+expr = Parser().init('<test>', 'new C(a, b)').parse_expression()
+assert expr == {
+    'type': 'new',
+    'name': 'C',
+    'args': [
+        {
+            'type': 'name',
+            'value': 'a',
+        },
+        {
+            'type': 'name',
+            'value': 'b',
+        },
+    ],
+    'vararg': None,
+}, expr
+
 expr = Parser().init('<test>', r"""
 
 def blarg(x, y, *z)
@@ -445,4 +503,35 @@ assert expr == {
         'stmts': [],
     },
 }, expr
+
+expr = Parser().parse('<test>', r"""
+
+include module_name
+
+def some_func()
+  pass
+""")
+assert expr == {
+    'type': 'module',
+    'includes': [
+        'module_name',
+    ],
+    'vars': [],
+    'funcs': [
+        {
+            'type': 'method',
+            'name': 'some_func',
+            'vars': [],
+            'vararg': None,
+            'args': [],
+            'body': {
+                'type': 'block',
+                'stmts': [],
+            },
+        },
+    ],
+    'stmts': [],
+    'classes': [],
+}, expr
+
 

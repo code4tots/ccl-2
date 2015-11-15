@@ -3,7 +3,7 @@
 KEYWORDS = (
     'include',
     'true', 'false', 'nil', 'self',
-    'and', 'or',
+    'new', 'and', 'or',
     'singleton',
     'def', 'class', 'pass', 'var',
     'return',
