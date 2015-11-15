@@ -98,6 +98,7 @@ class Parser(object):
   def parse_class(self):
     methods = []
     attrs = []
+    bases = []
     self.expect('class')
     class_name = self.expect('NAME').value
     while not self.consume('NEWLINE'):
