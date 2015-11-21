@@ -50,9 +50,12 @@ public static final BoolValue falseValue = BoolValue.falseValue;
 public static final NilValue nil = NilValue.nil;
 
 // TODO: metaclasses. But only if I can find a really clean, easy and
-// elegant way to do it.
+// elegant way to do it. It should be more elegant than Python's
+// metaclass mechanism.
 static public ClassValue classObject = new ClassValue("Object", null);
 static public ClassValue classClass = new ClassValue("Class", classObject);
+static public ClassValue classBuiltinClass =
+    new ClassValue("BuiltinClass", classClass);
 static public ClassValue classNil = new ClassValue("Nil", classObject);
 static public ClassValue classBool = new ClassValue("Bool", classObject);
 static public ClassValue classNumber = new ClassValue("Number", classObject);
@@ -69,6 +72,8 @@ static {
       .put("nil", nil)
       .put("true", trueValue)
       .put("false", falseValue)
+      .put("Object", classObject)
+      .put("Class", classClass)
       .put("List", new BuiltinFunctionValue("List") {
         public Value call(ArrayList<Value> args) {
           return new ListValue(args);
@@ -91,8 +96,31 @@ static {
   classObject
       .put("__eq__", new Method() {
         public Value call(Value owner, ArrayList<Value> args) {
-          expectArgLen(1, args);
+          expectExactArgTypes(args, new ClassValue[]{null});
           return owner.equals(args.get(0)) ? trueValue : falseValue;
+        }
+      })
+      .put("__str__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{});
+          return new StringValue(owner.toString());
+        }
+      });
+
+  classNumber
+      .put("__add__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{classNumber});
+          Double a = ((NumberValue) owner).value;
+          Double b = ((NumberValue) args.get(0)).value;
+          return new NumberValue(a + b);
+        }
+      })
+      .put("__neg__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{});
+          Double a = ((NumberValue) owner).value;
+          return new NumberValue(-a);
         }
       });
 }
@@ -142,6 +170,34 @@ static public void expectAtLeastArgLen(
   }
 }
 
+static public void expectArgTypes(
+    ArrayList<Value> args, ClassValue[] expected) {
+  if (args.size() < expected.length)
+    throw new RuntimeException(
+        "Expected at least " + Integer.toString(expected.length) +
+        " arguments but found " + Integer.toString(args.size()) +
+        " arguments.");
+  for (int i = 0; i < expected.length; i++) {
+    ClassValue cls = expected[i];
+    if (cls == null)
+      continue;
+    if (!args.get(i).getType().isSubtypeOf(cls))
+      throw new RuntimeException(
+          Integer.toString(i) + " " +
+          args.get(i).getType().toString() + " " +
+          cls.toString());
+  }
+}
+
+static public void expectExactArgTypes(
+    ArrayList<Value> args, ClassValue[] expected) {
+  if (args.size() != expected.length)
+    throw new RuntimeException(
+        "Expected " + Integer.toString(expected.length) + " arguments " +
+        "but found " + Integer.toString(args.size()) + " arguments.");
+  expectArgTypes(args, expected);
+}
+
 static public abstract class Value extends Easy {
   // getClass is already taken by Java.
   public ClassValue getType() {
@@ -156,7 +212,7 @@ static public abstract class Value extends Easy {
   }
   public Value callMethod(String name, ArrayList<Value> args) {
     // TODO: callMethod method should be final.
-    throw new RuntimeException(name); // TODO
+    return getType().getMethod(name).call(this, args);
   }
   public Value callMethod(String name, Value... args) {
     ArrayList<Value> arglist = new ArrayList<Value>();
@@ -189,6 +245,7 @@ static public class ClassValue extends Value {
   public final String name;
   public final ClassValue parent; // TODO: Implement multiple inheritance.
   public final HashMap<String, Method> methods;
+  public ClassValue getType() { return classBuiltinClass; }
   public boolean isTruthy() { return true; }
   public ClassValue(
       String name, ClassValue parent, HashMap<String, Method> methods) {
@@ -217,6 +274,15 @@ static public class ClassValue extends Value {
     methods.put(name, method);
     return this;
   }
+  public String toString() {
+    return "<class " + name + ">";
+  }
+  public boolean isSubtypeOf(ClassValue cls) {
+    ClassValue c = this;
+    while (c != null && c != cls)
+      c = c.parent;
+    return c != null;
+  }
 }
 
 static public class NilValue extends Value {
@@ -227,9 +293,6 @@ static public class NilValue extends Value {
   }
   public String toString() {
     return "nil";
-  }
-  public Value callMethod(String name, ArrayList<Value> args) {
-    return callValueMethod(name, args);
   }
   public static final NilValue nil = new NilValue();
 }
@@ -247,9 +310,6 @@ static public class BoolValue extends Value {
   public String toString() {
     return value ? "true" : "false";
   }
-  public Value callMethod(String name, ArrayList<Value> args) {
-    return callValueMethod(name, args);
-  }
   public static final BoolValue trueValue = new BoolValue(true);
   public static final BoolValue falseValue = new BoolValue(false);
 }
@@ -260,24 +320,11 @@ static public class NumberValue extends Value {
     // See javadocs about Double.equals
     this.value = (value == -0.0 ? +0.0 : value);
   }
+  public ClassValue getType() { return classNumber; }
   public boolean isTruthy() { return !value.equals(0.0); }
   public boolean equals(Value val) {
     return val instanceof NumberValue &&
         ((NumberValue) val).value.equals(value);
-  }
-  public Value callMethod(String name, ArrayList<Value> args) {
-    if (name.equals("__add__")) {
-      expectArgLen(name, 1, args);
-      if (!(args.get(0) instanceof NumberValue))
-        throw new RuntimeException(args.getClass().toString());
-
-      return new NumberValue(value + ((NumberValue) args.get(0)).value);
-    }
-    if (name.equals("__neg__")) {
-      expectArgLen(name, 0, args);
-      return new NumberValue(-value.doubleValue());
-    }
-    return callValueMethod(name, args);
   }
   public int hashCode() {
     return value.hashCode();

@@ -57,3 +57,5 @@ class MyClass[a, b, c] {
 shell['cat file.txt'].lines[].map[\line.line.size[]].max[]
 
 """
+
+print[Class == Class]
