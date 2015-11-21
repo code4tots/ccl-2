@@ -1,0 +1,14 @@
+# cls && javac -Xlint Easy.java TestEasy.java && java -ea Easy sample.ccl
+x = 5
+print[x]
+print[x + 6]
+print[List[1, 2, 3]]
+print[-x]
+y = 0
+print[y == -y]
+
+f = \ x. print[x]
+
+f["hello world!"]
+f[5]
+
