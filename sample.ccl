@@ -1,23 +1,37 @@
 # cls && javac -Xlint Easy.java TestEasy.java && java -ea Easy sample.ccl
-x = 5
-print[x]
-print[x + 6]
-print[List[1, 2, 3]]
-print[-x]
-y = 0
-print[y == -y]
+# x = 5
+# print[x]
+# print[x + 6]
+# print[List[1, 2, 3]]
+# print[-x]
+# y = 0
+# print[y == -y]
+# 
+# f = \ x. print[x]
+# 
+# f["hello world!"]
+# f[5]
+# 
+# def g[a, b, c] {
+#   print["------------------------------"]
+#   print["hello, welcome to function 'g'"]
+#   print["------------------------------"]
+#   print["hello world", a, b, c]
+#   print[b]
+# }
+# 
+# g[1, 2, 3]
+# 
+# if 1 == 1
+#   print["1 == 1 is true"]
+# else
+#   print["1 == 1 is false"]
+# 
+# 
+# if 1 == 1
+#   print["a"]
+# 
+# if not (1 == 1)
+#   print["b"]
 
-f = \ x. print[x]
-
-f["hello world!"]
-f[5]
-
-def g[a, b, c] {
-  print["------------------------------"]
-  print["hello, welcome to function 'g'"]
-  print["------------------------------"]
-  print["hello world", a, b, c]
-  print[b]
-}
-
-g[1, 2, 3]
+print[List[1, 2, 3].map[\x. x + 1]]

@@ -69,10 +69,17 @@ static public final class Scope {
   }
 }
 
+public static final BoolValue trueValue = BoolValue.trueValue;
+public static final BoolValue falseValue = BoolValue.falseValue;
+public static final NilValue nil = NilValue.nil;
+
 static public final Scope BUILTIN_SCOPE;
 static {
   BUILTIN_SCOPE =
       new Scope(null)
+      .put("nil", nil)
+      .put("true", trueValue)
+      .put("false", falseValue)
       .put("List", new BuiltinFunctionValue("List") {
         public Value call(ArrayList<Value> args) {
           return new ListValue(args);
@@ -104,7 +111,7 @@ static public abstract class Value extends Easy {
     throw new RuntimeException(); // TODO
   }
   public Value callMethod(String name, ArrayList<Value> args) {
-    throw new RuntimeException(); // TODO
+    throw new RuntimeException(name); // TODO
   }
   public Value callMethod(String name, Value... args) {
     ArrayList<Value> arglist = new ArrayList<Value>();
@@ -160,11 +167,6 @@ static public class BoolValue extends Value {
   public static final BoolValue trueValue = new BoolValue(true);
   public static final BoolValue falseValue = new BoolValue(false);
 }
-
-public static final BoolValue trueValue = BoolValue.trueValue;
-public static final BoolValue falseValue = BoolValue.falseValue;
-
-public static final NilValue nil = NilValue.nil;
 
 static public class NumberValue extends Value {
   public final Double value;
@@ -235,6 +237,19 @@ static public class ListValue extends Value {
   }
   public String toString() {
     return value.toString();
+  }
+  public Value callMethod(String name, ArrayList<Value> args) {
+    if (name.equals("map")) {
+      expectArgLen(name, 1, args);
+      if (!(args.get(0) instanceof FunctionValue))
+        throw new RuntimeException(args.get(0).getClass().toString());
+      FunctionValue f = (FunctionValue) args.get(0);
+      ArrayList<Value> newvals = new ArrayList<Value>();
+      for (int i = 0; i < value.size(); i++)
+        newvals.add(f.callMethod("__call__", value.get(i)));
+      return new ListValue(newvals);
+    }
+    throw new RuntimeException(name);
   }
 }
 
@@ -573,7 +588,7 @@ static public final String[] SYMBOLS = {
   "==", "<", ">", "<=", ">="
 };
 static public final String[] KEYWORDS = {
-  "and", "or", "def", "class",
+  "not", "and", "or", "def", "class",
   "while", "break", "continue", "if", "else", "return"
 };
 
@@ -952,6 +967,15 @@ static public final class Parser {
       expect(".");
       Ast body = parseExpression();
       return new UserFunctionAst("_", args, vararg, body);
+    }
+
+    if (consume("if")) {
+      Ast condition = parseExpression();
+      Ast body = parseExpression();
+      Ast other = new NameAst("nil");
+      if (consume("else"))
+        other = parseExpression();
+      return new IfAst(condition, body, other);
     }
 
     if (consume("def")) {
