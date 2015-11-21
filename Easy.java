@@ -150,6 +150,27 @@ static public abstract class Value extends Easy {
   }
 }
 
+static public abstract class Method {
+  public abstract Value call(Value owner, ArrayList<Value> args);
+}
+
+static public class ClassValue extends Value {
+  public final String name;
+  public final ClassValue parent; // TODO: Implement multiple inheritance.
+  public final HashMap<String, Method> methods;
+  public boolean isTruthy() { return true; }
+  public ClassValue(
+      String name, ClassValue parent, HashMap<String, Method> methods) {
+    this.name = name;
+    this.parent = parent;
+    this.methods = methods;
+  }
+  public ClassValue(String name, ClassValue parent) {
+    this(name, parent, new HashMap<String, Method>());
+  }
+  public boolean equals(Value value) { return this == value; }
+}
+
 static public class NilValue extends Value {
   private NilValue() {}
   public boolean isTruthy() { return false; }
@@ -704,8 +725,8 @@ static public final class Lexer {
 
       int qlen =
           (text.startsWith("'''", b) || text.startsWith("\"\"\"", b)) ? 3 : 1;
+      String quote = text.substring(b, b + qlen);
       b += qlen;
-      String quote = text.substring(a, b);
       StringBuilder sb = new StringBuilder();
 
       while (!text.startsWith(quote, b)) {
