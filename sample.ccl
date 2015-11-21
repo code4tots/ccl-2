@@ -12,3 +12,12 @@ f = \ x. print[x]
 f["hello world!"]
 f[5]
 
+def g[a, b, c] {
+  print["------------------------------"]
+  print["hello, welcome to function 'g'"]
+  print["------------------------------"]
+  print["hello world", a, b, c]
+  print[b]
+}
+
+g[1, 2, 3]

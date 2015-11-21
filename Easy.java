@@ -80,9 +80,15 @@ static {
       })
       .put("print", new BuiltinFunctionValue("print") {
         public Value call(ArrayList<Value> args) {
-          expectArgLen("print", 1, args);
-          System.out.println(args.get(0));
-          return args.get(0);
+          Value last = nil;
+          for (int i = 0; i < args.size(); i++) {
+            if (i > 0)
+              System.out.print(" ");
+            System.out.print(args.get(i));
+            last = args.get(i);
+          }
+          System.out.println();
+          return args.get(args.size() - 1);
         }
       });
 }
@@ -751,7 +757,7 @@ static public final class Parser {
 
   public Token expect(String type) {
     if (!at(type))
-      throw new RuntimeException();
+      throw new RuntimeException(type + " " + lexer.peek().type);
     return lexer.next();
   }
 
@@ -937,8 +943,10 @@ static public final class Parser {
     if (consume("\\")) {
       ArrayList<String> args = new ArrayList<String>();
       String vararg = null;
-      while (!at(".") && !at("*"))
+      while (!at(".") && !at("*")) {
         args.add((String) expect("ID").value);
+        consume(",");
+      }
       if (consume("*"))
         vararg = (String) expect("ID").value;
       expect(".");
@@ -950,16 +958,19 @@ static public final class Parser {
       String name = "_";
       if (at("ID"))
         name = (String) expect("ID").value;
-      expect("(");
+      expect("[");
       ArrayList<String> args = new ArrayList<String>();
       String vararg = null;
-      while (!at(".") && !at("*"))
+      while (!at("]") && !at("*")) {
         args.add((String) expect("ID").value);
+        consume(",");
+      }
       if (consume("*"))
         vararg = (String) expect("ID").value;
-      expect(")");
+      expect("]");
       Ast body = parseExpression();
-      return new UserFunctionAst(name, args, vararg, body);
+      return new AssignAst(
+          name, new UserFunctionAst(name, args, vararg, body));
     }
 
     if (at("NUM"))
