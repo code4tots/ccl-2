@@ -44,6 +44,59 @@ public class Easy {
     return new Parser(program).parse().eval(new Scope(BUILTIN_SCOPE));
   }
 
+// constants
+public static final BoolValue trueValue = BoolValue.trueValue;
+public static final BoolValue falseValue = BoolValue.falseValue;
+public static final NilValue nil = NilValue.nil;
+
+// TODO: metaclasses. But only if I can find a really clean, easy and
+// elegant way to do it.
+static public ClassValue classObject = new ClassValue("Object", null);
+static public ClassValue classClass = new ClassValue("Class", classObject);
+static public ClassValue classNil = new ClassValue("Nil", classObject);
+static public ClassValue classBool = new ClassValue("Bool", classObject);
+static public ClassValue classNumber = new ClassValue("Number", classObject);
+static public ClassValue classList = new ClassValue("List", classObject);
+static public ClassValue classFunction =
+    new ClassValue("Function", classObject);
+
+static public final Scope BUILTIN_SCOPE;
+
+// Fill in scope and class with variables and methods.
+static {
+  BUILTIN_SCOPE =
+      new Scope(null)
+      .put("nil", nil)
+      .put("true", trueValue)
+      .put("false", falseValue)
+      .put("List", new BuiltinFunctionValue("List") {
+        public Value call(ArrayList<Value> args) {
+          return new ListValue(args);
+        }
+      })
+      .put("print", new BuiltinFunctionValue("print") {
+        public Value call(ArrayList<Value> args) {
+          Value last = nil;
+          for (int i = 0; i < args.size(); i++) {
+            if (i > 0)
+              System.out.print(" ");
+            System.out.print(args.get(i));
+            last = args.get(i);
+          }
+          System.out.println();
+          return args.get(args.size() - 1);
+        }
+      });
+
+  classObject
+      .put("__eq__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectArgLen(1, args);
+          return owner.equals(args.get(0)) ? trueValue : falseValue;
+        }
+      });
+}
+
 // scope
 
 static public final class Scope {
@@ -69,40 +122,31 @@ static public final class Scope {
   }
 }
 
-public static final BoolValue trueValue = BoolValue.trueValue;
-public static final BoolValue falseValue = BoolValue.falseValue;
-public static final NilValue nil = NilValue.nil;
-
-static public final Scope BUILTIN_SCOPE;
-static {
-  BUILTIN_SCOPE =
-      new Scope(null)
-      .put("nil", nil)
-      .put("true", trueValue)
-      .put("false", falseValue)
-      .put("List", new BuiltinFunctionValue("List") {
-        public Value call(ArrayList<Value> args) {
-          return new ListValue(args);
-        }
-      })
-      .put("print", new BuiltinFunctionValue("print") {
-        public Value call(ArrayList<Value> args) {
-          Value last = nil;
-          for (int i = 0; i < args.size(); i++) {
-            if (i > 0)
-              System.out.print(" ");
-            System.out.print(args.get(i));
-            last = args.get(i);
-          }
-          System.out.println();
-          return args.get(args.size() - 1);
-        }
-      });
-}
-
 // value
 
+static public void expectArgLen(String methodName, int expected,
+                         ArrayList<Value> args) {
+  if (args.size() != expected) {
+    throw new RuntimeException(Integer.toString(expected) + " " +
+                               Integer.toString(args.size()));
+  }
+}
+static public void expectArgLen(int expected, ArrayList<Value> args) {
+  expectArgLen("_", expected, args);
+}
+static public void expectAtLeastArgLen(
+    String methodName, int expected, ArrayList<Value> args) {
+  if (args.size() < expected) {
+    throw new RuntimeException(Integer.toString(expected) + " " +
+                               Integer.toString(args.size()));
+  }
+}
+
 static public abstract class Value extends Easy {
+  // getClass is already taken by Java.
+  public ClassValue getType() {
+    throw new RuntimeException(); // TODO: getType should be abstract.
+  }
   public abstract boolean isTruthy();
   public Value getAttribute(String name) {
     throw new RuntimeException(); // TODO
@@ -111,6 +155,7 @@ static public abstract class Value extends Easy {
     throw new RuntimeException(); // TODO
   }
   public Value callMethod(String name, ArrayList<Value> args) {
+    // TODO: callMethod method should be final.
     throw new RuntimeException(name); // TODO
   }
   public Value callMethod(String name, Value... args) {
@@ -123,20 +168,6 @@ static public abstract class Value extends Easy {
     return value instanceof Value && equals((Value) value);
   }
   public abstract boolean equals(Value value);
-  static public void expectArgLen(String methodName, int expected,
-                           ArrayList<Value> args) {
-    if (args.size() != expected) {
-      throw new RuntimeException(Integer.toString(expected) + " " +
-                                 Integer.toString(args.size()));
-    }
-  }
-  static public void expectAtLeastArgLen(
-      String methodName, int expected, ArrayList<Value> args) {
-    if (args.size() < expected) {
-      throw new RuntimeException(Integer.toString(expected) + " " +
-                                 Integer.toString(args.size()));
-    }
-  }
   public Value callValueMethod(String name, ArrayList<Value> args) {
     if (name.equals("__eq__")) {
       expectArgLen(name, 1, args);
@@ -150,7 +181,7 @@ static public abstract class Value extends Easy {
   }
 }
 
-static public abstract class Method {
+static public abstract class Method extends Easy {
   public abstract Value call(Value owner, ArrayList<Value> args);
 }
 
@@ -169,6 +200,23 @@ static public class ClassValue extends Value {
     this(name, parent, new HashMap<String, Method>());
   }
   public boolean equals(Value value) { return this == value; }
+  public Method getMethod(String name) {
+    return getMethod(name, this.name);
+  }
+  private Method getMethod(String name, String className) {
+    Method method = methods.get(name);
+    if (method == null) {
+      if (parent == null)
+        throw new RuntimeException(className + "." + name);
+      else
+        return parent.getMethod(name, className);
+    }
+    return method;
+  }
+  public ClassValue put(String name, Method method) {
+    methods.put(name, method);
+    return this;
+  }
 }
 
 static public class NilValue extends Value {
