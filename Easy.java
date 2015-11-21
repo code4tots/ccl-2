@@ -505,7 +505,7 @@ static public class AndAst extends Ast {
   }
   public Value eval(Scope scope) {
     Value result = left.eval(scope);
-    return result.isTruthy() ? result : right.eval(scope);
+    return !result.isTruthy() ? result : right.eval(scope);
   }
   public Ast[] children() {
     return makeAstArray(left, right);
@@ -520,7 +520,7 @@ static public class OrAst extends Ast {
   }
   public Value eval(Scope scope) {
     Value result = left.eval(scope);
-    return !result.isTruthy() ? result : right.eval(scope);
+    return result.isTruthy() ? result : right.eval(scope);
   }
   public Ast[] children() {
     return makeAstArray(left, right);
@@ -963,8 +963,10 @@ static public final class Parser {
 
     if (consume("{")) {
       ArrayList<Ast> exprs = new ArrayList<Ast>();
-      while (!consume("}"))
+      while (!consume("}")) {
         exprs.add(parseExpression());
+        while (consume(";"));
+      }
       return new BlockAst(exprs);
     }
 
@@ -1023,7 +1025,7 @@ static public final class Parser {
       return new NameAst(name);
     }
 
-    throw new RuntimeException();
+    throw new RuntimeException(lexer.peek().type);
   }
 }
 
