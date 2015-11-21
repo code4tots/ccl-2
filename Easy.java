@@ -137,6 +137,17 @@ static public abstract class Value extends Easy {
                                  Integer.toString(args.size()));
     }
   }
+  public Value callValueMethod(String name, ArrayList<Value> args) {
+    if (name.equals("__eq__")) {
+      expectArgLen(name, 1, args);
+      return equals(args.get(0)) ? trueValue : falseValue;
+    }
+    if (name.equals("__str__")) {
+      expectArgLen(name, 0, args);
+      return new StringValue(toString());
+    }
+    throw new RuntimeException(getClass().getName() + "." + name);
+  }
 }
 
 static public class NilValue extends Value {
@@ -147,6 +158,9 @@ static public class NilValue extends Value {
   }
   public String toString() {
     return "nil";
+  }
+  public Value callMethod(String name, ArrayList<Value> args) {
+    return callValueMethod(name, args);
   }
   public static final NilValue nil = new NilValue();
 }
@@ -163,6 +177,9 @@ static public class BoolValue extends Value {
   }
   public String toString() {
     return value ? "true" : "false";
+  }
+  public Value callMethod(String name, ArrayList<Value> args) {
+    return callValueMethod(name, args);
   }
   public static final BoolValue trueValue = new BoolValue(true);
   public static final BoolValue falseValue = new BoolValue(false);
@@ -187,23 +204,11 @@ static public class NumberValue extends Value {
 
       return new NumberValue(value + ((NumberValue) args.get(0)).value);
     }
-
     if (name.equals("__neg__")) {
       expectArgLen(name, 0, args);
       return new NumberValue(-value.doubleValue());
     }
-
-    if (name.equals("__eq__")) {
-      expectArgLen(name, 1, args);
-      return equals(args.get(0)) ? trueValue : falseValue;
-    }
-
-    if (name.equals("__str__")) {
-      expectArgLen(name, 0, args);
-      return new StringValue(value.toString());
-    }
-
-    throw new RuntimeException(name);
+    return callValueMethod(name, args);
   }
   public int hashCode() {
     return value.hashCode();
@@ -222,6 +227,16 @@ static public class StringValue extends Value {
   }
   public String toString() {
     return value;
+  }
+  public Value callMethod(String name, ArrayList<Value> args) {
+    if (name.equals("__add__")) {
+      expectArgLen(name, 1, args);
+      if (!(args.get(0) instanceof StringValue))
+        throw new RuntimeException(args.getClass().toString());
+
+      return new StringValue(value + ((StringValue) args.get(0)).value);
+    }
+    return callValueMethod(name, args);
   }
 }
 
@@ -249,7 +264,7 @@ static public class ListValue extends Value {
         newvals.add(f.callMethod("__call__", value.get(i)));
       return new ListValue(newvals);
     }
-    throw new RuntimeException(name);
+    return callValueMethod(name, args);
   }
 }
 
@@ -262,12 +277,10 @@ static public abstract class FunctionValue extends Value {
     this.name = name;
   }
   public Value callMethod(String name, ArrayList<Value> args) {
-
     if (name.equals("__call__")) {
       return call(args);
     }
-
-    throw new RuntimeException(name);
+    return callValueMethod(name, args);
   }
 }
 
