@@ -34,28 +34,39 @@
 # if not (1 == 1)
 #   print["b"]
 
-print[List[1, 2, 3].map[\x. x + 1]]  # [2, 3, 4]
-print["blarg" + "oblarg"]  # blargoblarg
-print[1 and 2]
-print[1 or 2]
+def old[] {
+  print[List[1, 2, 3].map[\x. x + 1]]  # [2, 3, 4]
+  print["blarg" + "oblarg"]  # blargoblarg
+  print[1 and 2]
+  print[1 or 2]
 
-args = List['a', 'b', 'c']
+  args = List['a', 'b', 'c']
 
-print[4, *args]
+  print[4, *args]
+
+  print[Class == Class]
+}
+
+# User defined classes
+class MyClass {
+
+  self.__new__ = \ . {
+    it = Object[self]
+    it.value = 5
+    it
+  }
+
+  def my_method[*args] {
+    print["Your arguments were:", *args]
+  }
+}
+x = MyClass[]
+x.my_method[1, 2, 3]
 
 
 r""" # Some possible future additions
-
-# User defined classes
-class MyClass[a, b, c] {
-  def my_method[x, y, z] {
-
-  }
-}
 
 # get the maximum file size 
 shell['cat file.txt'].lines[].map[\line.line.size[]].max[]
 
 """
-
-print[Class == Class]

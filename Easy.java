@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 // This top level class exists just for namespacing purposes.
 public class Easy {
@@ -49,20 +50,37 @@ public static final BoolValue trueValue = BoolValue.trueValue;
 public static final BoolValue falseValue = BoolValue.falseValue;
 public static final NilValue nil = NilValue.nil;
 
-// TODO: metaclasses. But only if I can find a really clean, easy and
-// elegant way to do it. It should be more elegant than Python's
-// metaclass mechanism.
+// TODO: User defined metaclasses.
+// But only if I can find a really clean, easy and elegant way to do it.
+// It should be more elegant than Python's metaclass mechanism.
+
+// Root classes.
 static public ClassValue classObject = new ClassValue("Object", null);
-static public ClassValue classClass = new ClassValue("Class", classObject);
+static public ClassValue classBuiltinObject =
+    new ClassValue("BuiltinObject", classObject);
+static public UserClassValue classUserObject =
+    new UserClassValue("UserObject", classObject);
+
+// metaclasses
+static public ClassValue classClass =
+    new ClassValue("Class", classBuiltinObject);
 static public ClassValue classBuiltinClass =
     new ClassValue("BuiltinClass", classClass);
-static public ClassValue classNil = new ClassValue("Nil", classObject);
-static public ClassValue classBool = new ClassValue("Bool", classObject);
-static public ClassValue classNumber = new ClassValue("Number", classObject);
-static public ClassValue classString = new ClassValue("String", classObject);
-static public ClassValue classList = new ClassValue("List", classObject);
+static public ClassValue classUserClass =
+    new ClassValue("UserClass", classClass);
+
+// Other builtin classes.
+static public ClassValue classNil = new ClassValue("Nil", classBuiltinObject);
+static public ClassValue classBool =
+    new ClassValue("Bool", classBuiltinObject);
+static public ClassValue classNumber =
+    new ClassValue("Number", classBuiltinObject);
+static public ClassValue classString =
+    new ClassValue("String", classBuiltinObject);
+static public ClassValue classList =
+    new ClassValue("List", classBuiltinObject);
 static public ClassValue classFunction =
-    new ClassValue("Function", classObject);
+    new ClassValue("Function", classBuiltinObject);
 
 static public final Scope BUILTIN_SCOPE = new Scope(null);
 
@@ -72,8 +90,11 @@ static {
       .put("nil", nil)
       .put("true", trueValue)
       .put("false", falseValue)
-      .put("Object", classObject)
+      .put("Object", classUserObject) // TODO: Think about this.
       .put("Class", classClass)
+      .put("Nil", classNil)
+      .put("Number", classNumber)
+      .put("String", classString)
       .put("List", classList)
       .put("print", new BuiltinFunctionValue("print") {
         public Value call(ArrayList<Value> args) {
@@ -95,7 +116,9 @@ static {
           expectExactArgTypes(args, new ClassValue[]{});
           return owner.getType();
         }
-      })
+      });
+
+  classBuiltinObject
       .put("__eq__", new Method() {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{null});
@@ -116,6 +139,14 @@ static {
         }
       });
 
+  classUserObject
+      .put("__new__", new BuiltinFunctionValue("__new__") {
+        public Value call(ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{classUserClass});
+          return new UserObjectValue((ClassValue) args.get(0));
+        }
+      });
+
   classNumber
       .put("__add__", new Method() {
         public Value call(Value owner, ArrayList<Value> args) {
@@ -123,6 +154,14 @@ static {
           Double a = ((NumberValue) owner).value;
           Double b = ((NumberValue) args.get(0)).value;
           return new NumberValue(a + b);
+        }
+      })
+      .put("__sub__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{classNumber});
+          Double a = ((NumberValue) owner).value;
+          Double b = ((NumberValue) args.get(0)).value;
+          return new NumberValue(a - b);
         }
       })
       .put("__neg__", new Method() {
@@ -174,7 +213,7 @@ static {
 
 static public final class Scope {
   private final Scope parent;
-  private final HashMap<String, Value> table;
+  public final HashMap<String, Value> table;
   public Scope(Scope parent) {
     this.parent = parent;
     table = new HashMap<String, Value>();
@@ -193,6 +232,9 @@ static public final class Scope {
     table.put(name, value);
     return this;
   }
+  public Iterator<String> iterator() {
+    return table.keySet().iterator();
+  }
 }
 
 // value
@@ -207,14 +249,12 @@ static public void expectArgLen(String methodName, int expected,
 static public void expectArgLen(int expected, ArrayList<Value> args) {
   expectArgLen("_", expected, args);
 }
-static public void expectAtLeastArgLen(
-    String methodName, int expected, ArrayList<Value> args) {
+static public void expectAtLeastArgLen(int expected, ArrayList<Value> args) {
   if (args.size() < expected) {
     throw new RuntimeException(Integer.toString(expected) + " " +
                                Integer.toString(args.size()));
   }
 }
-
 static public void expectArgTypes(
     ArrayList<Value> args, ClassValue[] expected) {
   if (args.size() < expected.length)
@@ -233,7 +273,6 @@ static public void expectArgTypes(
           cls.toString());
   }
 }
-
 static public void expectExactArgTypes(
     ArrayList<Value> args, ClassValue[] expected) {
   if (args.size() != expected.length)
@@ -244,19 +283,20 @@ static public void expectExactArgTypes(
 }
 
 static public abstract class Value extends Easy {
-  // getClass is already taken by Java.
   public final HashMap<String, Value> attributes;
   public Value() { this(new HashMap<String, Value>()); }
   public Value(HashMap<String, Value> attrs) { attributes = attrs; }
-  public abstract ClassValue getType();
+  public abstract ClassValue getType(); // getClass is already taken by Java.
   public abstract boolean isTruthy();
+  public abstract boolean equals(Value value);
   public final Value getAttribute(String name) {
     Value value = get(name);
-    if (value == null)
-      throw new RuntimeException(name);
+    if (value == null) {
+      throw new RuntimeException(getType().name + "." + name);
+    }
     return value;
   }
-  public void setAttribute(String name, Value value) { put(name, value); }
+  public final void setAttribute(String name, Value value) { put(name, value); }
   public Value get(String name) { return attributes.get(name); }
   public Value put(String name, Value value) {
     attributes.put(name, value);
@@ -274,18 +314,6 @@ static public abstract class Value extends Easy {
   public boolean equals(Object value) {
     return value instanceof Value && equals((Value) value);
   }
-  public abstract boolean equals(Value value);
-  public Value callValueMethod(String name, ArrayList<Value> args) {
-    if (name.equals("__eq__")) {
-      expectArgLen(name, 1, args);
-      return equals(args.get(0)) ? trueValue : falseValue;
-    }
-    if (name.equals("__str__")) {
-      expectArgLen(name, 0, args);
-      return new StringValue(toString());
-    }
-    throw new RuntimeException(getClass().getName() + "." + name);
-  }
 }
 
 static public abstract class Method extends Easy {
@@ -298,7 +326,7 @@ static public class ClassValue extends Value {
   public final HashMap<String, Method> methods;
   public ClassValue getType() { return classBuiltinClass; }
   public boolean isTruthy() { return true; }
-  public ClassValue(
+  private ClassValue(
       String name, ClassValue parent, HashMap<String, Method> methods) {
     this.name = name;
     this.parent = parent;
@@ -317,20 +345,22 @@ static public class ClassValue extends Value {
   }
   public boolean equals(Value value) { return this == value; }
   public Method getMethod(String name) {
-    return getMethod(name, this.name);
+    Method method = getMethodOrNull(name);
+    if (method == null)
+      throw new RuntimeException(this.name + "." + name);
+    return method;
   }
   public ClassValue put(String name, Value value) {
     attributes.put(name, value);
     return this;
   }
-  private Method getMethod(String name, String className) {
+  public Method getMethodOrNull(String name) {
+    return getMethodOrNull(name, this.name);
+  }
+  private Method getMethodOrNull(String name, String className) {
     Method method = methods.get(name);
-    if (method == null) {
-      if (parent == null)
-        throw new RuntimeException(className + "." + name);
-      else
-        return parent.getMethod(name, className);
-    }
+    if (method == null && parent != null)
+        return parent.getMethodOrNull(name, className);
     return method;
   }
   public ClassValue put(String name, Method method) {
@@ -346,6 +376,13 @@ static public class ClassValue extends Value {
       c = c.parent;
     return c != null;
   }
+}
+
+static public class UserClassValue extends ClassValue {
+  public UserClassValue(String name, ClassValue parent) {
+    super(name, parent);
+  }
+  public ClassValue getType() { return classUserClass; }
 }
 
 static public class NilValue extends Value {
@@ -438,12 +475,8 @@ static public abstract class FunctionValue extends Value {
 }
 
 static public abstract class BuiltinFunctionValue extends FunctionValue {
-  public BuiltinFunctionValue(String name) {
-    super(name);
-  }
-  public String toString() {
-    return "<builtin function " + name + ">";
-  }
+  public BuiltinFunctionValue(String name) { super(name); }
+  public String toString() { return "<builtin function " + name + ">"; }
 }
 
 static public final class UserFunctionValue extends FunctionValue {
@@ -463,12 +496,14 @@ static public final class UserFunctionValue extends FunctionValue {
   public String toString() {
     return "<function " + name + ">";
   }
-  public Value call(ArrayList<Value> args) {
+  public void verifyArguments(ArrayList<Value> args) {
     if (vararg == null)
-      expectArgLen(name, argNames.size(), args);
+      expectArgLen(argNames.size(), args);
     else
-      expectAtLeastArgLen(name, argNames.size(), args);
-
+      expectAtLeastArgLen(argNames.size(), args);
+  }
+  public Scope getNewScopeWithArguments(ArrayList<Value> args) {
+    verifyArguments(args);
     Scope scope = new Scope(parentScope);
     int i;
     for (i = 0; i < argNames.size(); i++) {
@@ -481,8 +516,37 @@ static public final class UserFunctionValue extends FunctionValue {
         rest.add(args.get(i));
       scope.put(vararg, new ListValue(rest));
     }
+    return scope;
+  }
+  public Value call(ArrayList<Value> args) {
+    return body.eval(getNewScopeWithArguments(args));
+  }
+  // TODO: Refactor and clean this up.
+  public Method toMethod() {
+    return new Method() {
+      public Value call(Value owner, ArrayList<Value> args) {
+        Scope scope = getNewScopeWithArguments(args);
+        scope.put("self", owner);
+        return body.eval(scope);
+      }
+    };
+  }
+}
 
-    return body.eval(scope);
+static public final class UserObjectValue extends Value {
+  public final ClassValue type;
+  public UserObjectValue(ClassValue type) { this.type = type; }
+  public ClassValue getType() { return type; }
+  public boolean equals(Value value) {
+    return callMethod("__eq__", value).isTruthy();
+  }
+  public boolean isTruthy() { return callMethod("__bool__").isTruthy(); }
+  public String toString() {
+    Value value = callMethod("__str__");
+    if (!(value instanceof StringValue))
+      throw new RuntimeException(
+          "Expected String type but found " + value.getType().toString());
+    return value.toString();
   }
 }
 
@@ -514,18 +578,6 @@ static public class StringAst extends Ast {
   public StringAst(StringValue value) { this.value = value; }
   public Value eval(Scope scope) { return value; }
   public Ast[] children() { return makeAstArray(); }
-}
-
-static public class ListAst extends Ast {
-  public final ArrayList<Ast> asts;
-  public ListAst(ArrayList<Ast> asts) { this.asts = asts; }
-  public Value eval(Scope scope) {
-    ArrayList<Value> values = new ArrayList<Value>();
-    for (int i = 0; i < asts.size(); i++)
-      values.add(asts.get(i).eval(scope));
-    return new ListValue(values);
-  }
-  public Ast[] children() { return asts.toArray(new Ast[asts.size()]); }
 }
 
 static public class BlockAst extends Ast {
@@ -744,6 +796,37 @@ static public class UserFunctionAst extends Ast {
   }
   public Ast[] children() {
     return makeAstArray(body);
+  }
+}
+
+static public class UserClassAst extends Ast {
+  public final String name;
+  public final Ast baseAst; // TODO: multiple inheritance
+  public final Ast body;
+  public UserClassAst(String name, Ast baseAst, Ast body) {
+    this.name = name;
+    this.baseAst = baseAst;
+    this.body = body;
+  }
+  public Ast[] children() {
+    return makeAstArray(body);
+  }
+  public Value eval(Scope scope) {
+    ClassValue cls = new UserClassValue(name, (ClassValue) baseAst.eval(scope));
+    // Effectively classScope is the class's private scope.
+    Scope classScope = new Scope(scope);
+    classScope.put("self", cls);
+    body.eval(classScope);
+    Iterator<String> it = classScope.iterator();
+    while (it.hasNext()) {
+      String key = it.next();
+      Value val = classScope.get(key);
+      if (val instanceof UserFunctionValue) {
+        cls.put(key, ((UserFunctionValue) val).toMethod());
+      }
+    }
+    scope.put(name, cls);
+    return cls;
   }
 }
 
@@ -1164,6 +1247,17 @@ static public final class Parser {
       Ast body = parseExpression();
       return new AssignAst(
           name, new UserFunctionAst(name, args, vararg, body));
+    }
+
+    if (consume("class")) {
+      String name = (String) expect("ID").value;
+      Ast base = new NameAst("Object");
+      if (consume("[")) {
+        base = parseExpression();
+        expect("]"); // TODO: multiple inheritance
+      }
+      Ast body = parseExpression();
+      return new UserClassAst(name, base, body);
     }
 
     if (at("NUM"))
