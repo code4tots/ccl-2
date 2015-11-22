@@ -6,6 +6,9 @@ assert[x + 6 == 11, "x + 6 == 11"]
 assert[-x == -5, "-x == -5"]
 assert[List[1, 2, 3] == List[1, 2, 3], "List[1, 2, 3] id test"]
 
+assert[r'a' == "a", "String equality 1"]
+assert["a" == 'a', 'String equality 2']
+
 xs = List[1, 2, 3]
 assert[xs.map[\x. x + 1] == List[2, 3, 4], "List.map test"]
 
@@ -65,6 +68,27 @@ assert[
 
 assert[Class == Class, "Class == Class"]
 
+# Inheritance test
+class MyOtherClass[MyClass] {
+  def other_method[] {
+    "other_method"
+  }
+}
+x = MyOtherClass[]
+assert[
+    x.__class__[].__str__[] == "<class MyOtherClass>",
+    "Class name check: " + x.__class__[].__str__[]]
+assert[x.attr == 5, "Constructor inheritance"]
+assert[x.my_method[] == "My method", "Method inheritance"]
+assert[
+    x.other_method[] == "other_method",
+    "Method override: " + x.other_method[].__str__[]]
+
+class NewClass {}
+x = NewClass[]
+assert[x.__str__[] == "<NewClass instance>", "default __str__"]
+
+
 r""" # Some possible future additions
 
 # get the maximum file size 
@@ -75,4 +99,6 @@ shell['cat file.txt'].lines[].map[\line.line.size[]].max[]
 read['file.txt'].lines[].map[&size[]].max[]
 
 """
+
+print["All tests pass!"]
 
