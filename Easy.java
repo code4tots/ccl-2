@@ -210,6 +210,14 @@ static {
       });
 
   classString
+      .put(new BuiltinFunctionValue("__new__") {
+        public Value call(ArrayList<Value> args) {
+          StringBuilder sb = new StringBuilder();
+          for (int i = 0; i < args.size(); i++)
+            sb.append(args.get(i).toString());
+          return new StringValue(sb.toString());
+        }
+      })
       .put("__add__", new Method() {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{classString});
@@ -389,6 +397,10 @@ static public class ClassValue extends Value {
   }
   public ClassValue put(String name, Value value) {
     attributes.put(name, value);
+    return this;
+  }
+  public ClassValue put(FunctionValue f) {
+    attributes.put(f.name, f);
     return this;
   }
   public Method getMethodOrNull(String name) {

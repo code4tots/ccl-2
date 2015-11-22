@@ -98,6 +98,8 @@ class BlargClass {
 x = BlargClass[]
 assert[x.value == 'blarg', "__init__"]
 
+assert[String["a" 'b' r"""c"""] == 'abc', "String[] test"]
+
 r""" # Some possible future additions
 
 # get the maximum file size 
