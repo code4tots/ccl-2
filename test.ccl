@@ -111,5 +111,7 @@ read['file.txt'].lines[].map[&size[]].max[]
 
 """
 
+assert[List[1, 2, 3][1] == 2, "list indexing"]
+
 print["All tests pass!"]
 

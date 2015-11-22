@@ -243,6 +243,13 @@ static {
             newvals.add(f.callMethod("__call__", value.get(i)));
           return new ListValue(newvals);
         }
+      })
+      .put("__call__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{classNumber});
+          int i = (int) ((NumberValue) args.get(0)).value.doubleValue();
+          return ((ListValue) owner).value.get(i);
+        }
       });
 
   classFunction
