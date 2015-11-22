@@ -40,10 +40,8 @@ assert[not false, "not test"]
 
 class MyClass {
 
-  self.__new__ = \ . {
-    it = Object[self]
-    it.attr = 5
-    it
+  def __init__[] {
+    self.attr = 5
   }
 
   def my_method[] {
@@ -94,7 +92,6 @@ assert[x.__str__[] == "<NewClass instance>", "default __str__"]
 # getting __new__ right.
 class BlargClass {
   def __init__[] {
-    print[self]
     self.value = 'blarg'
   }
 }

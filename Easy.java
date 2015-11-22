@@ -147,31 +147,23 @@ static {
         }
       });
 
-  classClass
+  classBuiltinClass
       .put("__call__", new Method() {
         public Value call(Value owner, ArrayList<Value> args) {
-          return ((FunctionValue) owner.getAttribute("__new__"))
-              .callWithSelfAs(owner, args);
+          return ((FunctionValue) owner.getAttribute("__new__")).call(args);
+        }
+      });
+
+  classUserClass
+      .put("__call__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          Value value = new UserObjectValue((ClassValue) owner);
+          value.callMethod("__init__", args);
+          return value;
         }
       });
 
   classUserObject
-      .put("__new__", new BuiltinFunctionValue("__new__") {
-        public Value call(ArrayList<Value> args) {
-          expectExactArgTypes(args, new ClassValue[]{classUserClass});
-          Value value = new UserObjectValue((ClassValue) args.get(0));
-          value.callMethod("__init__", args);
-          return value;
-        }
-        public Value callWithSelfAs(Value selfValue, ArrayList<Value> args)  {
-          if (args.size() == 0) {
-            expectExactArgTypes(args, new ClassValue[]{});
-            return new UserObjectValue((ClassValue) selfValue);
-          }
-          expectExactArgTypes(args, new ClassValue[]{classUserClass});
-          return new UserObjectValue((ClassValue) args.get(0));
-        }
-      })
       .put("__init__", new Method() {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{});
@@ -517,28 +509,11 @@ static public abstract class FunctionValue extends Value {
   public FunctionValue(String name) {
     this.name = name;
   }
-  public abstract Value callWithSelfAs(Value selfValue, ArrayList<Value> args);
 }
 
 static public abstract class BuiltinFunctionValue extends FunctionValue {
   public BuiltinFunctionValue(String name) { super(name); }
   public String toString() { return "<builtin function " + name + ">"; }
-
-  // TODO: This is dirty. Ugh. Fix this.
-  // TODO: Think about what this means for builtin functions.
-  public Value selfValue = null;
-  public Value callWithSelfAs(Value selfValue, ArrayList<Value> args) {
-    return call(args);
-  }
-}
-
-static public abstract class BuiltinMethodValue extends FunctionValue {
-  public BuiltinMethodValue(String name) { super(name); }
-  public String toString() { return "<builtin method " + name + ">"; }
-  // TODO: This is dirty. Ugh. Fix this.
-  public Value call(ArrayList<Value> args) {
-    return callWithSelfAs(null, args);
-  }
 }
 
 static public final class UserFunctionValue extends FunctionValue {
@@ -583,16 +558,13 @@ static public final class UserFunctionValue extends FunctionValue {
   public Value call(ArrayList<Value> args) {
     return body.eval(getNewScopeWithArguments(args));
   }
-  public Value callWithSelfAs(Value selfValue, ArrayList<Value> args) {
-    Scope scope = getNewScopeWithArguments(args);
-    scope.put("self", selfValue);
-    return body.eval(scope);
-  }
   // TODO: Refactor and clean this up.
   public Method toMethod() {
     return new Method() {
       public Value call(Value owner, ArrayList<Value> args) {
-        return callWithSelfAs(owner, args);
+        Scope scope = getNewScopeWithArguments(args);
+        scope.put("self", owner);
+        return body.eval(scope);
       }
     };
   }
@@ -886,7 +858,7 @@ static public class UserClassAst extends Ast {
     while (it.hasNext()) {
       String key = it.next();
       Value val = classScope.get(key);
-      // TODO: This feels like a hack. Refactor.
+      // TODO: This feels like a hack. Refactor. Or at least think about it.
       if (val instanceof UserFunctionValue) {
         cls.put(key, ((UserFunctionValue) val).toMethod());
       }
