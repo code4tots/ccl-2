@@ -1,4 +1,4 @@
-# cls && javac -Xlint Easy.java TestEasy.java && java -ea Easy sample.ccl
+# cls && javac -Xlint Easy.java TestEasy.java && java -ea Easy test.ccl
 
 x = 5
 assert[x == 5, "x == 5"]
