@@ -159,7 +159,9 @@ static {
       .put("__new__", new BuiltinFunctionValue("__new__") {
         public Value call(ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{classUserClass});
-          return new UserObjectValue((ClassValue) args.get(0));
+          Value value = new UserObjectValue((ClassValue) args.get(0));
+          value.callMethod("__init__", args);
+          return value;
         }
         public Value callWithSelfAs(Value selfValue, ArrayList<Value> args)  {
           if (args.size() == 0) {
@@ -168,6 +170,12 @@ static {
           }
           expectExactArgTypes(args, new ClassValue[]{classUserClass});
           return new UserObjectValue((ClassValue) args.get(0));
+        }
+      })
+      .put("__init__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{});
+          return nil;
         }
       })
       .put("__str__", new Method() {

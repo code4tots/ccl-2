@@ -88,6 +88,18 @@ class NewClass {}
 x = NewClass[]
 assert[x.__str__[] == "<NewClass instance>", "default __str__"]
 
+# Ugh. I think __new__ is kind of weird.
+# I think I've read Guido regretting Python's __new__ at some point too.
+# It certainly feels like getting __init__ right would be easier than
+# getting __new__ right.
+class BlargClass {
+  def __init__[] {
+    print[self]
+    self.value = 'blarg'
+  }
+}
+x = BlargClass[]
+assert[x.value == 'blarg', "__init__"]
 
 r""" # Some possible future additions
 
