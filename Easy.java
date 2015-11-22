@@ -59,26 +59,22 @@ static public ClassValue classBuiltinClass =
 static public ClassValue classNil = new ClassValue("Nil", classObject);
 static public ClassValue classBool = new ClassValue("Bool", classObject);
 static public ClassValue classNumber = new ClassValue("Number", classObject);
+static public ClassValue classString = new ClassValue("String", classObject);
 static public ClassValue classList = new ClassValue("List", classObject);
 static public ClassValue classFunction =
     new ClassValue("Function", classObject);
 
-static public final Scope BUILTIN_SCOPE;
+static public final Scope BUILTIN_SCOPE = new Scope(null);
 
 // Fill in scope and class with variables and methods.
 static {
-  BUILTIN_SCOPE =
-      new Scope(null)
+  BUILTIN_SCOPE
       .put("nil", nil)
       .put("true", trueValue)
       .put("false", falseValue)
       .put("Object", classObject)
       .put("Class", classClass)
-      .put("List", new BuiltinFunctionValue("List") {
-        public Value call(ArrayList<Value> args) {
-          return new ListValue(args);
-        }
-      })
+      .put("List", classList)
       .put("print", new BuiltinFunctionValue("print") {
         public Value call(ArrayList<Value> args) {
           Value last = nil;
@@ -94,6 +90,12 @@ static {
       });
 
   classObject
+      .put("__class__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{});
+          return owner.getType();
+        }
+      })
       .put("__eq__", new Method() {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{null});
@@ -104,6 +106,13 @@ static {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{});
           return new StringValue(owner.toString());
+        }
+      });
+
+  classClass
+      .put("__call__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          return ((FunctionValue) owner.getAttribute("__new__")).call(args);
         }
       });
 
@@ -121,6 +130,42 @@ static {
           expectExactArgTypes(args, new ClassValue[]{});
           Double a = ((NumberValue) owner).value;
           return new NumberValue(-a);
+        }
+      });
+
+  classString
+      .put("__add__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{classString});
+          String a = ((StringValue) owner).value;
+          String b = ((StringValue) args.get(0)).value;
+          return new StringValue(a + b);
+        }
+      });
+
+  classList
+      .put("__new__", new BuiltinFunctionValue("__new__") {
+        public Value call(ArrayList<Value> args) {
+          return new ListValue(args);
+        }
+      })
+      .put("map", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{classFunction});
+          ArrayList<Value> value = ((ListValue) owner).value;
+          FunctionValue f = (FunctionValue) args.get(0);
+          ArrayList<Value> newvals = new ArrayList<Value>();
+          for (int i = 0; i < value.size(); i++)
+            newvals.add(f.callMethod("__call__", value.get(i)));
+          return new ListValue(newvals);
+        }
+      });
+
+  classFunction
+      .put("__call__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          FunctionValue f = (FunctionValue) owner;
+          return f.call(args);
         }
       });
 }
@@ -200,18 +245,24 @@ static public void expectExactArgTypes(
 
 static public abstract class Value extends Easy {
   // getClass is already taken by Java.
-  public ClassValue getType() {
-    throw new RuntimeException(); // TODO: getType should be abstract.
-  }
+  public final HashMap<String, Value> attributes;
+  public Value() { this(new HashMap<String, Value>()); }
+  public Value(HashMap<String, Value> attrs) { attributes = attrs; }
+  public abstract ClassValue getType();
   public abstract boolean isTruthy();
-  public Value getAttribute(String name) {
-    throw new RuntimeException(); // TODO
+  public final Value getAttribute(String name) {
+    Value value = get(name);
+    if (value == null)
+      throw new RuntimeException(name);
+    return value;
   }
-  public void setAttribute(String name, Value value) {
-    throw new RuntimeException(); // TODO
+  public void setAttribute(String name, Value value) { put(name, value); }
+  public Value get(String name) { return attributes.get(name); }
+  public Value put(String name, Value value) {
+    attributes.put(name, value);
+    return this;
   }
-  public Value callMethod(String name, ArrayList<Value> args) {
-    // TODO: callMethod method should be final.
+  public final Value callMethod(String name, ArrayList<Value> args) {
     return getType().getMethod(name).call(this, args);
   }
   public Value callMethod(String name, Value... args) {
@@ -256,9 +307,21 @@ static public class ClassValue extends Value {
   public ClassValue(String name, ClassValue parent) {
     this(name, parent, new HashMap<String, Method>());
   }
+  public Value get(String name) {
+    Value value = attributes.get(name);
+    if (value != null)
+      return value;
+    if (parent != null)
+      return parent.get(name);
+    return null;
+  }
   public boolean equals(Value value) { return this == value; }
   public Method getMethod(String name) {
     return getMethod(name, this.name);
+  }
+  public ClassValue put(String name, Value value) {
+    attributes.put(name, value);
+    return this;
   }
   private Method getMethod(String name, String className) {
     Method method = methods.get(name);
@@ -287,6 +350,7 @@ static public class ClassValue extends Value {
 
 static public class NilValue extends Value {
   private NilValue() {}
+  public ClassValue getType() { return classNil; }
   public boolean isTruthy() { return false; }
   public boolean equals(Value value) {
     return value instanceof NilValue;
@@ -300,6 +364,7 @@ static public class NilValue extends Value {
 static public class BoolValue extends Value {
   public boolean value;
   private BoolValue(boolean value) { this.value = value; }
+  public ClassValue getType() { return classBool; }
   public boolean isTruthy() { return value; }
   public boolean equals(Value val) {
     return val instanceof BoolValue && ((BoolValue) val).value == value;
@@ -336,6 +401,7 @@ static public class NumberValue extends Value {
 static public class StringValue extends Value {
   public final String value;
   public StringValue(String value) { this.value = value; }
+  public ClassValue getType() { return classString; }
   public boolean isTruthy() { return value.length() != 0; }
   public boolean equals(Value val) {
     return val instanceof StringValue &&
@@ -343,16 +409,6 @@ static public class StringValue extends Value {
   }
   public String toString() {
     return value;
-  }
-  public Value callMethod(String name, ArrayList<Value> args) {
-    if (name.equals("__add__")) {
-      expectArgLen(name, 1, args);
-      if (!(args.get(0) instanceof StringValue))
-        throw new RuntimeException(args.getClass().toString());
-
-      return new StringValue(value + ((StringValue) args.get(0)).value);
-    }
-    return callValueMethod(name, args);
   }
 }
 
@@ -362,41 +418,22 @@ static public class ListValue extends Value {
   public ListValue(Value... values) {
     this(arrayToArrayList(values));
   }
+  public ClassValue getType() { return classList; }
   public boolean isTruthy() { return value.size() != 0; }
   public boolean equals(Value val) {
     return val instanceof ListValue && ((ListValue) val).value.equals(value);
   }
-  public String toString() {
-    return value.toString();
-  }
-  public Value callMethod(String name, ArrayList<Value> args) {
-    if (name.equals("map")) {
-      expectArgLen(name, 1, args);
-      if (!(args.get(0) instanceof FunctionValue))
-        throw new RuntimeException(args.get(0).getClass().toString());
-      FunctionValue f = (FunctionValue) args.get(0);
-      ArrayList<Value> newvals = new ArrayList<Value>();
-      for (int i = 0; i < value.size(); i++)
-        newvals.add(f.callMethod("__call__", value.get(i)));
-      return new ListValue(newvals);
-    }
-    return callValueMethod(name, args);
-  }
+  public String toString() { return value.toString(); }
 }
 
 static public abstract class FunctionValue extends Value {
   public final String name;
+  public ClassValue getType() { return classFunction; }
   public boolean isTruthy() { return true; }
   public boolean equals(Value val) { return this == val; }
   public abstract Value call(ArrayList<Value> args);
   public FunctionValue(String name) {
     this.name = name;
-  }
-  public Value callMethod(String name, ArrayList<Value> args) {
-    if (name.equals("__call__")) {
-      return call(args);
-    }
-    return callValueMethod(name, args);
   }
 }
 
@@ -414,8 +451,9 @@ static public final class UserFunctionValue extends FunctionValue {
   public final Ast body;
   public final ArrayList<String> argNames;
   public final String vararg;
-  public UserFunctionValue(String name, Scope parentScope, ArrayList<String> argNames,
-                           String vararg, Ast body) {
+  public UserFunctionValue(
+      String name, Scope parentScope, ArrayList<String> argNames,
+      String vararg, Ast body) {
     super(name);
     this.parentScope = parentScope;
     this.body = body;
