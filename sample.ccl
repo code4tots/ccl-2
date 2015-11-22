@@ -1,72 +1,78 @@
 # cls && javac -Xlint Easy.java TestEasy.java && java -ea Easy sample.ccl
-# x = 5
-# print[x]
-# print[x + 6]
-# print[List[1, 2, 3]]
-# print[-x]
-# y = 0
-# print[y == -y]
-# 
-# f = \ x. print[x]
-# 
-# f["hello world!"]
-# f[5]
-# 
-# def g[a, b, c] {
-#   print["------------------------------"]
-#   print["hello, welcome to function 'g'"]
-#   print["------------------------------"]
-#   print["hello world", a, b, c]
-#   print[b]
-# }
-# 
-# g[1, 2, 3]
-# 
-# if 1 == 1
-#   print["1 == 1 is true"]
-# else
-#   print["1 == 1 is false"]
-# 
-# 
-# if 1 == 1
-#   print["a"]
-# 
-# if not (1 == 1)
-#   print["b"]
 
-def old[] {
-  print[List[1, 2, 3].map[\x. x + 1]]  # [2, 3, 4]
-  print["blarg" + "oblarg"]  # blargoblarg
-  print[1 and 2]
-  print[1 or 2]
+x = 5
+assert[x == 5, "x == 5"]
+assert[x + 6 == 11, "x + 6 == 11"]
+assert[-x == -5, "-x == -5"]
+assert[List[1, 2, 3] == List[1, 2, 3], "List[1, 2, 3] id test"]
 
-  args = List['a', 'b', 'c']
+xs = List[1, 2, 3]
+assert[xs.map[\x. x + 1] == List[2, 3, 4], "List.map test"]
 
-  print[4, *args]
-
-  print[Class == Class]
+if 1 + 1 == 2 {
+  x = "true"
+} else {
+  x = "false"
 }
+assert[x == "true", "if-else test"]
 
-# User defined classes
+x = 0
+if 1 + 1 == 2 {
+  x = 1
+}
+assert[x == 1, "if test"]
+
+x = 10
+if 1 + 1 != 2 {
+  x = 20
+}
+assert[x == 10, "not if test"]
+
+def g[a] {
+  a + 2
+}
+assert[g[1] == 3, "def test"]
+
+assert[not false, "not test"]
+
 class MyClass {
 
   self.__new__ = \ . {
     it = Object[self]
-    it.value = 5
+    it.attr = 5
     it
   }
 
-  def my_method[*args] {
-    print["Your arguments were:", *args]
+  def my_method[] {
+    "My method"
+  }
+
+  def other_method[*args] {
+    args
   }
 }
 x = MyClass[]
-x.my_method[1, 2, 3]
 
+assert[x.attr == 5, "User defined class attribute test"]
+
+assert[x.my_method[] == "My method", "User defined method test"]
+
+xs = List["b", 6]
+
+assert[
+    x.other_method["a", 5, *xs] == List['a', 5, 'b', 6],
+    "Vararg test"]
+
+assert[Class == Class, "Class == Class"]
 
 r""" # Some possible future additions
 
 # get the maximum file size 
 shell['cat file.txt'].lines[].map[\line.line.size[]].max[]
 
+# or maybe
+
+read['file.txt'].lines[].map[&size[]].max[]
+
 """
+

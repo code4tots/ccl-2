@@ -108,6 +108,16 @@ static {
           System.out.println();
           return args.get(args.size() - 1);
         }
+      })
+      .put("assert", new BuiltinFunctionValue("assert") {
+        public Value call(ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{null, null});
+          if (!args.get(0).isTruthy()) {
+            System.out.println("Assertion failed: " + args.get(1).toString());
+            System.exit(1);
+          }
+          return nil;
+        }
       });
 
   classObject
@@ -115,6 +125,12 @@ static {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{});
           return owner.getType();
+        }
+      })
+      .put("__ne__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{null});
+          return owner.equals(args.get(0)) ? falseValue : trueValue;
         }
       });
 
@@ -835,7 +851,7 @@ static public class UserClassAst extends Ast {
 static public final String[] SYMBOLS = {
   "(", ")", "[", "]", "{", "}", ";", ",", ".", "\\",
   "+", "-", "*", "/", "%", "=",
-  "==", "<", ">", "<=", ">="
+  "==", "<", ">", "<=", ">=", "!="
 };
 static public final String[] KEYWORDS = {
   "not", "and", "or", "def", "class",
@@ -1047,6 +1063,11 @@ static public final class Parser {
 
       if (consume("==")) {
         expr = new CallMethodAst(expr, "__eq__", parseOrExpression());
+        continue;
+      }
+
+      if (consume("!=")) {
+        expr = new CallMethodAst(expr, "__ne__", parseOrExpression());
         continue;
       }
 
