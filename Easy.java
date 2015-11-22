@@ -878,6 +878,7 @@ static public class UserClassAst extends Ast {
     while (it.hasNext()) {
       String key = it.next();
       Value val = classScope.get(key);
+      // TODO: This feels like a hack. Refactor.
       if (val instanceof UserFunctionValue) {
         cls.put(key, ((UserFunctionValue) val).toMethod());
       }
