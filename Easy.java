@@ -355,7 +355,13 @@ static public abstract class Value extends Easy {
     return this;
   }
   public final Value callMethod(String name, ArrayList<Value> args) {
-    return getType().getMethod(name).call(this, args);
+    Method method = getType().getMethodOrNull(name);
+    if (method != null)
+      return method.call(this, args);
+    Value attr = get(name);
+    if (attr != null)
+      return attr.callMethod("__call__", args);
+    throw new RuntimeException("No such method " + name);
   }
   public Value callMethod(String name, Value... args) {
     ArrayList<Value> arglist = new ArrayList<Value>();

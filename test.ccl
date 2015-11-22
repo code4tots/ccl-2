@@ -93,12 +93,15 @@ assert[x.__str__[] == "<NewClass instance>", "default __str__"]
 class BlargClass {
   def __init__[] {
     self.value = 'blarg'
+    self.list = List[1, 2, 3]
   }
 }
 x = BlargClass[]
 assert[x.value == 'blarg', "__init__"]
 
 assert[String["a" 'b' r"""c"""] == 'abc', "String[] test"]
+
+assert[x.list[0] == 1, "Call attribute as function"]
 
 r""" # Some possible future additions
 
