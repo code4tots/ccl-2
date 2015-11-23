@@ -541,6 +541,10 @@ static public abstract class BuiltinFunctionValue extends FunctionValue {
   public String toString() { return "<builtin function " + name + ">"; }
 }
 
+// TODO: Implement a 'flatten' method to Ast, so that instead of a tree,
+// we have a flat array of 'bytecodes'. Then at least inside of user
+// functions I wouldn't have to throw exceptions just to return a value
+// or break from a loop.
 static public final class UserFunctionValue extends FunctionValue {
   public final Scope parentScope;
   public final Ast body;
