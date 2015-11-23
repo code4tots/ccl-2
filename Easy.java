@@ -581,7 +581,11 @@ static public final class UserFunctionValue extends FunctionValue {
     return scope;
   }
   public Value call(ArrayList<Value> args) {
-    return body.eval(getNewScopeWithArguments(args));
+    try {
+      return body.eval(getNewScopeWithArguments(args));
+    } catch (ReturnException e) {
+      return e.value;
+    }
   }
   // TODO: Refactor and clean this up.
   public Method toMethod() {
@@ -841,6 +845,15 @@ static public class WhileAst extends Ast {
   }
 }
 
+static public class ReturnAst extends Ast {
+  public final Ast value;
+  public ReturnAst(Ast value) { this.value = value; }
+  public Value eval(Scope scope) {
+    throw new ReturnException(value.eval(scope));
+  }
+  public Ast[] children() { return makeAstArray(value); }
+}
+
 static public class UserFunctionAst extends Ast {
   public final String name;
   public final ArrayList<String> argNames;
@@ -891,6 +904,13 @@ static public class UserClassAst extends Ast {
     scope.put(name, cls);
     return cls;
   }
+}
+
+// exceptions
+public static class ReturnException extends RuntimeException {
+  public static final long serialVersionUID = 42L;
+  public final Value value;
+  public ReturnException(Value value) { this.value = value; }
 }
 
 // lexer
@@ -1315,6 +1335,10 @@ static public final class Parser {
       Ast body = parseExpression();
       return new AssignAst(
           name, new UserFunctionAst(name, args, vararg, body));
+    }
+
+    if (consume("return")) {
+      return new ReturnAst(parseExpression());
     }
 
     if (consume("class")) {
