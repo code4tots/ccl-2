@@ -182,6 +182,12 @@ static {
           expectExactArgTypes(args, new ClassValue[]{null});
           return owner == args.get(0) ? trueValue : falseValue;
         }
+      })
+      .put("__bool__", new Method() {
+        public Value call(Value owner, ArrayList<Value> args) {
+          expectExactArgTypes(args, new ClassValue[]{});
+          return trueValue;
+        }
       });
 
   classNumber
@@ -361,7 +367,8 @@ static public abstract class Value extends Easy {
     Value attr = get(name);
     if (attr != null)
       return attr.callMethod("__call__", args);
-    throw new RuntimeException("No such method " + name);
+    throw new RuntimeException(
+        "No such method " + getType().name + "." + name);
   }
   public Value callMethod(String name, Value... args) {
     ArrayList<Value> arglist = new ArrayList<Value>();
@@ -840,8 +847,13 @@ static public class WhileAst extends Ast {
   }
   public Value eval(Scope scope) {
     Value value = nil;
-    while (condition.eval(scope).isTruthy())
-      value = body.eval(scope);
+    try {
+      while (condition.eval(scope).isTruthy()) {
+        try {
+          value = body.eval(scope);
+        } catch (ContinueException e) {}
+      }
+    } catch (BreakException e) {}
     return value;
   }
   public Ast[] children() {
@@ -856,6 +868,20 @@ static public class ReturnAst extends Ast {
     throw new ReturnException(value.eval(scope));
   }
   public Ast[] children() { return makeAstArray(value); }
+}
+
+static public class BreakAst extends Ast {
+  public Value eval(Scope scope) {
+    throw new BreakException();
+  }
+  public Ast[] children() { return makeAstArray(); }
+}
+
+static public class ContinueAst extends Ast {
+  public Value eval(Scope scope) {
+    throw new ContinueException();
+  }
+  public Ast[] children() { return makeAstArray(); }
 }
 
 static public class UserFunctionAst extends Ast {
@@ -915,6 +941,14 @@ public static class ReturnException extends RuntimeException {
   public static final long serialVersionUID = 42L;
   public final Value value;
   public ReturnException(Value value) { this.value = value; }
+}
+
+public static class BreakException extends RuntimeException {
+  public static final long serialVersionUID = 42L;
+}
+
+public static class ContinueException extends RuntimeException {
+  public static final long serialVersionUID = 42L;
 }
 
 // lexer
@@ -1322,6 +1356,12 @@ static public final class Parser {
       return new IfAst(condition, body, other);
     }
 
+    if (consume("while")) {
+      Ast condition = parseExpression();
+      Ast body = parseExpression();
+      return new WhileAst(condition, body);
+    }
+
     if (consume("def")) {
       String name = "_";
       if (at("ID"))
@@ -1343,6 +1383,14 @@ static public final class Parser {
 
     if (consume("return")) {
       return new ReturnAst(parseExpression());
+    }
+
+    if (consume("break")) {
+      return new BreakAst();
+    }
+
+    if (consume("continue")) {
+      return new ContinueAst();
     }
 
     if (consume("class")) {

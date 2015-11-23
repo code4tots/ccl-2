@@ -98,7 +98,8 @@ class BlargClass {
 }
 x = BlargClass[]
 assert[x.value == 'blarg', "__init__"]
-
+assert[x, "BlargClass.__bool__ default implementation"]
+assert[not x == false, "BlargClass.__bool__ default implementation 2"]
 assert[String["a" 'b' r"""c"""] == 'abc', "String[] test"]
 
 assert[x.list[0] == 1, "Call attribute as function"]
@@ -123,6 +124,29 @@ def f[] {
 
 assert[f[] == 1, "return statement"]
 
+def f[] {
+  while (true) {
+    x = 2
+    break
+    x = 1
+  }
+  return x
+}
+
+assert[f[] == 2, "break statement"]
+
+def f[] {
+  y = 5
+  x = true
+  while (x) {
+    x = false
+    continue
+    y = 7
+  }
+  return y
+}
+
+assert[f[] == 5, "continue statement"]
 
 print["All tests pass!"]
 
