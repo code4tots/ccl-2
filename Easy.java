@@ -95,7 +95,7 @@ static {
       .put("Number", classNumber)
       .put("String", classString)
       .put("List", classList)
-      .put("print", new BuiltinFunctionValue("print") {
+      .put(new BuiltinFunctionValue("print") {
         public Value call(ArrayList<Value> args) {
           Value last = nil;
           for (int i = 0; i < args.size(); i++) {
@@ -108,7 +108,7 @@ static {
           return args.get(args.size() - 1);
         }
       })
-      .put("assert", new BuiltinFunctionValue("assert") {
+      .put(new BuiltinFunctionValue("assert") {
         public Value call(ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{null, null});
           if (!args.get(0).isTruthy()) {
@@ -120,13 +120,13 @@ static {
       });
 
   classObject
-      .put("__class__", new Method() {
+      .put(new Method("__class__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{});
           return owner.getType();
         }
       })
-      .put("__ne__", new Method() {
+      .put(new Method("__ne__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{null});
           return owner.equals(args.get(0)) ? falseValue : trueValue;
@@ -134,13 +134,13 @@ static {
       });
 
   classBuiltinObject
-      .put("__eq__", new Method() {
+      .put(new Method("__eq__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{null});
           return owner.equals(args.get(0)) ? trueValue : falseValue;
         }
       })
-      .put("__str__", new Method() {
+      .put(new Method("__str__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{});
           return new StringValue(owner.toString());
@@ -148,14 +148,14 @@ static {
       });
 
   classBuiltinClass
-      .put("__call__", new Method() {
+      .put(new Method("__call__") {
         public Value call(Value owner, ArrayList<Value> args) {
           return ((FunctionValue) owner.getAttribute("__new__")).call(args);
         }
       });
 
   classUserClass
-      .put("__call__", new Method() {
+      .put(new Method("__call__") {
         public Value call(Value owner, ArrayList<Value> args) {
           Value value = new UserObjectValue((ClassValue) owner);
           value.callMethod("__init__", args);
@@ -164,26 +164,26 @@ static {
       });
 
   classUserObject
-      .put("__init__", new Method() {
+      .put(new Method("__init__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{});
           return nil;
         }
       })
-      .put("__str__", new Method() {
+      .put(new Method("__str__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{});
           return new StringValue(
               "<" + owner.getType().name + " instance>");
         }
       })
-      .put("__eq__", new Method() {
+      .put(new Method("__eq__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{null});
           return owner == args.get(0) ? trueValue : falseValue;
         }
       })
-      .put("__bool__", new Method() {
+      .put(new Method("__bool__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{});
           return trueValue;
@@ -191,7 +191,7 @@ static {
       });
 
   classNumber
-      .put("__add__", new Method() {
+      .put(new Method("__add__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{classNumber});
           Double a = ((NumberValue) owner).value;
@@ -199,7 +199,7 @@ static {
           return new NumberValue(a + b);
         }
       })
-      .put("__sub__", new Method() {
+      .put(new Method("__sub__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{classNumber});
           Double a = ((NumberValue) owner).value;
@@ -207,7 +207,7 @@ static {
           return new NumberValue(a - b);
         }
       })
-      .put("__neg__", new Method() {
+      .put(new Method("__neg__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{});
           Double a = ((NumberValue) owner).value;
@@ -224,7 +224,7 @@ static {
           return new StringValue(sb.toString());
         }
       })
-      .put("__add__", new Method() {
+      .put(new Method("__add__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{classString});
           String a = ((StringValue) owner).value;
@@ -234,12 +234,12 @@ static {
       });
 
   classList
-      .put("__new__", new BuiltinFunctionValue("__new__") {
+      .put(new BuiltinFunctionValue("__new__") {
         public Value call(ArrayList<Value> args) {
           return new ListValue(args);
         }
       })
-      .put("map", new Method() {
+      .put(new Method("map") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{classFunction});
           ArrayList<Value> value = ((ListValue) owner).value;
@@ -250,7 +250,7 @@ static {
           return new ListValue(newvals);
         }
       })
-      .put("__call__", new Method() {
+      .put(new Method("__call__") {
         public Value call(Value owner, ArrayList<Value> args) {
           expectExactArgTypes(args, new ClassValue[]{classNumber});
           int i = (int) ((NumberValue) args.get(0)).value.doubleValue();
@@ -259,7 +259,7 @@ static {
       });
 
   classFunction
-      .put("__call__", new Method() {
+      .put(new Method("__call__") {
         public Value call(Value owner, ArrayList<Value> args) {
           FunctionValue f = (FunctionValue) owner;
           return f.call(args);
@@ -288,6 +288,10 @@ static public final class Scope {
   }
   public Scope put(String name, Value value) {
     table.put(name, value);
+    return this;
+  }
+  public Scope put(FunctionValue f) {
+    table.put(f.name, f);
     return this;
   }
   public Iterator<String> iterator() {
@@ -382,6 +386,8 @@ static public abstract class Value extends Easy {
 }
 
 static public abstract class Method extends Easy {
+  public final String name;
+  public Method(String name) { this.name = name; }
   public abstract Value call(Value owner, ArrayList<Value> args);
 }
 
@@ -421,6 +427,10 @@ static public class ClassValue extends Value {
   }
   public ClassValue put(FunctionValue f) {
     attributes.put(f.name, f);
+    return this;
+  }
+  public ClassValue put(Method m) {
+    methods.put(m.name, m);
     return this;
   }
   public Method getMethodOrNull(String name) {
@@ -600,7 +610,7 @@ static public final class UserFunctionValue extends FunctionValue {
   }
   // TODO: Refactor and clean this up.
   public Method toMethod() {
-    return new Method() {
+    return new Method(name) {
       public Value call(Value owner, ArrayList<Value> args) {
         Scope scope = getNewScopeWithArguments(args);
         scope.put("self", owner);
