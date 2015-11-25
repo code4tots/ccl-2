@@ -1,6 +1,6 @@
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -292,6 +292,10 @@ static public final class Scope {
   }
   public Scope put(FunctionValue f) {
     table.put(f.name, f);
+    return this;
+  }
+  public Scope put(ClassValue c) {
+    table.put(c.name, c);
     return this;
   }
   public Iterator<String> iterator() {
