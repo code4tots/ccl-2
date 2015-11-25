@@ -344,7 +344,7 @@ static public void expectExactArgTypes(
   expectArgTypes(args, expected);
 }
 
-static public abstract class Value extends Easy {
+static public abstract class Value {
   public final HashMap<String, Value> attributes;
   public Value() { this(new HashMap<String, Value>()); }
   public Value(HashMap<String, Value> attrs) { attributes = attrs; }
@@ -385,7 +385,7 @@ static public abstract class Value extends Easy {
   }
 }
 
-static public abstract class Method extends Easy {
+static public abstract class Method {
   public final String name;
   public Method(String name) { this.name = name; }
   public abstract Value call(Value owner, ArrayList<Value> args);
@@ -642,7 +642,7 @@ static public final class UserObjectValue extends Value {
 static public Ast[] makeAstArray(Ast... items) { return items; }
 
 
-static public abstract class Ast extends Easy {
+static public abstract class Ast {
   // TODO: Add a Token field in Ast, so that
   // error messages can know where a given Ast came from.
 
