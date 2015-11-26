@@ -187,3 +187,48 @@ compare(
         'type': BlockAst,
         'exprs': [],
     })
+
+compare(
+    Parser('{1}')._expression(),
+    {
+        'type': BlockAst,
+        'exprs': [{'type': NumberAst, 'value': 1}],
+    })
+
+compare(
+    Parser('not 1')._expression(),
+    {
+        'type': NotAst,
+        'expr': {'type': NumberAst, 'value': 1},
+    })
+
+compare(
+    Parser('0 and 1')._expression(),
+    {
+        'type': AndAst,
+        'left': {'type': NumberAst, 'value': 0},
+        'right': {'type': NumberAst, 'value': 1},
+    })
+
+compare(
+    Parser('0 or 1')._expression(),
+    {
+        'type': OrAst,
+        'left': {'type': NumberAst, 'value': 0},
+        'right': {'type': NumberAst, 'value': 1},
+    })
+
+compare(
+    Parser('0 == 1')._expression(),
+    {
+        'type': CallAst,
+        'f': {
+            'type': GetAttrAst,
+            'attr': '__eq__',
+            'expr': {'type': NumberAst, 'value': 0},
+        },
+        'args': [
+            {'type': NumberAst, 'value': 1},
+        ],
+        'vararg': None,
+    })

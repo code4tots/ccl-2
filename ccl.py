@@ -90,11 +90,29 @@ class BlockAst(Ast):
     self.token = token # Token
     self.exprs = exprs # [Ast]
 
+class NotAst(Ast):
+  def __init__(self, token, expr):
+    self.token = token # Token
+    self.expr = expr # Ast
+
+class OrAst(Ast):
+  def __init__(self, token, left, right):
+    self.token = token # Token
+    self.left = left # Ast
+    self.right = right # Ast
+
+class AndAst(Ast):
+  def __init__(self, token, left, right):
+    self.token = token # Token
+    self.left = left # Ast
+    self.right = right # Ast
+
 ### Lexer
 
 SYMBOLS = tuple(reversed(sorted((
     '(', ')', '[', ']', '{', '}',
     '+', '-', '*', '/', '%', '\\', '.', ',', '=',
+    '==', '<', '>', '<=', '>=',
 ))))
 
 KEYWORDS = tuple(reversed(sorted((
@@ -272,7 +290,90 @@ class Parser(object):
     return self._next()
 
   def _expression(self):
-    return self._add_expression()
+    return self._or_expression()
+
+  def _or_expression(self):
+    expr = self._and_expression()
+    while True:
+      if self._at('or'):
+        token = self._next()
+        rhs = self._and_expression()
+        expr = OrAst(token, expr, rhs)
+        continue
+      break
+    return expr
+
+  def _and_expression(self):
+    expr = self._compare_expression()
+    while True:
+      if self._at('and'):
+        token = self._next()
+        rhs = self._compare_expression()
+        expr = AndAst(token, expr, rhs)
+        continue
+      break
+    return expr
+
+  def _compare_expression(self):
+    expr = self._add_expression()
+    while True:
+      if self._at('=='):
+        token = self._next()
+        rhs = self._add_expression()
+        expr = CallAst(
+            token,
+            GetAttrAst(token, expr, '__eq__'),
+            [rhs], None)
+        continue
+      if self._at('!='):
+        token = self._next()
+        rhs = self._add_expression()
+        expr = CallAst(
+            token,
+            GetAttrAst(token, expr, '__ne__'),
+            [rhs], None)
+        continue
+      if self._at('<'):
+        token = self._next()
+        rhs = self._add_expression()
+        expr = CallAst(
+            token,
+            GetAttrAst(token, expr, '__lt__'),
+            [rhs], None)
+        continue
+      if self._at('<='):
+        token = self._next()
+        rhs = self._add_expression()
+        expr = CallAst(
+            token,
+            GetAttrAst(token, expr, '__le__'),
+            [rhs], None)
+        continue
+      if self._at('>'):
+        token = self._next()
+        rhs = self._add_expression()
+        expr = CallAst(
+            token,
+            GetAttrAst(token, expr, '__gt__'),
+            [rhs], None)
+        continue
+      if self._at('>='):
+        token = self._next()
+        rhs = self._add_expression()
+        expr = CallAst(
+            token,
+            GetAttrAst(token, expr, '__ge__'),
+            [rhs], None)
+        continue
+      if self._at('is'):
+        token = self._next()
+        if self._consume('not'):
+          expr = IsNotAst(token, expr, self._add_expression())
+        else:
+          expr = IsAst(token, expr, self._add_expression)
+        continue
+      break
+    return expr
 
   def _add_expression(self):
     expr = self._mult_expression()
@@ -338,6 +439,11 @@ class Parser(object):
       expr = self._prefix_expression()
       f = GetAttrAst(token, expr, '__neg__')
       return CallAst(token, f, [], None)
+
+    if self._at('not'):
+      token = self._next()
+      expr = self._prefix_expression()
+      return NotAst(token, expr)
 
     return self._postfix_expression()
 
