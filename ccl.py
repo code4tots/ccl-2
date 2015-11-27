@@ -12,125 +12,107 @@ class Ast(object):
       setattr(self, attr, val)
 
 class StringAst(Ast):
-  attrtypes = (
-      ('value', str),
+  attrs = (
+      'value', # str
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class NumberAst(Ast):
-  attrtypes = (
-      ('value', float),
+  attrs = (
+      'value', # float
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class NameAst(Ast):
-  attrtypes = (
-      ('name', str),
+  attrs = (
+      'name', # str
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class AssignAst(Ast):
-  attrtypes = (
-      ('name', str),
-      ('expr', Ast),
+  attrs = (
+      'name', # str
+      'expr', # Ast
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class CallAst(Ast):
-  attrtypes = (
-      ('f', Ast),
-      ('args', [Ast]),
-      ('vararg', Ast),
+  attrs = (
+      'f', # Ast
+      'args', # [Ast]
+      'vararg', # Ast?
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class GetAttrAst(Ast):
-  attrtypes = (
-      ('expr', Ast),
-      ('attr', str),
+  attrs = (
+      'expr', # Ast
+      'attr', # str
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class SetAttrAst(Ast):
-  attrtypes = (
-      ('expr', Ast),
-      ('attr', str),
-      ('val', Ast),
+  attrs = (
+      'expr', # Ast
+      'attr', # str
+      'val', # Ast
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class FuncAst(Ast):
-  attrtypes = (
-      ('name', str),
-      ('args', [str]),
-      ('vararg', str),
-      ('body', Ast),
+  attrs = (
+      'name', # str?
+      'args', # [str]
+      'vararg', # str?
+      'body', # Ast
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class ClassAst(Ast):
-  attrtypes = (
-    ('name', str),
-    ('bases', [Ast]),
-    ('varbase', Ast),
-    ('body', Ast),
+  attrs = (
+    'name', # str?
+    'bases', # [Ast]
+    'varbase', # Ast?
+    'body', # Ast
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class ReturnAst(Ast):
-  attrtypes = (
-    ('expr', Ast),
+  attrs = (
+    'expr', # Ast?
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class BreakAst(Ast):
-  attrtypes = ()
-  attrs = tuple(p[0] for p in attrtypes)
+  attrs = ()
 
 class ContinueAst(Ast):
-  attrtypes = ()
-  attrs = tuple(p[0] for p in attrtypes)
+  attrs = ()
 
 class WhileAst(Ast):
-  attrtypes = (
-    ('cond', Ast),
-    ('body', Ast),
+  attrs = (
+    'cond', # Ast
+    'body', # Ast
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class IfAst(Ast):
-  attrtypes = (
-    ('cond', Ast),
-    ('body', Ast),
-    ('other', Ast),
+  attrs = (
+    'cond', # Ast
+    'body', # Ast
+    'other', # Ast?
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class BlockAst(Ast):
-  attrtypes = (
-    ('exprs', [Ast]),
+  attrs = (
+    'exprs', # [Ast]
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class NotAst(Ast):
-  attrtypes = (
-    ('expr', Ast),
+  attrs = (
+    'expr', # Ast
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class OrAst(Ast):
-  attrtypes = (
-    ('left', Ast),
-    ('right', Ast),
+  attrs = (
+    'left', # Ast
+    'right', # Ast
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 class AndAst(Ast):
-  attrtypes = (
-    ('left', Ast),
-    ('right', Ast),
+  attrs = (
+    'left', # Ast
+    'right', # Ast
   )
-  attrs = tuple(p[0] for p in attrtypes)
 
 ### Lexer
 
