@@ -140,6 +140,19 @@ compare(
     })
 
 compare(
+    Parser('class Cls {}')._expression(),
+    {
+        'type': ClassAst,
+        'name': 'Cls',
+        'bases': [],
+        'varbase': None,
+        'body': {
+            'type': BlockAst,
+            'exprs': [],
+        }
+    })
+
+compare(
     Parser(r'\x, *y. 5')._expression(),
     {
         'type': FuncAst,

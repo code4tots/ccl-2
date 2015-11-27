@@ -59,6 +59,14 @@ class FuncAst(Ast):
     self.vararg = vararg # str?
     self.body = body # Ast
 
+class ClassAst(Ast):
+  def __init__(self, token, name, bases, varbase, body):
+    self.token = token # Token
+    self.name = name # str?
+    self.bases = bases # [Ast]
+    self.varbase = varbase # Ast?
+    self.body = body
+
 class ReturnAst(Ast):
   def __init__(self, token, expr):
     self.token = token # Token
@@ -527,6 +535,19 @@ class Parser(object):
       self._expect(']')
       body = self._expression()
       return FuncAst(token, name, args, vararg, body)
+
+    if self._at('class'):
+      token = self._next()
+      name = None
+      if self._at('ID'):
+        name = self._next().value
+      bases = []
+      varbase = None
+      if self._consume('['):
+        bases, varbase = self._argument_list()
+        self._expect(']')
+      body = self._expression()
+      return ClassAst(token, name, bases, varbase, body)
 
     if self._at('while'):
       token = self._next()
