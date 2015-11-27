@@ -1,119 +1,118 @@
 ### Ast
 
 class Ast(object):
-  """
-  Abstract fields:
-    token # Token (to indicate location in source)
-  """
+  def __init__(self, token, *vals):
+    cls = type(self)
+    if len(cls.attrs) != len(vals):
+      raise Exception(
+          'Expected %d attrs for %s (%s) but got %d values' % (
+              len(cls.attrs), cls.__name__, ' '.join(cls.attrs), len(vals)))
+    self.token = token # Token
+    for attr, val in zip(cls.attrs, vals):
+      setattr(self, attr, val)
 
 class StringAst(Ast):
-  def __init__(self, token, value):
-    assert token.type == 'STR', token.type
-    self.token = token # Token
-    self.value = value # str
+  attrs = (
+      'value', # str
+  )
 
 class NumberAst(Ast):
-  def __init__(self, token, value):
-    assert token.type == 'NUM', token.type
-    self.token = token # Token
-    self.value = value # float
+  attrs = (
+      'value', # float
+  )
 
 class NameAst(Ast):
-  def __init__(self, token, name):
-    assert token.type == 'ID', token.type
-    self.token = token # Token
-    self.name = name # str
+  attrs = (
+      'name', # str
+  )
 
 class AssignAst(Ast):
-  def __init__(self, token, name, expr):
-    assert token.type == '=', token.type
-    self.token = token # Token
-    self.name = name # str
-    self.expr = expr # Ast
+  attrs = (
+      'name', # str
+      'expr', # Ast
+  )
 
 class CallAst(Ast):
-  def __init__(self, token, f, args, vararg):
-    self.token = token # Token
-    self.f = f # Ast
-    self.args = args # [Ast]
-    self.vararg = vararg # Ast?
+  attrs = (
+      'f', # Ast
+      'args', # [Ast]
+      'vararg', # Ast?
+  )
 
 class GetAttrAst(Ast):
-  def __init__(self, token, expr, attr):
-    self.token = token # Token
-    self.expr = expr # Ast
-    self.attr = attr # str
+  attrs = (
+      'expr', # Ast
+      'attr', # str
+  )
 
 class SetAttrAst(Ast):
-  def __init__(self, token, expr, attr, val):
-    self.token = token # Token
-    self.expr = expr # Ast
-    self.attr = attr # str
-    self.val = val # Ast
+  attrs = (
+      'expr', # Ast
+      'attr', # str
+      'val', # Ast
+  )
 
 class FuncAst(Ast):
-  def __init__(self, token, name, args, vararg, body):
-    self.token = token # Token
-    self.name = name # str?
-    self.args = args # [str]
-    self.vararg = vararg # str?
-    self.body = body # Ast
+  attrs = (
+      'name', # str?
+      'args', # [str]
+      'vararg', # str?
+      'body', # Ast
+  )
 
 class ClassAst(Ast):
-  def __init__(self, token, name, bases, varbase, body):
-    self.token = token # Token
-    self.name = name # str?
-    self.bases = bases # [Ast]
-    self.varbase = varbase # Ast?
-    self.body = body
+  attrs = (
+    'name', # str?
+    'bases', # [Ast]
+    'varbase', # Ast?
+    'body', # Ast
+  )
 
 class ReturnAst(Ast):
-  def __init__(self, token, expr):
-    self.token = token # Token
-    self.expr = expr # Ast?
+  attrs = (
+    'expr', # Ast?
+  )
 
 class BreakAst(Ast):
-  def __init__(self, token):
-    self.token = token # Token
+  attrs = ()
 
 class ContinueAst(Ast):
-  def __init__(self, token):
-    self.token = token # Token
+  attrs = ()
 
 class WhileAst(Ast):
-  def __init__(self, token, cond, body):
-    self.token = token # Token
-    self.cond = cond # Ast
-    self.body = body # Ast
+  attrs = (
+    'cond', # Ast
+    'body', # Ast
+  )
 
 class IfAst(Ast):
-  def __init__(self, token, cond, body, other):
-    self.token = token # Token
-    self.cond = cond # Ast
-    self.body = body # Ast
-    self.other = other # Ast?
+  attrs = (
+    'cond', # Ast
+    'body', # Ast
+    'other', # Ast?
+  )
 
 class BlockAst(Ast):
-  def __init__(self, token, exprs):
-    self.token = token # Token
-    self.exprs = exprs # [Ast]
+  attrs = (
+    'exprs', # [Ast]
+  )
 
 class NotAst(Ast):
-  def __init__(self, token, expr):
-    self.token = token # Token
-    self.expr = expr # Ast
+  attrs = (
+    'expr', # Ast
+  )
 
 class OrAst(Ast):
-  def __init__(self, token, left, right):
-    self.token = token # Token
-    self.left = left # Ast
-    self.right = right # Ast
+  attrs = (
+    'left', # Ast
+    'right', # Ast
+  )
 
 class AndAst(Ast):
-  def __init__(self, token, left, right):
-    self.token = token # Token
-    self.left = left # Ast
-    self.right = right # Ast
+  attrs = (
+    'left', # Ast
+    'right', # Ast
+  )
 
 ### Lexer
 
