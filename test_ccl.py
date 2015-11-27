@@ -1,12 +1,18 @@
 from ccl import *
 
+import re
+
 ### Lexer test
 
-pairs = [(t.type, t.value) if t.value else t.type for t in lex("""
+tokens = lex("""
 a 'b' 3 def +
-""")]
+""")
 
+pairs = [(t.type, t.value) if t.value else t.type for t in tokens]
 assert pairs == [('ID', 'a'), ('STR', 'b'), ('NUM', 3), 'def', '+'], pairs
+
+indices = [t.index for t in tokens]
+assert indices == list(range(len(tokens))), indices
 
 ### Parser test
 
@@ -245,3 +251,40 @@ compare(
         ],
         'vararg': None,
     })
+
+compare(
+    Parser('1').parse(),
+    {
+        'type': ModuleAst,
+        'exprs': [{'type': NumberAst, 'value': 1}],
+    })
+
+### JavaCodeGenerator test
+node = Parser('hi').parse()
+jcg = JavaCodeGenerator()
+jcg.visit(node)
+
+assert re.match(
+    r'\npublic final Lexer lexer\d+ = new Lexer\("hi", "", 0, 2\);$',
+    jcg.lexer_decls, re.MULTILINE), jcg.lexer_decls
+
+assert len(jcg.bytecodes) == 1, jcg.bytecodes
+assert re.match(
+    r'new NameBytecode\(lexer\d+\.tokens\[0\], "hi"\)$',
+    jcg.bytecodes[0]), jcg.bytecodes[0]
+
+node = Parser('5').parse()
+jcg = JavaCodeGenerator()
+jcg.visit(node)
+assert len(jcg.bytecodes) == 1, jcg.bytecodes
+assert re.match(
+    r'new NumberBytecode\(lexer\d+\.tokens\[0\], 5.000000\)$',
+    jcg.bytecodes[0]), jcg.bytecodes[0]
+
+node = Parser('f[5]').parse()
+jcg = JavaCodeGenerator()
+jcg.visit(node)
+assert len(jcg.bytecodes) == 3, jcg.bytecodes
+assert re.match(
+    r'new CallBytecode\(lexer\d+\.tokens\[1\], 1, false\)$',
+    jcg.bytecodes[2]), jcg.bytecodes[2]

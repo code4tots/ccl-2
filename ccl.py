@@ -1,5 +1,92 @@
 ### Ast
 
+class AstVisitor(object):
+
+  def visit(self, node):
+    method_name = 'visit' + type(node).__name__
+    if hasattr(self, method_name):
+      getattr(self, method_name)(node)
+    else:
+      self.generic_visit(node)
+
+  def generic_visit(self, node):
+    self.visit_children(node)
+
+  def visit_children(self, node):
+    for attr in type(node).attrs:
+      child = getattr(node, attr)
+      if isinstance(child, Ast):
+        self.visit(child)
+      elif isinstance(child, list):
+        for c in child:
+          if isinstance(child, Ast):
+            self.visit(child)
+
+def sanitize_string_for_java(s):
+  ns = '"'
+  for c in s:
+    if c == '\n':
+      ns += '\\n'
+    elif c == '"':
+      ns += '\"'
+    else:
+      ns += c
+  ns += '"'
+  return ns
+
+def token_to_java(token):
+  return 'lexer%d.tokens[%d]' % (id(token.lexer), token.index)
+
+class JavaCodeGenerator(AstVisitor):
+
+  def __init__(self):
+    self.lexer_decls = ''
+    self.lexers = set()
+    self.bytecodes = []
+
+  def generic_visit(self, node):
+    raise Exception(str(type(node)))
+
+  def declare_lexer(self, lexer):
+    if lexer in self.lexers:
+      return
+
+    self.lexers.add(lexer)
+    self.lexer_decls += (
+        '\npublic final Lexer lexer%d = new Lexer(%s, %s%s);' % (
+            id(lexer),
+            sanitize_string_for_java(lexer.string),
+            sanitize_string_for_java(lexer.filespec or ''),
+            ''.join(', ' + str(t.i) for t in lexer.tokens),
+        )
+    )
+
+  def visitModuleAst(self, node):
+    self.declare_lexer(node.token.lexer)
+    for child in node.exprs:
+      self.visit(child)
+
+  def visitNameAst(self, node):
+    self.bytecodes.append('new NameBytecode(%s, %s)' % (
+        token_to_java(node.token),
+        sanitize_string_for_java(node.name)))
+
+  def visitNumberAst(self, node):
+    self.bytecodes.append('new NumberBytecode(%s, %f)' % (
+        token_to_java(node.token),
+        node.value))
+
+  def visitCallAst(self, node):
+    self.visit(node.f)
+    for arg in node.args:
+      self.visit(arg)
+    if node.vararg is not None:
+      self.visit(node.vararg)
+    self.bytecodes.append('new CallBytecode(%s, %d, %s)' % (
+        token_to_java(node.token),
+        len(node.args),
+        'false' if node.vararg is None else 'true'))
+
 class Ast(object):
   def __init__(self, token, *vals):
     cls = type(self)
@@ -114,6 +201,11 @@ class AndAst(Ast):
     'right', # Ast
   )
 
+class ModuleAst(Ast):
+  attrs = (
+    'exprs', # [Ast]
+  )
+
 ### Lexer
 
 SYMBOLS = tuple(reversed(sorted((
@@ -128,8 +220,9 @@ KEYWORDS = tuple(reversed(sorted((
 ))))
 
 class Token(object):
-  def __init__(self, lexer, i, type_, value=None):
+  def __init__(self, lexer, index, i, type_, value=None):
     self.lexer = lexer
+    self.index = index
     self.i = i
     self.type = type_
     self.value = value
@@ -146,13 +239,23 @@ def iswordchar(c):
 def lex(*args, **kwargs):
   return Lexer(*args, **kwargs).lex()
 
+# I think it is worth noting that strictly speaking,
+# this Lexer class does more than just lex.
+# Because I'm lazy, this is also the data structure
+# that holds together all the tokens once I am done
+# with the lex.
+# If this approach becomes unwieldy, it may be worth revisiting
+# and breaking up this class.
 class Lexer(object):
   def __init__(self, string, filespec=None):
     self.string = string
     self.filespec = filespec
     self.done = False
     self._i = 0
-    self.peek = self._next()
+    self._index = 0
+    self.tokens = []
+    self.peek = None
+    self.next()
 
   def lex(self):
     tokens = []
@@ -163,7 +266,16 @@ class Lexer(object):
   def next(self):
     token = self.peek
     self.peek = self._next()
+    self.tokens.append(self.peek)
     return token
+
+  def _next_index(self):
+    i = self._index
+    self._index += 1
+    return i
+
+  def make_token(self, *args, **kwargs):
+    return Token(self, self._next_index(), *args, **kwargs)
 
   def _next(self):
     self.skip_spaces_and_comments()
@@ -171,7 +283,7 @@ class Lexer(object):
     # EOF
     if not self._c:
       self.done = True
-      return Token(self, self._i, 'EOF')
+      return self.make_token(self._i, 'EOF')
 
     j = self._i
 
@@ -188,7 +300,7 @@ class Lexer(object):
           raise Exception('Finish your quotes')
         self._i += 2 if not raw and self._c == '\\' else 1
       self._i += len(q)
-      return Token(self, j, 'STR', eval(self._p(j)))
+      return self.make_token(j, 'STR', eval(self._p(j)))
 
     # NUM
     seen_dot = False
@@ -208,7 +320,7 @@ class Lexer(object):
         while self._c.isdigit():
           self._i += 1
 
-      return Token(self, j, 'NUM', float(self._p(j)))
+      return self.make_token(j, 'NUM', float(self._p(j)))
 
     else:
       self._i = j
@@ -220,15 +332,15 @@ class Lexer(object):
     if j != self._i:
       word = self._p(j)
       if word in KEYWORDS:
-        return Token(self, j, word)
+        return self.make_token(j, word)
       else:
-        return Token(self, j, 'ID', word)
+        return self.make_token(j, 'ID', word)
 
     # SYMBOLS
     if self._s(SYMBOLS):
       sym = max(sym for sym in SYMBOLS if self._s(sym))
       self._i += len(sym)
-      return Token(self, j, sym)
+      return self.make_token(j, sym)
 
     # ERR
     while self._c and not self._c.isspace():
@@ -295,6 +407,13 @@ class Parser(object):
     if not self._at(type_):
       raise Exception('Expected %r but found %r' % (type_, self._peek))
     return self._next()
+
+  def parse(self):
+    token = self._peek
+    exprs = []
+    while not self._at('EOF'):
+      exprs.append(self._expression())
+    return ModuleAst(token, exprs)
 
   def _expression(self):
     return self._or_expression()
