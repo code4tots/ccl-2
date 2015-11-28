@@ -97,7 +97,7 @@ def sanitize_string_for_java(s):
     if c == '\n':
       ns += '\\n'
     elif c == '"':
-      ns += '\"'
+      ns += '\\"'
     else:
       ns += c
   ns += '"'
@@ -220,6 +220,12 @@ class AndAst(Ast):
 class ModuleAst(Ast):
   attrs = (
     'expr', # BlockAst
+  )
+
+class IsAst(Ast):
+  attrs = (
+    'left', # Ast
+    'right', # Ast
   )
 
 ### Lexer
@@ -512,7 +518,7 @@ class Parser(object):
         if self._consume('not'):
           expr = IsNotAst(token, expr, self._add_expression())
         else:
-          expr = IsAst(token, expr, self._add_expression)
+          expr = IsAst(token, expr, self._add_expression())
         continue
       break
     return expr

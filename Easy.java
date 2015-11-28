@@ -10,10 +10,18 @@ public static final BoolValue falseValue = new BoolValue(false);
 
 public static final ClassValue classObject =
     new ClassValue("Object")
-        .put(new BuiltinFunctionValue("__new__") {
+        .put(new BuiltinMethodValue("__new__") {
           public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(1, args);
-            return new 
+            expectArglen(0, args);
+            Value value = new UserValue((ClassValue) owner);
+            value.get("__init__").call();
+            return value;
+          }
+        })
+        .put(new BuiltinMethodValue("__init__") {
+          public Value call(Value owner, ArrayList<Value> args) {
+            expectArglen(0, args);
+            return nil;
           }
         });
 public static final ClassValue classClass =
@@ -138,7 +146,13 @@ public static abstract class Value {
   public Value call(ArrayList<Value> args) {
     throw new RuntimeException(getClass().getName());
   }
-  public Value get(String name) {
+  public Value call(Value... args) {
+    ArrayList<Value> al = new ArrayList<Value>();
+    for (int i = 0; i < args.length; i++)
+      al.add(args[i]);
+    return call(al);
+  }
+  public final Value get(String name) {
     Value value = getOrNull(name);
     if (value == null)
       throw new RuntimeException(name);
@@ -168,6 +182,35 @@ public static abstract class Value {
   public abstract String repr();
   public String toString() {
     return repr();
+  }
+}
+
+public static final class UserValue extends Value {
+  public final ClassValue cls;
+  public final HashMap<String, Value> attrs;
+  public UserValue(ClassValue cls) {
+    this.cls = cls;
+    attrs = new HashMap<String, Value>();
+  }
+  public ClassValue getType() {
+    return cls;
+  }
+  public Value getOrNull(String name) {
+    Value value = super.getOrNull(name);
+    return value == null ? attrs.get(name) : value;
+  }
+  public Value put(String name, Value value) {
+    attrs.put(name, value);
+    return this;
+  }
+  public boolean isTruthy() {
+    return true; // TODO
+  }
+  public String repr() {
+    return "<UserValue>"; // TODO
+  }
+  public int hashCode() {
+    return 0; // TODO
   }
 }
 
@@ -449,7 +492,10 @@ public static final class ClassValue extends NamedValue {
   }
   public Value call(ArrayList<Value> args) {
     FunctionValue f = (FunctionValue) getForInstance("__new__");
-    return f.call(args);
+    if (f == null) {
+      throw new RuntimeException(name);
+    }
+    return f.bind(this).call(args);
   }
   public ClassValue getType() {
     return classClass;
@@ -542,6 +588,25 @@ public static final class BreakException extends RuntimeException {
 }
 public static final class ContinueException extends RuntimeException {
   public static final long serialVersionUID = 42L;
+}
+
+public static final class EvalContext {
+  // Control flow flags.
+  // This is so that returning a value is not going to involve throwing an
+  // exception.
+  public boolean br, cont, ret;
+
+  // The scope to use to evaluate things with.
+  public Scope scope;
+
+  // The resulting value on success, or return value if ret is true.
+  public Value value;
+
+  public EvalContext(Scope scope) {
+    this.scope = scope;
+    br = cont = ret = false;
+    value = null;
+  }
 }
 
 public static abstract class Ast {
@@ -697,15 +762,22 @@ public static final class ClassAst extends Ast {
     ArrayList<Value> bases = new ArrayList<Value>();
     for (int i = 0; i < this.bases.length; i++)
       bases.add(this.bases[i].eval(scope));
-    Value varbase = this.varbase.eval(scope);
-    if (!(varbase instanceof ListValue))
-      throw new RuntimeException(varbase.getClass().getName());
-    ArrayList<Value> vb = ((ListValue) varbase).value;
-    for (int i = 0; i < vb.size(); i++)
-      bases.add(vb.get(i));
+    if (this.varbase != null) {
+      Value varbase = this.varbase.eval(scope);
+      if (!(varbase instanceof ListValue))
+        throw new RuntimeException(varbase.getClass().getName());
+      ArrayList<Value> vb = ((ListValue) varbase).value;
+      for (int i = 0; i < vb.size(); i++)
+        bases.add(vb.get(i));
+    }
+    if (bases.size() == 0)
+      bases.add(classObject);
     Scope clsScope = new Scope(scope);
     body.eval(clsScope);
-    return new ClassValue(name, bases, clsScope.table);
+    ClassValue cv = new ClassValue(name, bases, clsScope.table);
+    if (name != null)
+      scope.put(name, cv);
+    return cv;
   }
 }
 
@@ -833,6 +905,19 @@ public static final class ModuleAst extends Ast {
   }
   public Value eval(Scope scope) {
     return expr.eval(scope);
+  }
+}
+
+public static final class IsAst extends Ast {
+  public final Ast left;
+  public final Ast right;
+  public IsAst(Token token, Ast left, Ast right) {
+    super(token);
+    this.left = left;
+    this.right = right;
+  }
+  public Value eval(Scope scope) {
+    return left.eval(scope) == right.eval(scope) ? trueValue : falseValue;
   }
 }
 
