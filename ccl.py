@@ -1,3 +1,21 @@
+from sys import argv
+
+def main():
+  for fn in argv[1:]:
+    with open(fn) as f:
+      c = f.read()
+    node = Parser(c, fn).parse()
+    out = to_java(node)
+    with open(fn.replace('.ccl', '.java'), 'w') as f:
+      f.write(out)
+
+def basename(spec):
+  if '/' in spec:
+    return spec.split('/')[-1]
+  if '\\' in spec:
+    return spec.split('\\')[-1]
+  return spec
+
 ### Ast
 
 class AstVisitor(object):
@@ -22,27 +40,56 @@ class AstVisitor(object):
           if isinstance(child, Ast):
             self.visit(child)
 
-class JavaCodeGenerator(AstVisitor):
+def token_reference(token):
+  return 'LEXER.tokens[%d]' % token.index
 
-  def __init__(self, class_name=None):
-    self.class_name = class_name or 'Ccl'
-
-  def visitModuleAst(self, node):
-    return '\nclass %s {\n  public static void main(){%s\n}\n}' % (
-        self.class_name, self.visit(node.expr))
-
-  def visitBlockAst(self, node):
-    return '\n{%s\n}' % ''.join(
-        self.visit(n).replace('\n', '\n  ') for n in node.exprs)
-
-  def visitNumberAst(self, node):
-    return str(node.value)
-
-  def visitStringAst(self, node):
-    return sanitize_string_for_java(node.value)
-
-  def visitNameAst(self, node):
-    return 'var_' + node.name
+def to_java(ast):
+  if ast is None:
+    return 'null'
+  if isinstance(ast, ModuleAst):
+    lexer = ast.token.lexer
+    if lexer.filespec is None:
+      filespec = '<unknown>'
+      class_name = 'Ccl'
+    else:
+      filespec = lexer.filespec
+      class_name = basename(filespec)
+      if class_name.endswith('.ccl'):
+        class_name = class_name[:-len('.ccl')]
+    return (
+        'public class %s extends Easy {\n'
+        '  public static Lexer LEXER = new Lexer(%s, %s%s);\n'
+        '  public static ModuleAst MODULE = new ModuleAst(%s, %s);\n'
+        '  public static void main(String[] args) {\n'
+        '    run(MODULE);\n'
+        '  }\n'
+        '}\n') % (
+            class_name,
+            sanitize_string_for_java(lexer.string),
+            sanitize_string_for_java(filespec or (class_name + '.ccl')),
+            ''.join(', ' + str(t.i) for t in lexer.tokens),
+            token_reference(ast.token), to_java(ast.expr))
+  elif isinstance(ast, FuncAst):
+    return 'new FuncAst(%s, %s, new String[]{%s}, %s, %s)' % (
+        token_reference(ast.token),
+        ast.name,
+        ', '.join(map(to_java, ast.args)),
+        to_java(ast.vararg),
+        to_java(ast.body))
+  elif isinstance(ast, Ast):
+    attrs = type(ast).attrs
+    return 'new %s(%s%s)' % (
+        type(ast).__name__,
+        token_reference(ast.token),
+        ''.join(', ' + to_java(getattr(ast, a)) for a in attrs))
+  elif isinstance(ast, str):
+    return sanitize_string_for_java(ast)
+  elif isinstance(ast, float):
+    return str(ast)
+  elif isinstance(ast, list):
+    return 'new Ast[]{%s}' % ', '.join(to_java(a) for a in ast)
+  else:
+    raise Exception(ast)
 
 def sanitize_string_for_java(s):
   ns = '"'
@@ -681,3 +728,6 @@ class Parser(object):
       return StringAst(token, token.value)
 
     raise Exception('Expected expression ' + repr(self._lexer.peek.type))
+
+if __name__ == '__main__':
+  main()

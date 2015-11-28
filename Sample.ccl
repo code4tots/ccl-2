@@ -1,0 +1,7 @@
+# python ccl.py *.ccl && javac *.java && java Sample && rm *.class
+print['hi']
+print[true]
+print[5 + 6]
+print[5 + 4.5]
+print[Class]
+print['hello' + ' ' + 'world']
