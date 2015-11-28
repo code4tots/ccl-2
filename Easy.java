@@ -10,17 +10,26 @@ public static final BoolValue falseValue = new BoolValue(false);
 public static final ClassValue classObject =
     new ClassValue("Object")
         .put(new BuiltinMethodValue("__new__") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(0, args);
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
             Value value = new UserValue((ClassValue) owner);
-            value.get("__init__").call();
-            return value;
+            Value method = value.get("__init__");
+            if (method == null) {
+              c.exc = true;
+              c.value = new StringValue(
+                  value.getType().name + " has no __init__");
+              return;
+            }
+            method.call(c);
+            c.value = value;
           }
         })
         .put(new BuiltinMethodValue("__init__") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(0, args);
-            return nil;
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = nil;
           }
         });
 public static final ClassValue classClass =
@@ -31,78 +40,87 @@ public static final ClassValue classBool =
 public static final ClassValue classNumber =
     new ClassValue("Number", classObject)
         .put(new BuiltinMethodValue("__add__") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(1, args);
-            return new NumberValue(
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 1, args))
+              return;
+            c.value = new NumberValue(
                 owner.getNumberValue() + args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__sub__") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(1, args);
-            return new NumberValue(
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 1, args))
+              return;
+            c.value = new NumberValue(
                 owner.getNumberValue() - args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__mul__") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(1, args);
-            return new NumberValue(
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 1, args))
+              return;
+            c.value = new NumberValue(
                 owner.getNumberValue() * args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__div__") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(1, args);
-            return new NumberValue(
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 1, args))
+              return;
+            c.value = new NumberValue(
                 owner.getNumberValue() / args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__mod__") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(1, args);
-            return new NumberValue(
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 1, args))
+              return;
+            c.value = new NumberValue(
                 owner.getNumberValue() % args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("floor") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(0, args);
-            return new NumberValue(Math.floor(owner.getNumberValue()));
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = new NumberValue(Math.floor(owner.getNumberValue()));
           }
         })
         .put(new BuiltinMethodValue("frac") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(0, args);
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
             double value = owner.getNumberValue();
-            return new NumberValue(value - Math.floor(value));
+            c.value = new NumberValue(value - Math.floor(value));
           }
         });
 public static final ClassValue classString =
     new ClassValue("String", classObject)
         .put(new BuiltinMethodValue("__add__") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(1, args);
-            return new StringValue(
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 1, args))
+              return;
+            c.value = new StringValue(
                 owner.getStringValue() + args.get(0).getStringValue());
           }
         })
         .put(new BuiltinMethodValue("__mod__") {
-          public Value call(Value owner, ArrayList<Value> args) {
-            expectArglen(1, args);
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 1, args))
+              return;
             ArrayList<Value> items = args.get(0).getListValue();
             String[] aa = new String[items.size()];
             for (int i = 0; i < items.size(); i++)
               aa[i] = items.get(i).repr();
             String format = owner.getStringValue();
-            return new StringValue(String.format(format, (Object[]) aa));
+            c.value = new StringValue(String.format(format, (Object[]) aa));
           }
         });
 public static final ClassValue classList =
     new ClassValue("List", classObject)
         .put(new BuiltinFunctionValue("__new__") {
-          public Value call(ArrayList<Value> args) {
-            return new ListValue(args);
+          public void call(Context c, ArrayList<Value> args) {
+            c.value = new ListValue(args);
           }
         });
 public static final ClassValue classMap = new ClassValue("Map", classObject);
@@ -122,18 +140,24 @@ public static Scope BUILTIN_SCOPE = new Scope(null)
     .put(classMap)
     .put(classFunction)
     .put(new BuiltinFunctionValue("print") {
-      public Value call(ArrayList<Value> args) {
-        expectArglen(1, args);
+      public void call(Context c, ArrayList<Value> args) {
+        if (expectArglen(c, 1, args))
+          return;
         System.out.println(args.get(0));
-        return args.get(0);
+        c.value = args.get(0);
       }
     });
 
-public static void expectArglen(int len, ArrayList<Value> args) {
-  if (len != args.size())
-    throw new RuntimeException(
-        Integer.toString(len) + " " +
+public static boolean expectArglen(
+    Context c, int len, ArrayList<Value> args) {
+  if (len != args.size()) {
+    c.exc = true;
+    c.value = new StringValue(
+        "Expected " + Integer.toString(len) + " args but found " +
         Integer.toString(args.size()));
+    return true;
+  }
+  return false;
 }
 
 public static void run(Ast ast) {
@@ -142,17 +166,13 @@ public static void run(Ast ast) {
 
 public static abstract class Value {
   public abstract ClassValue getType();
-  public Value call(ArrayList<Value> args)  {
-    throw new RuntimeException(getClass().getName() + " is not callable");
-  }
-  public Value call(Value... args) {
-    ArrayList<Value> al = new ArrayList<Value>();
-    for (int i = 0; i < args.length; i++)
-      al.add(args[i]);
-    return call(al);
+  public final Value call(ArrayList<Value> args)  {
+    throw new RuntimeException(
+        getClass().getName() + " Calling this way is outdated");
   }
   public void call(Context c, ArrayList<Value> args) {
-    c.value = call(args);
+    c.exc = true;
+    c.value = new StringValue(getType().name + " is not callable");
   }
   public void call(Context c, Value... args) {
     ArrayList<Value> al = new ArrayList<Value>();
@@ -374,15 +394,16 @@ public static abstract class BuiltinMethodValue extends FunctionValue {
   public BuiltinMethodValue(String name) {
     super(name);
   }
-  public final Value call(ArrayList<Value> args) {
-    throw new RuntimeException(
+  public final void call(Context c, ArrayList<Value> args) {
+    c.exc = true;
+    c.value = new StringValue(
         "Can't call a builtin method without binding it first");
   }
-  public abstract Value call(Value owner, ArrayList<Value> args);
-  public Value bind(final Value owner) {
+  public abstract void callm(Context c, Value owner, ArrayList<Value> args);
+  public final Value bind(final Value owner) {
     return new BuiltinFunctionValue(name) {
-      public Value call(ArrayList<Value> args) {
-        return call(owner, args);
+      public void call(Context c, ArrayList<Value> args) {
+        callm(c, owner, args);
       }
     };
   }
@@ -392,7 +413,37 @@ public static abstract class BuiltinFunctionValue extends FunctionValue {
   public BuiltinFunctionValue(String name) {
     super(name);
   }
-  public abstract Value call(ArrayList<Value> args);
+}
+
+// TODO: Clean this up.
+public static void calls(
+    Scope fnScope, String[] fnArgs, String fnVararg, Ast body,
+    Context c, Value owner, ArrayList<Value> args) {
+  Scope scope = new Scope(fnScope);
+
+  if (owner != null)
+    scope.put("self", owner);
+
+  for (int i = 0; i < fnArgs.length; i++) {
+    String name = fnArgs[i];
+    Value value = args.get(i);
+    scope.put(name, value);
+  }
+  if (fnVararg != null) {
+    ArrayList<Value> va = new ArrayList<Value>();
+    for (int i = fnArgs.length; i < args.size(); i++)
+      va.add(args.get(i));
+    scope.put(fnVararg, new ListValue(va));
+  }
+
+  Scope oldScope = c.scope;
+  c.scope = scope;
+
+  body.eval(c);
+  if (c.ret)
+    c.exc = c.ret = false;
+
+  c.scope = oldScope;
 }
 
 public static final class UserMethodValue extends FunctionValue {
@@ -411,27 +462,8 @@ public static final class UserMethodValue extends FunctionValue {
     this.vararg = vararg;
     this.body = body;
   }
-  public Value call(ArrayList<Value> args) {
-    Scope scope = new Scope(this.scope);
-    scope.put("self", owner);
-    for (int i = 0; i < this.args.length; i++) {
-      String name = this.args[i];
-      Value value = args.get(i);
-      scope.put(name, value);
-    }
-    if (vararg != null) {
-      ArrayList<Value> va = new ArrayList<Value>();
-      for (int i = this.args.length; i < args.size(); i++)
-        va.add(args.get(i));
-      scope.put(vararg, new ListValue(va));
-    }
-
-    Context c = new Context(scope);
-    body.eval(c);
-    if (c.exc && !c.ret)
-      throw new RuntimeException(c.value == null ? "--null--" : c.value.toString());
-
-    return c.value;
+  public final void call(Context c, ArrayList<Value> args) {
+    calls(scope, this.args, vararg, body, c, owner, args);
   }
 }
 
@@ -449,25 +481,8 @@ public static final class UserFunctionValue extends FunctionValue {
     this.vararg = vararg;
     this.body = body;
   }
-  public Value call(ArrayList<Value> args) {
-    Scope scope = new Scope(this.scope);
-    for (int i = 0; i < this.args.length; i++) {
-      String name = this.args[i];
-      Value value = args.get(i);
-      scope.put(name, value);
-    }
-    if (vararg != null) {
-      ArrayList<Value> va = new ArrayList<Value>();
-      for (int i = this.args.length; i < args.size(); i++)
-        va.add(args.get(i));
-      scope.put(vararg, new ListValue(va));
-    }
-    Context c = new Context(scope);
-    body.eval(c);
-    if (c.exc && !c.ret)
-      throw new RuntimeException(c.value == null ? "--null--" : c.value.toString());
-
-    return c.value;
+  public final void call(Context c, ArrayList<Value> args) {
+    calls(scope, this.args, vararg, body, c, null, args);
   }
   public Value bind(Value owner) {
     return new UserMethodValue(owner, scope, name, args, vararg, body);
@@ -501,12 +516,14 @@ public static final class ClassValue extends NamedValue {
   public ClassValue(String name, Value... bases) {
     this(name, valueArrayToArrayList(bases));
   }
-  public Value call(ArrayList<Value> args) {
+  public void call(Context c, ArrayList<Value> args) {
     FunctionValue f = (FunctionValue) getForInstance("__new__");
     if (f == null) {
-      throw new RuntimeException(name);
+      c.exc = true;
+      c.value = new StringValue("Could not create new " + name);
+      return;
     }
-    return f.bind(this).call(args);
+    f.bind(this).call(c, args);
   }
   public ClassValue getType() {
     return classClass;
@@ -548,12 +565,8 @@ public static final class Scope {
     table.put(name, value);
     return this;
   }
-  public Scope put(FunctionValue f) {
-    table.put(f.name, f);
-    return this;
-  }
-  public Scope put(ClassValue c) {
-    table.put(c.name, c);
+  public Scope put(NamedValue v) {
+    table.put(v.name, v);
     return this;
   }
 }
