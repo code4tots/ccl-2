@@ -1,4 +1,83 @@
+import java.util.Stack;
+import java.util.HashMap;
+import java.util.Map;
+
 public abstract class Easy {
+
+public final Scope ROOT_SCOPE = new Scope();
+
+public abstract class Value {}
+
+public final class Scope {
+  public final Scope parent;
+  public final Map<String, Value> table;
+  public Scope() {
+    this(null);
+  }
+  public Scope(Scope parent) {
+    this.parent = parent;
+    table = new HashMap<String, Value>();
+  }
+  public Value get(String name) {
+    Value value = table.get(name);
+    if (value == null) {
+      if (parent == null)
+        throw new RuntimeException(name);
+      else
+        return parent.get(name);
+    }
+    return value;
+  }
+  public Scope put(String name, Value value) {
+    table.put(name, value);
+    return this;
+  }
+}
+
+public final class StackFrame {
+  public final Bytecode[] bytecodes;
+  public final Scope scope;
+  public final Stack<Value> valueStack;
+  public StackFrame(Bytecode[] bytecodes) {
+    this(bytecodes, ROOT_SCOPE);
+  }
+  public StackFrame(Bytecode[] bytecodes, Scope parentScope) {
+    this.bytecodes = bytecodes;
+    this.scope = new Scope(parentScope);
+    this.valueStack = new Stack<Value>();
+  }
+}
+
+public final class Evaluator {
+  public final Stack<StackFrame> stack;
+  public int i;
+  public Scope getScope() {
+    return stack.peek().scope;
+  }
+  public Bytecode[] getBytecodes() {
+    return stack.peek().bytecodes;
+  }
+  public Bytecode getBytecode() {
+    return getBytecodes()[i];
+  }
+  public Evaluator(Bytecode[] bytecodes) {
+    stack = new Stack<StackFrame>();
+    stack.push(new StackFrame(bytecodes));
+  }
+  public Stack<Value> getValueStack() {
+    return stack.peek().valueStack;
+  }
+  public void step() {
+    getBytecode().step(this);
+  }
+  public boolean done() {
+    return stack.size() == 1 && i >= getBytecodes().length;
+  }
+  public void run() {
+    while (!done())
+      step();
+  }
+}
 
 /// As you can see, this class doesn't actually lex anything.
 /// It is really just meant to mirror the Python Lexer class I wrote.
@@ -31,6 +110,7 @@ public abstract class Bytecode {
   public Bytecode(Token token) {
     this.token = token;
   }
+  public abstract void step(Evaluator ev);
 }
 
 public final class NameBytecode extends Bytecode {
@@ -39,6 +119,9 @@ public final class NameBytecode extends Bytecode {
     super(token);
     this.name = name;
   }
+  public void step(Evaluator ev) {
+    ev.getValueStack().push(ev.getScope().get(name));
+  }
 }
 
 public final class NumberBytecode extends Bytecode {
@@ -46,6 +129,9 @@ public final class NumberBytecode extends Bytecode {
   public NumberBytecode(Token token, double value) {
     super(token);
     this.value = value;
+  }
+  public void step(Evaluator ev) {
+    // TODO
   }
 }
 
@@ -56,6 +142,9 @@ public final class CallBytecode extends Bytecode {
     super(token);
     this.argumentLength = argumentLength;
     this.useVararg = useVararg;
+  }
+  public void step(Evaluator ev) {
+    // TODO
   }
 }
 
