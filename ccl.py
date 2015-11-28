@@ -5,9 +5,9 @@ class AstVisitor(object):
   def visit(self, node):
     method_name = 'visit' + type(node).__name__
     if hasattr(self, method_name):
-      getattr(self, method_name)(node)
+      return getattr(self, method_name)(node)
     else:
-      self.generic_visit(node)
+      return self.generic_visit(node)
 
   def generic_visit(self, node):
     self.visit_children(node)
@@ -22,6 +22,28 @@ class AstVisitor(object):
           if isinstance(child, Ast):
             self.visit(child)
 
+class JavaCodeGenerator(AstVisitor):
+
+  def __init__(self, class_name=None):
+    self.class_name = class_name or 'Ccl'
+
+  def visitModuleAst(self, node):
+    return '\nclass %s {\n  public static void main(){%s\n}\n}' % (
+        self.class_name, self.visit(node.expr))
+
+  def visitBlockAst(self, node):
+    return '\n{%s\n}' % ''.join(
+        self.visit(n).replace('\n', '\n  ') for n in node.exprs)
+
+  def visitNumberAst(self, node):
+    return str(node.value)
+
+  def visitStringAst(self, node):
+    return sanitize_string_for_java(node.value)
+
+  def visitNameAst(self, node):
+    return 'var_' + node.name
+
 def sanitize_string_for_java(s):
   ns = '"'
   for c in s:
@@ -33,59 +55,6 @@ def sanitize_string_for_java(s):
       ns += c
   ns += '"'
   return ns
-
-def token_to_java(token):
-  return 'lexer%d.tokens[%d]' % (id(token.lexer), token.index)
-
-class JavaCodeGenerator(AstVisitor):
-
-  def __init__(self):
-    self.lexer_decls = ''
-    self.lexers = set()
-    self.bytecodes = []
-
-  def generic_visit(self, node):
-    raise Exception(str(type(node)))
-
-  def declare_lexer(self, lexer):
-    if lexer in self.lexers:
-      return
-
-    self.lexers.add(lexer)
-    self.lexer_decls += (
-        '\npublic final Lexer lexer%d = new Lexer(%s, %s%s);' % (
-            id(lexer),
-            sanitize_string_for_java(lexer.string),
-            sanitize_string_for_java(lexer.filespec or ''),
-            ''.join(', ' + str(t.i) for t in lexer.tokens),
-        )
-    )
-
-  def visitModuleAst(self, node):
-    self.declare_lexer(node.token.lexer)
-    for child in node.exprs:
-      self.visit(child)
-
-  def visitNameAst(self, node):
-    self.bytecodes.append('new NameBytecode(%s, %s)' % (
-        token_to_java(node.token),
-        sanitize_string_for_java(node.name)))
-
-  def visitNumberAst(self, node):
-    self.bytecodes.append('new NumberBytecode(%s, %f)' % (
-        token_to_java(node.token),
-        node.value))
-
-  def visitCallAst(self, node):
-    self.visit(node.f)
-    for arg in node.args:
-      self.visit(arg)
-    if node.vararg is not None:
-      self.visit(node.vararg)
-    self.bytecodes.append('new CallBytecode(%s, %d, %s)' % (
-        token_to_java(node.token),
-        len(node.args),
-        'false' if node.vararg is None else 'true'))
 
 class Ast(object):
   def __init__(self, token, *vals):
@@ -203,7 +172,7 @@ class AndAst(Ast):
 
 class ModuleAst(Ast):
   attrs = (
-    'exprs', # [Ast]
+    'expr', # BlockAst
   )
 
 ### Lexer
@@ -413,7 +382,7 @@ class Parser(object):
     exprs = []
     while not self._at('EOF'):
       exprs.append(self._expression())
-    return ModuleAst(token, exprs)
+    return ModuleAst(token, BlockAst(token, exprs))
 
   def _expression(self):
     return self._or_expression()
