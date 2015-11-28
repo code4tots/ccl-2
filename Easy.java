@@ -1,4 +1,3 @@
-import java.util.Stack;
 import java.util.HashMap;
 import java.util.ArrayList;
 
@@ -137,20 +136,29 @@ public static void expectArglen(int len, ArrayList<Value> args) {
         Integer.toString(args.size()));
 }
 
-public static Value run(Ast ast) {
-  return ast.eval(new Scope(BUILTIN_SCOPE));
+public static void run(Ast ast) {
+  ast.eval(new Context(new Scope(BUILTIN_SCOPE)));
 }
 
 public static abstract class Value {
   public abstract ClassValue getType();
-  public Value call(ArrayList<Value> args) {
-    throw new RuntimeException(getClass().getName());
+  public Value call(ArrayList<Value> args)  {
+    throw new RuntimeException(getClass().getName() + " is not callable");
   }
   public Value call(Value... args) {
     ArrayList<Value> al = new ArrayList<Value>();
     for (int i = 0; i < args.length; i++)
       al.add(args[i]);
     return call(al);
+  }
+  public void call(Context c, ArrayList<Value> args) {
+    c.value = call(args);
+  }
+  public void call(Context c, Value... args) {
+    ArrayList<Value> al = new ArrayList<Value>();
+    for (int i = 0; i < args.length; i++)
+      al.add(args[i]);
+    call(c, al);
   }
   public final Value get(String name) {
     Value value = getOrNull(name);
@@ -417,11 +425,13 @@ public static final class UserMethodValue extends FunctionValue {
         va.add(args.get(i));
       scope.put(vararg, new ListValue(va));
     }
-    try {
-      return body.eval(scope);
-    } catch (ReturnException e) {
-      return e.value;
-    }
+
+    Context c = new Context(scope);
+    body.eval(c);
+    if (c.exc && !c.ret)
+      throw new RuntimeException(c.value == null ? "--null--" : c.value.toString());
+
+    return c.value;
   }
 }
 
@@ -452,11 +462,12 @@ public static final class UserFunctionValue extends FunctionValue {
         va.add(args.get(i));
       scope.put(vararg, new ListValue(va));
     }
-    try {
-      return body.eval(scope);
-    } catch (ReturnException e) {
-      return e.value;
-    }
+    Context c = new Context(scope);
+    body.eval(c);
+    if (c.exc && !c.ret)
+      throw new RuntimeException(c.value == null ? "--null--" : c.value.toString());
+
+    return c.value;
   }
   public Value bind(Value owner) {
     return new UserMethodValue(owner, scope, name, args, vararg, body);
@@ -527,14 +538,10 @@ public static final class Scope {
     this.parent = parent;
     table = new HashMap<String, Value>();
   }
-  public Value get(String name) {
+  public Value getOrNull(String name) {
     Value value = table.get(name);
-    if (value == null) {
-      if (parent == null)
-        throw new RuntimeException(name);
-      else
-        return parent.get(name);
-    }
+    if (value == null && parent != null)
+      return parent.getOrNull(name);
     return value;
   }
   public Scope put(String name, Value value) {
@@ -590,22 +597,35 @@ public static final class ContinueException extends RuntimeException {
   public static final long serialVersionUID = 42L;
 }
 
-public static final class EvalContext {
-  // Control flow flags.
-  // This is so that returning a value is not going to involve throwing an
-  // exception.
-  public boolean br, cont, ret;
+public static final class Context {
+  // Exception flag.
+  // I use this for both control flow and actual exception handling.
+  // There are a couple reasons:
+  //   1) A lot of modern programming languages use the 'zero-cost' approach,
+  //      which means that there is no cost when no exceptions are thrown,
+  //      but costs a lot when there are exceptions thrown.
+  //      I want to throw a lot of exceptions in my language without having to
+  //      worry about performance. Some would argue using exceptions in this
+  //      way as a control flow mechanism is bad, but humbug to them.
+  //   2) Apaprently Java's 'throw' spends a lot of time poulating
+  //      the stack trace according to some article I read online. Which I
+  //      imagine is linear in the depth of the stack. I could make it
+  //      constant time (with higher constant factor) by using a linked list.
+  public boolean exc = false;
+
+  // Some quick hacks for break/continue/return.
+  // These are meant to be very special cases of exceptions and so if any of
+  // these are true, 'exc' should also be true.
+  public boolean br = false, cont = false, ret = false;
+
+  // The resulting value on success, or return value if ret is true.
+  public Value value = null;
 
   // The scope to use to evaluate things with.
   public Scope scope;
 
-  // The resulting value on success, or return value if ret is true.
-  public Value value;
-
-  public EvalContext(Scope scope) {
+  public Context(Scope scope) {
     this.scope = scope;
-    br = cont = ret = false;
-    value = null;
   }
 }
 
@@ -614,7 +634,7 @@ public static abstract class Ast {
   public Ast(Token token) {
     this.token = token;
   }
-  public abstract Value eval(Scope scope);
+  public abstract void eval(Context c);
 }
 
 public static final class StringAst extends Ast {
@@ -623,8 +643,8 @@ public static final class StringAst extends Ast {
     super(token);
     this.value = value;
   }
-  public Value eval(Scope scope) {
-    return new StringValue(value);
+  public void eval(Context c) {
+    c.value = new StringValue(value);
   }
 }
 
@@ -634,8 +654,8 @@ public static final class NumberAst extends Ast {
     super(token);
     this.value = value;
   }
-  public Value eval(Scope scope) {
-    return new NumberValue(value);
+  public void eval(Context c) {
+    c.value = new NumberValue(value);
   }
 }
 
@@ -645,8 +665,11 @@ public static final class NameAst extends Ast {
     super(token);
     this.name = name;
   }
-  public Value eval(Scope scope) {
-    return scope.get(name);
+  public void eval(Context c) {
+    if ((c.value = c.scope.getOrNull(name)) == null) {
+      c.exc = true;
+      c.value = new StringValue("Name '" + name + "' is not defined");
+    }
   }
 }
 
@@ -658,10 +681,10 @@ public static final class AssignAst extends Ast {
     this.name = name;
     this.expr = expr;
   }
-  public Value eval(Scope scope) {
-    Value value = expr.eval(scope);
-    scope.put(name, value);
-    return value;
+  public void eval(Context c) {
+    expr.eval(c);
+    if (!c.exc)
+      c.scope.put(name, c.value);
   }
 }
 
@@ -675,20 +698,39 @@ public static final class CallAst extends Ast {
     this.args = args;
     this.vararg = vararg;
   }
-  public Value eval(Scope scope) {
-    Value f = this.f.eval(scope);
+  public void eval(Context c) {
+    this.f.eval(c);
+    if (c.exc)
+      return;
+    Value f = c.value;
+
     ArrayList<Value> args = new ArrayList<Value>();
-    for (int i = 0; i < this.args.length; i++)
-      args.add(this.args[i].eval(scope));
+    for (int i = 0; i < this.args.length; i++) {
+      this.args[i].eval(c);
+      if (c.exc)
+        return;
+      args.add(c.value);
+    }
+
     if (this.vararg != null) {
-      Value vararg = this.vararg.eval(scope);
-      if (!(vararg instanceof ListValue))
-        throw new RuntimeException(vararg.getClass().getName());
+      this.vararg.eval(c);
+      if (c.exc)
+        return;
+
+      Value vararg = c.value;
+      if (!(vararg instanceof ListValue)) {
+        c.exc = true;
+        c.value = new StringValue(
+            "Expected List for vararg but found: " + vararg.getType().name);
+        return;
+      }
+
       ArrayList<Value> va = ((ListValue) vararg).value;
       for (int i = 0; i < va.size(); i++)
         args.add(va.get(i));
     }
-    return f.call(args);
+
+    f.call(c, args);
   }
 }
 
@@ -700,9 +742,19 @@ public static final class GetAttrAst extends Ast {
     this.expr = expr;
     this.attr = attr;
   }
-  public Value eval(Scope scope) {
-    Value owner = expr.eval(scope);
-    return owner.get(attr);
+  public void eval(Context c) {
+    expr.eval(c);
+    if (c.exc)
+      return;
+
+    Value owner = c.value;
+
+    c.value = owner.getOrNull(attr);
+
+    if (c.value == null) {
+      c.exc = true;
+      c.value = new StringValue("Couldn't get attribute '" + attr + "'");
+    }
   }
 }
 
@@ -716,11 +768,18 @@ public static final class SetAttrAst extends Ast {
     this.attr = attr;
     this.val = val;
   }
-  public Value eval(Scope scope) {
-    Value owner = expr.eval(scope);
-    Value val = this.val.eval(scope);
+  public void eval(Context c) {
+    expr.eval(c);
+    if (c.exc)
+      return;
+    Value owner = c.value;
+
+    this.val.eval(c);
+    if (c.exc)
+      return;
+    Value val = c.value;
+
     owner.put(attr, val);
-    return val;
   }
 }
 
@@ -737,11 +796,11 @@ public static final class FuncAst extends Ast {
     this.vararg = vararg;
     this.body = body;
   }
-  public Value eval(Scope scope) {
-    Value f = new UserFunctionValue(scope, name, args, vararg, body);
+  public void eval(Context c) {
+    c.value = new UserFunctionValue(c.scope, name, args, vararg, body);
+
     if (name != null)
-      scope.put(name, f);
-    return f;
+      c.scope.put(name, c.value);
   }
 }
 
@@ -758,26 +817,45 @@ public static final class ClassAst extends Ast {
     this.varbase = varbase;
     this.body = body;
   }
-  public Value eval(Scope scope) {
+  public void eval(Context c) {
     ArrayList<Value> bases = new ArrayList<Value>();
-    for (int i = 0; i < this.bases.length; i++)
-      bases.add(this.bases[i].eval(scope));
+    for (int i = 0; i < this.bases.length; i++) {
+      this.bases[i].eval(c);
+      if (c.exc)
+        return;
+      bases.add(c.value);
+    }
+
     if (this.varbase != null) {
-      Value varbase = this.varbase.eval(scope);
-      if (!(varbase instanceof ListValue))
-        throw new RuntimeException(varbase.getClass().getName());
+      this.varbase.eval(c);
+      if (c.exc)
+        return;
+      Value varbase = c.value;
+      if (!(varbase instanceof ListValue)) {
+        c.exc = true;
+        c.value = new StringValue(
+            "Expected List for varbase but found " + varbase.getType().name);
+        return;
+      }
       ArrayList<Value> vb = ((ListValue) varbase).value;
       for (int i = 0; i < vb.size(); i++)
         bases.add(vb.get(i));
     }
     if (bases.size() == 0)
       bases.add(classObject);
-    Scope clsScope = new Scope(scope);
-    body.eval(clsScope);
-    ClassValue cv = new ClassValue(name, bases, clsScope.table);
+
+    Scope scope = c.scope; // push scope
+    c.scope = new Scope(scope);
+
+    body.eval(c);
+    if (c.exc)
+      return;
+    ClassValue cv = new ClassValue(name, bases, c.scope.table);
     if (name != null)
       scope.put(name, cv);
-    return cv;
+
+    c.value = cv;
+    c.scope = scope; // pop scope
   }
 }
 
@@ -787,8 +865,12 @@ public static final class ReturnAst extends Ast {
     super(token);
     this.expr = expr;
   }
-  public Value eval(Scope scope) {
-    throw new ReturnException(expr.eval(scope));
+  public void eval(Context c) {
+    expr.eval(c);
+    if (c.exc)
+      return;
+
+    c.exc = c.ret = true;
   }
 }
 
@@ -796,8 +878,8 @@ public static final class BreakAst extends Ast {
   public BreakAst(Token token) {
     super(token);
   }
-  public Value eval(Scope scope) {
-    throw new BreakException();
+  public void eval(Context c) {
+    c.exc = c.br = true;
   }
 }
 
@@ -805,8 +887,8 @@ public static final class ContinueAst extends Ast {
   public ContinueAst(Token token) {
     super(token);
   }
-  public Value eval(Scope scope) {
-    throw new ContinueException();
+  public void eval(Context c) {
+    c.exc = c.cont = true;
   }
 }
 
@@ -818,15 +900,30 @@ public static final class WhileAst extends Ast {
     this.cond = cond;
     this.body = body;
   }
-  public Value eval(Scope scope) {
-    try {
-      while (cond.eval(scope).isTruthy()) {
-        try {
-          body.eval(scope);
-        } catch (ContinueException e) {}
+  public void eval(Context c) {
+    while (true) {
+      cond.eval(c);
+      if (c.exc)
+        return;
+
+      if (!c.value.isTruthy())
+        break;
+
+      body.eval(c);
+
+      if (c.br) {
+        c.exc = c.br = false;
+        break;
       }
-    } catch (BreakException e) {}
-    return nil;
+
+      if (c.cont) {
+        c.exc = c.cont = false;
+        continue;
+      }
+
+      if (c.exc)
+        return;
+    }
   }
 }
 
@@ -840,8 +937,15 @@ public static final class IfAst extends Ast {
     this.body = body;
     this.other = other;
   }
-  public Value eval(Scope scope) {
-    return cond.eval(scope).isTruthy() ? body.eval(scope) : other.eval(scope);
+  public void eval(Context c) {
+    cond.eval(c);
+    if (c.exc)
+      return;
+
+    if (c.value.isTruthy())
+      body.eval(c);
+    else
+      other.eval(c);
   }
 }
 
@@ -851,10 +955,12 @@ public static final class BlockAst extends Ast {
     super(token);
     this.exprs = exprs;
   }
-  public Value eval(Scope scope) {
-    for (int i = 0; i < exprs.length; i++)
-      exprs[i].eval(scope);
-    return nil;
+  public void eval(Context c) {
+    for (int i = 0; i < exprs.length; i++) {
+      exprs[i].eval(c);
+      if (c.exc)
+        return;
+    }
   }
 }
 
@@ -864,8 +970,11 @@ public static final class NotAst extends Ast {
     super(token);
     this.expr = expr;
   }
-  public Value eval(Scope scope) {
-    return expr.eval(scope).isTruthy() ? falseValue : trueValue;
+  public void eval(Context c) {
+    expr.eval(c);
+    if (c.exc)
+      return;
+    c.value = c.value.isTruthy() ? falseValue : trueValue;
   }
 }
 
@@ -877,9 +986,14 @@ public static final class OrAst extends Ast {
     this.left = left;
     this.right = right;
   }
-  public Value eval(Scope scope) {
-    Value left = this.left.eval(scope);
-    return left.isTruthy() ? left : this.right.eval(scope);
+  public void eval(Context c) {
+    this.left.eval(c);
+    if (c.exc)
+      return;
+
+    Value left = c.value;
+    if (!left.isTruthy())
+      this.right.eval(c);
   }
 }
 
@@ -891,9 +1005,14 @@ public static final class AndAst extends Ast {
     this.left = left;
     this.right = right;
   }
-  public Value eval(Scope scope) {
-    Value left = this.left.eval(scope);
-    return left.isTruthy() ? this.right.eval(scope) : left;
+  public void eval(Context c) {
+    this.left.eval(c);
+    if (c.exc)
+      return;
+
+    Value left = c.value;
+    if (left.isTruthy())
+      this.right.eval(c);
   }
 }
 
@@ -903,8 +1022,8 @@ public static final class ModuleAst extends Ast {
     super(token);
     this.expr = expr;
   }
-  public Value eval(Scope scope) {
-    return expr.eval(scope);
+  public void eval(Context c) {
+    expr.eval(c);
   }
 }
 
@@ -916,8 +1035,34 @@ public static final class IsAst extends Ast {
     this.left = left;
     this.right = right;
   }
-  public Value eval(Scope scope) {
-    return left.eval(scope) == right.eval(scope) ? trueValue : falseValue;
+  public void eval(Context c) {
+    this.left.eval(c);
+    if (c.exc)
+      return;
+
+    Value left = c.value;
+
+    this.right.eval(c);
+    if (c.exc)
+      return;
+
+    Value right = c.value;
+
+    c.value = left == right ? trueValue : falseValue;
+  }
+}
+
+// Unsynchronized stack (java.util.Stack is synchronized)
+public static final class Stack<T> {
+  public final ArrayList<T> buffer = new ArrayList<T>();
+  public void push(T value) {
+    buffer.add(value);
+  }
+  public T pop() {
+    return buffer.remove(buffer.size()-1);
+  }
+  public T get(int i) {
+    return buffer.get(i);
   }
 }
 
