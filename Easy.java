@@ -1,6 +1,5 @@
 import java.util.Stack;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.ArrayList;
 
 public abstract class Easy {
@@ -9,7 +8,14 @@ public static final NilValue nil = new NilValue();
 public static final BoolValue trueValue = new BoolValue(true);
 public static final BoolValue falseValue = new BoolValue(false);
 
-public static final ClassValue classObject = new ClassValue("Object");
+public static final ClassValue classObject =
+    new ClassValue("Object")
+        .put(new BuiltinFunctionValue("__new__") {
+          public Value call(Value owner, ArrayList<Value> args) {
+            expectArglen(1, args);
+            return new 
+          }
+        });
 public static final ClassValue classClass =
     new ClassValue("Class", classObject);
 public static final ClassValue classNil = new ClassValue("Nil", classObject);
@@ -23,6 +29,47 @@ public static final ClassValue classNumber =
             return new NumberValue(
                 owner.getNumberValue() + args.get(0).getNumberValue());
           }
+        })
+        .put(new BuiltinMethodValue("__sub__") {
+          public Value call(Value owner, ArrayList<Value> args) {
+            expectArglen(1, args);
+            return new NumberValue(
+                owner.getNumberValue() - args.get(0).getNumberValue());
+          }
+        })
+        .put(new BuiltinMethodValue("__mul__") {
+          public Value call(Value owner, ArrayList<Value> args) {
+            expectArglen(1, args);
+            return new NumberValue(
+                owner.getNumberValue() * args.get(0).getNumberValue());
+          }
+        })
+        .put(new BuiltinMethodValue("__div__") {
+          public Value call(Value owner, ArrayList<Value> args) {
+            expectArglen(1, args);
+            return new NumberValue(
+                owner.getNumberValue() / args.get(0).getNumberValue());
+          }
+        })
+        .put(new BuiltinMethodValue("__mod__") {
+          public Value call(Value owner, ArrayList<Value> args) {
+            expectArglen(1, args);
+            return new NumberValue(
+                owner.getNumberValue() % args.get(0).getNumberValue());
+          }
+        })
+        .put(new BuiltinMethodValue("floor") {
+          public Value call(Value owner, ArrayList<Value> args) {
+            expectArglen(0, args);
+            return new NumberValue(Math.floor(owner.getNumberValue()));
+          }
+        })
+        .put(new BuiltinMethodValue("frac") {
+          public Value call(Value owner, ArrayList<Value> args) {
+            expectArglen(0, args);
+            double value = owner.getNumberValue();
+            return new NumberValue(value - Math.floor(value));
+          }
         });
 public static final ClassValue classString =
     new ClassValue("String", classObject)
@@ -32,9 +79,25 @@ public static final ClassValue classString =
             return new StringValue(
                 owner.getStringValue() + args.get(0).getStringValue());
           }
+        })
+        .put(new BuiltinMethodValue("__mod__") {
+          public Value call(Value owner, ArrayList<Value> args) {
+            expectArglen(1, args);
+            ArrayList<Value> items = args.get(0).getListValue();
+            String[] aa = new String[items.size()];
+            for (int i = 0; i < items.size(); i++)
+              aa[i] = items.get(i).repr();
+            String format = owner.getStringValue();
+            return new StringValue(String.format(format, (Object[]) aa));
+          }
         });
 public static final ClassValue classList =
-    new ClassValue("List", classObject);
+    new ClassValue("List", classObject)
+        .put(new BuiltinFunctionValue("__new__") {
+          public Value call(ArrayList<Value> args) {
+            return new ListValue(args);
+          }
+        });
 public static final ClassValue classMap = new ClassValue("Map", classObject);
 public static final ClassValue classFunction =
     new ClassValue("Function", classObject);
@@ -98,6 +161,14 @@ public static abstract class Value {
   public String getStringValue() {
     throw new RuntimeException(getClass().getName());
   }
+  public ArrayList<Value> getListValue()  {
+    throw new RuntimeException(getClass().getName());
+  }
+  public abstract int hashCode();
+  public abstract String repr();
+  public String toString() {
+    return repr();
+  }
 }
 
 public static final class NilValue extends Value {
@@ -107,8 +178,11 @@ public static final class NilValue extends Value {
   public boolean isTruthy() {
     return false;
   }
-  public String toString() {
+  public String repr() {
     return "nil";
+  }
+  public int hashCode() {
+    return 0;
   }
 }
 
@@ -123,8 +197,11 @@ public static final class BoolValue extends Value {
   public boolean isTruthy() {
     return value;
   }
-  public String toString() {
+  public String repr() {
     return value ? "true" : "false";
+  }
+  public int hashCode() {
+    return new Boolean(value).hashCode();
   }
 }
 
@@ -139,11 +216,28 @@ public static final class StringValue extends Value {
   public boolean isTruthy() {
     return value.length() != 0;
   }
+  public String repr() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("\"");
+    for (int i = 0; i < value.length(); i++) {
+      char c = value.charAt(i);
+      switch(c) {
+      case '\n': sb.append("\\n"); break;
+      case '"': sb.append("\\\""); break;
+      default: sb.append(c);
+      }
+    }
+    sb.append("\"");
+    return sb.toString();
+  }
   public String toString() {
     return value;
   }
   public String getStringValue() {
     return value;
+  }
+  public int hashCode() {
+    return value.hashCode();
   }
 }
 
@@ -161,10 +255,13 @@ public static final class NumberValue extends Value {
   public double getNumberValue() {
     return value;
   }
-  public String toString() {
+  public String repr() {
     if (value == Math.floor(value))
       return Integer.toString((int) value);
     return Double.toString(value);
+  }
+  public int hashCode() {
+    return new Double(value).hashCode();
   }
 }
 
@@ -179,18 +276,46 @@ public static final class ListValue extends Value {
   public boolean isTruthy() {
     return value.size() != 0;
   }
+  public int hashCode() {
+    return value.hashCode();
+  }
+  public String repr() {
+    StringBuilder sb = new StringBuilder("[");
+    for (int i = 0; i < value.size(); i++) {
+      if (i != 0)
+        sb.append(", ");
+      sb.append(value.get(i).repr());
+    }
+    sb.append("]");
+    return sb.toString();
+  }
+  public ArrayList<Value> getListValue()  {
+    return value;
+  }
 }
 
-public static abstract class FunctionValue extends Value {
+public static abstract class NamedValue extends Value {
   public final String name;
-  public FunctionValue(String name) {
+  public NamedValue(String name) {
     this.name = name;
+  }
+  public final boolean isTruthy() {
+    return true;
+  }
+  public final int hashCode() {
+    return System.identityHashCode(this);
+  }
+  public String repr() {
+    return "<" + getType().name + " '" + name + "'>";
+  }
+}
+
+public static abstract class FunctionValue extends NamedValue {
+  public FunctionValue(String name) {
+    super(name);
   }
   public ClassValue getType() {
     return classFunction;
-  }
-  public boolean isTruthy() {
-    return true;
   }
 }
 
@@ -302,13 +427,12 @@ public static ArrayList<Value> valueArrayToArrayList(Value... bases) {
   return values;
 }
 
-public static final class ClassValue extends Value {
-  public final String name;
+public static final class ClassValue extends NamedValue {
   public final ArrayList<ClassValue> bases;
   public final HashMap<String, Value> attrs;
   public ClassValue(
       String name, ArrayList<Value> bases, HashMap<String, Value> attrs) {
-    this.name = name;
+    super(name);
     this.bases = new ArrayList<ClassValue>();
     for (int i = 0; i < bases.size(); i++)
       this.bases.add((ClassValue) bases.get(i));
@@ -323,11 +447,12 @@ public static final class ClassValue extends Value {
   public ClassValue(String name, Value... bases) {
     this(name, valueArrayToArrayList(bases));
   }
+  public Value call(ArrayList<Value> args) {
+    FunctionValue f = (FunctionValue) getForInstance("__new__");
+    return f.call(args);
+  }
   public ClassValue getType() {
     return classClass;
-  }
-  public boolean isTruthy() {
-    return true;
   }
   public Value getForInstance(String name) {
     // TODO: C3 MRO
@@ -346,9 +471,6 @@ public static final class ClassValue extends Value {
   public ClassValue put(FunctionValue f) {
     put(f.name, f);
     return this;
-  }
-  public String toString() {
-    return name;
   }
 }
 
@@ -409,13 +531,18 @@ public static final class Token {
 }
 
 public static final class ReturnException extends RuntimeException {
+  public static final long serialVersionUID = 42L;
   public final Value value;
   public ReturnException(Value value) {
     this.value = value;
   }
 }
-public static final class BreakException extends RuntimeException {}
-public static final class ContinueException extends RuntimeException {}
+public static final class BreakException extends RuntimeException {
+  public static final long serialVersionUID = 42L;
+}
+public static final class ContinueException extends RuntimeException {
+  public static final long serialVersionUID = 42L;
+}
 
 public static abstract class Ast {
   public final Token token;
@@ -546,7 +673,10 @@ public static final class FuncAst extends Ast {
     this.body = body;
   }
   public Value eval(Scope scope) {
-    return new UserFunctionValue(scope, name, args, vararg, body);
+    Value f = new UserFunctionValue(scope, name, args, vararg, body);
+    if (name != null)
+      scope.put(name, f);
+    return f;
   }
 }
 

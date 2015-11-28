@@ -5,3 +5,12 @@ print[5 + 6]
 print[5 + 4.5]
 print[Class]
 print['hello' + ' ' + 'world']
+
+def f[] {
+  print['inside f!']
+}
+print[f]
+
+f[]
+print[(4.3 + 5.5).frac[]]
+print['%s hi there %s' % List[1, 2]]

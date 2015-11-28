@@ -72,7 +72,7 @@ def to_java(ast):
   elif isinstance(ast, FuncAst):
     return 'new FuncAst(%s, %s, new String[]{%s}, %s, %s)' % (
         token_reference(ast.token),
-        ast.name,
+        sanitize_string_for_java(ast.name),
         ', '.join(map(to_java, ast.args)),
         to_java(ast.vararg),
         to_java(ast.body))
