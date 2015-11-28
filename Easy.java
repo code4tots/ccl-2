@@ -14,7 +14,7 @@ public static final ClassValue classObject =
             if (expectArglen(c, 0, args))
               return;
             Value value = new UserValue((ClassValue) owner);
-            Value method = value.get("__init__");
+            Value method = value.getOrNull("__init__");
             if (method == null) {
               c.exc = true;
               c.value = new StringValue(
@@ -179,12 +179,6 @@ public static abstract class Value {
     for (int i = 0; i < args.length; i++)
       al.add(args[i]);
     call(c, al);
-  }
-  public final Value get(String name) {
-    Value value = getOrNull(name);
-    if (value == null)
-      throw new RuntimeException(name);
-    return value;
   }
   public Value getOrNull(String name) {
     Value value = getType().getForInstance(name);
@@ -1062,20 +1056,6 @@ public static final class IsAst extends Ast {
     Value right = c.value;
 
     c.value = left == right ? trueValue : falseValue;
-  }
-}
-
-// Unsynchronized stack (java.util.Stack is synchronized)
-public static final class Stack<T> {
-  public final ArrayList<T> buffer = new ArrayList<T>();
-  public void push(T value) {
-    buffer.add(value);
-  }
-  public T pop() {
-    return buffer.remove(buffer.size()-1);
-  }
-  public T get(int i) {
-    return buffer.get(i);
   }
 }
 
