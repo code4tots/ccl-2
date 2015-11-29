@@ -3,3 +3,7 @@ src/
   Where all the code I write is
 
 gensrc/
+  Generated Java source
+
+cls/
+  Generated Java class files.

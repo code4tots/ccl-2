@@ -3,16 +3,25 @@ import os.path
 import sys
 
 def main():
-  for fn in sys.argv[1:]:
+  if len(sys.argv) < 3:
+    print 'Usage: python %s javasrcdir/ fn1.ccl fn2.ccl...'
+    exit(1)
+
+  outdir = sys.argv[1]
+
+  try:
+    os.mkdir(outdir)
+  except OSError:
+    pass
+
+  for fn in sys.argv[2:]:
     with open(fn) as f:
       c = f.read()
     node = Parser(c, fn).parse()
     out = to_java(node)
-    try:
-      os.mkdir('gensrc')
-    except OSError:
-      pass
-    with open(os.path.join('gensrc', fn.replace('.ccl', '.java')), 'w') as f:
+    bn = basename(fn)
+    outpath = os.path.join(outdir, 'CclModule' + bn.replace('.ccl', '.java'))
+    with open(outpath, 'w') as f:
       f.write(out)
 
 def basename(spec):
@@ -63,7 +72,7 @@ def to_java(ast):
       if class_name.endswith('.ccl'):
         class_name = class_name[:-len('.ccl')]
     return (
-        'public class %s extends Easy {\n'
+        'public class CclModule%s extends Easy {\n'
         '  public static Lexer LEXER = new Lexer(%s, %s%s);\n'
         '  public static ModuleAst MODULE = new ModuleAst(%s, %s);\n'
         '  public static void main(String[] args) {\n'
