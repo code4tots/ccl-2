@@ -131,6 +131,7 @@ public static Scope BUILTIN_SCOPE = new Scope(null)
     .put("nil", nil)
     .put("true", trueValue)
     .put("false", falseValue)
+    .put(classObject)
     .put(classClass)
     .put(classNil)
     .put(classBool)
@@ -161,7 +162,11 @@ public static boolean expectArglen(
 }
 
 public static void run(Ast ast) {
-  ast.eval(new Context(new Scope(BUILTIN_SCOPE)));
+  Context c = new Context(new Scope(BUILTIN_SCOPE));
+  ast.eval(c);
+  if (c.exc) {
+    System.out.println("**** Exception ****\n" + c.value.toString());
+  }
 }
 
 public static abstract class Value {

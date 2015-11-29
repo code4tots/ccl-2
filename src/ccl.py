@@ -1,12 +1,18 @@
-from sys import argv
+import os
+import os.path
+import sys
 
 def main():
-  for fn in argv[1:]:
+  for fn in sys.argv[1:]:
     with open(fn) as f:
       c = f.read()
     node = Parser(c, fn).parse()
     out = to_java(node)
-    with open(fn.replace('.ccl', '.java'), 'w') as f:
+    try:
+      os.mkdir('gensrc')
+    except OSError:
+      pass
+    with open(os.path.join('gensrc', fn.replace('.ccl', '.java')), 'w') as f:
       f.write(out)
 
 def basename(spec):
