@@ -1,6 +1,7 @@
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public abstract class Easy {
 
@@ -127,6 +128,8 @@ public static final ClassValue classList =
 public static final ClassValue classMap = new ClassValue("Map", classObject);
 public static final ClassValue classFunction =
     new ClassValue("Function", classObject);
+public static final ClassValue classModule =
+    new ClassValue("Module", classObject);
 
 public static final HashMap<String, Class<?>> moduleCache =
     new HashMap<String, Class<?>>();
@@ -145,18 +148,37 @@ public static Class<?> getModuleClass(Context c, String moduleName) {
   return cls;
 }
 
-public static void includeModule(Context c, String moduleName) {
+public static void importModule(Context c, String moduleName) {
   Class<?> cls = getModuleClass(c, moduleName);
   if (c.exc)
     return;
-  Method method;
   try {
-    method = cls.getMethod("include", Context.class);
+    Method method = cls.getMethod("importModule", Context.class);
     method.invoke(null, c);
   } catch (ReflectiveOperationException e) {
     c.exc = true;
-    c.value = new StringValue("Module " + moduleName + " is not includable");
+    c.value = new StringValue("Module " + moduleName + " is not importable");
     return;
+  }
+}
+
+public static void runAndGetValue(Context c, Ast body) {
+  Scope oldScope = c.scope;
+  try {
+    c.scope = new Scope(BUILTIN_SCOPE);
+    body.eval(c);
+    if (c.exc)
+      return;
+
+    Value value = new UserValue(classModule);
+    Iterator<String> it = c.scope.table.keySet().iterator();
+    while (it.hasNext()) {
+      String name = it.next();
+      value.put(name, c.scope.table.get(name));
+    }
+    c.value = value;
+  } finally {
+    c.scope = oldScope;
   }
 }
 
@@ -173,14 +195,6 @@ public static Scope BUILTIN_SCOPE = new Scope(null)
     .put(classList)
     .put(classMap)
     .put(classFunction)
-    .put(new BuiltinFunctionValue("include") {
-      public void call(Context c, ArrayList<Value> args) {
-        if (expectArglen(c, 1, args))
-          return;
-        String name = args.get(0).getStringValue();
-        includeModule(c, name);
-      }
-    })
     .put(new BuiltinFunctionValue("print") {
       public void call(Context c, ArrayList<Value> args) {
         if (expectArglen(c, 1, args))
@@ -1105,6 +1119,18 @@ public static final class IsAst extends Ast {
     Value right = c.value;
 
     c.value = left == right ? trueValue : falseValue;
+  }
+}
+
+public static final class ImportAst extends Ast {
+  public final String name;
+  public ImportAst(Token token, String name) {
+    super(token);
+    this.name = name;
+  }
+  public void eval(Context c) {
+    importModule(c, name);
+    c.scope.put(name, c.value);
   }
 }
 

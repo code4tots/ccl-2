@@ -73,13 +73,17 @@ def to_java(ast):
         class_name = class_name[:-len('.ccl')]
     return (
         'public class CclModule%s extends Easy {\n'
-        '  private static boolean included = false;\n'
+        '  private static Value VALUE = null;\n'
         '  public static Lexer LEXER = new Lexer(%s, %s%s);\n'
         '  public static ModuleAst MODULE = new ModuleAst(%s, %s);\n'
-        '  public static void include(Context c) {\n'
-        '    if (!included)\n'
-        '      run(MODULE, c);\n'
-        '    included = true;\n'
+        '  public static void importModule(Context c) {\n'
+        '    if (VALUE == null) {\n'
+        '      runAndGetValue(c, MODULE);\n'
+        '      if (c.exc)\n'
+        '        return;\n'
+        '      VALUE = c.value;\n'
+        '    }\n'
+        '    c.value = VALUE;\n'
         '  }\n'
         '  public static void main(String[] args) {\n'
         '    run(MODULE);\n'
@@ -249,6 +253,11 @@ class IsAst(Ast):
     'right', # Ast
   )
 
+class ImportAst(Ast):
+  attrs = (
+    'name', # str
+  )
+
 ### Lexer
 
 SYMBOLS = tuple(reversed(sorted((
@@ -259,7 +268,7 @@ SYMBOLS = tuple(reversed(sorted((
 
 KEYWORDS = tuple(reversed(sorted((
     'def', 'class', 'while', 'break', 'continue', 'for', 'in',
-    'not', 'is', 'return', 'and', 'or', 'if', 'else',
+    'not', 'is', 'return', 'and', 'or', 'if', 'else', 'import',
 ))))
 
 class Token(object):
@@ -685,6 +694,10 @@ class Parser(object):
       return FuncAst(
           token, None, args, vararg,
           ReturnAst(dottoken, body))
+
+    if self._at('import'):
+      token = self._next()
+      return ImportAst(token, self._expect('ID').value)
 
     if self._at('def'):
       token = self._next()
