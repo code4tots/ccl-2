@@ -30,3 +30,5 @@ c.some_method[]
 x = Object[]
 print[x]
 
+include['Blarg']
+blargf[]

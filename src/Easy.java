@@ -1,3 +1,4 @@
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.ArrayList;
 
@@ -127,6 +128,38 @@ public static final ClassValue classMap = new ClassValue("Map", classObject);
 public static final ClassValue classFunction =
     new ClassValue("Function", classObject);
 
+public static final HashMap<String, Class<?>> moduleCache =
+    new HashMap<String, Class<?>>();
+
+public static Class<?> getModuleClass(Context c, String moduleName) {
+  Class<?> cls = moduleCache.get(moduleName);
+  if (cls == null) {
+    try {
+      cls = Class.forName("CclModule" + moduleName);
+    } catch (ClassNotFoundException e) {
+      c.exc = true;
+      c.value = new StringValue("Module " + moduleName + " not found");
+      return null;
+    }
+  }
+  return cls;
+}
+
+public static void includeModule(Context c, String moduleName) {
+  Class<?> cls = getModuleClass(c, moduleName);
+  if (c.exc)
+    return;
+  Method method;
+  try {
+    method = cls.getMethod("include", Context.class);
+    method.invoke(null, c);
+  } catch (ReflectiveOperationException e) {
+    c.exc = true;
+    c.value = new StringValue("Module " + moduleName + " is not includable");
+    return;
+  }
+}
+
 public static Scope BUILTIN_SCOPE = new Scope(null)
     .put("nil", nil)
     .put("true", trueValue)
@@ -140,6 +173,14 @@ public static Scope BUILTIN_SCOPE = new Scope(null)
     .put(classList)
     .put(classMap)
     .put(classFunction)
+    .put(new BuiltinFunctionValue("include") {
+      public void call(Context c, ArrayList<Value> args) {
+        if (expectArglen(c, 1, args))
+          return;
+        String name = args.get(0).getStringValue();
+        includeModule(c, name);
+      }
+    })
     .put(new BuiltinFunctionValue("print") {
       public void call(Context c, ArrayList<Value> args) {
         if (expectArglen(c, 1, args))
@@ -161,12 +202,15 @@ public static boolean expectArglen(
   return false;
 }
 
-public static void run(Ast ast) {
-  Context c = new Context(new Scope(BUILTIN_SCOPE));
+public static void run(Ast ast, Context c) {
   ast.eval(c);
   if (c.exc) {
     System.out.println("**** Exception ****\n" + c.value.toString());
   }
+}
+
+public static void run(Ast ast) {
+  run(ast, new Context(new Scope(BUILTIN_SCOPE)));
 }
 
 public static abstract class Value {

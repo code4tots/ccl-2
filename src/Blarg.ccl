@@ -1,0 +1,5 @@
+print['inside Blarg.ccl!']
+
+def blargf[] {
+  print['inside blargf function inside Blarg module']
+}

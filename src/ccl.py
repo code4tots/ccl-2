@@ -73,8 +73,14 @@ def to_java(ast):
         class_name = class_name[:-len('.ccl')]
     return (
         'public class CclModule%s extends Easy {\n'
+        '  private static boolean included = false;\n'
         '  public static Lexer LEXER = new Lexer(%s, %s%s);\n'
         '  public static ModuleAst MODULE = new ModuleAst(%s, %s);\n'
+        '  public static void include(Context c) {\n'
+        '    if (!included)\n'
+        '      run(MODULE, c);\n'
+        '    included = true;\n'
+        '  }\n'
         '  public static void main(String[] args) {\n'
         '    run(MODULE);\n'
         '  }\n'
