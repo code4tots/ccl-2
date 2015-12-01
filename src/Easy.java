@@ -19,7 +19,8 @@ public static final ClassValue classObject =
             Value method = value.getOrNull("__init__");
             if (method == null) {
               c.exc = true;
-              c.value = new StringValue(
+              c.value = new ExceptionValue(
+                  c.trace,
                   value.getType().name + " has no __init__");
               return;
             }
@@ -51,6 +52,8 @@ public static final ClassValue classObject =
         });
 public static final ClassValue classClass =
     new ClassValue("Class", classObject);
+public static final ClassValue classException =
+    new ClassValue("Exception", classObject);
 public static final ClassValue classNil = new ClassValue("Nil", classObject);
 public static final ClassValue classBool =
     new ClassValue("Bool", classObject);
@@ -167,7 +170,8 @@ public static Class<?> getModuleClass(Context c, String moduleName) {
       cls = Class.forName("CclModule" + moduleName);
     } catch (ClassNotFoundException e) {
       c.exc = true;
-      c.value = new StringValue("Module " + moduleName + " not found");
+      c.value = new ExceptionValue(
+          c.trace, "Module " + moduleName + " not found");
       return null;
     }
   }
@@ -235,8 +239,22 @@ public static boolean expectArglen(
     Context c, int len, ArrayList<Value> args) {
   if (len != args.size()) {
     c.exc = true;
-    c.value = new StringValue(
+    c.value = new ExceptionValue(
+        c.trace,
         "Expected " + Integer.toString(len) + " args but found " +
+        Integer.toString(args.size()));
+    return true;
+  }
+  return false;
+}
+
+public static boolean expectArglenStar(
+    Context c, int len, ArrayList<Value> args) {
+  if (len > args.size()) {
+    c.exc = true;
+    c.value = new ExceptionValue(
+        c.trace,
+        "Expected at least " + Integer.toString(len) + " args but found " +
         Integer.toString(args.size()));
     return true;
   }
@@ -262,7 +280,8 @@ public static abstract class Value {
   }
   public void call(Context c, ArrayList<Value> args) {
     c.exc = true;
-    c.value = new StringValue(getType().name + " is not callable");
+    c.value = new ExceptionValue(
+        c.trace,getType().name + " is not callable");
   }
   public void call(Context c, Value... args) {
     ArrayList<Value> al = new ArrayList<Value>();
@@ -274,7 +293,8 @@ public static abstract class Value {
     Value value = getOrNull(name);
     if (value == null) {
       c.exc = true;
-      c.value = new StringValue("No attr " + name);
+      c.value = new ExceptionValue(
+          c.trace, "No attr " + name);
     }
   }
   public Value getOrNull(String name) {
@@ -311,6 +331,29 @@ public static abstract class Value {
   public abstract int hashCode();
   public String toString() {
     return repr();
+  }
+}
+
+// TODO: Make exceptions subclassable.
+// TODO: Extend 'Value'
+public static final class ExceptionValue extends Value {
+  public final StackTrace trace;
+  public final String message;
+  public ExceptionValue(StackTrace trace, String message) {
+    this.trace = trace;
+    this.message = message;
+  }
+  public ClassValue getType() {
+    return classException;
+  }
+  public int hashCode() {
+    return 0;
+  }
+  public String repr() {
+    return message + "\n" + trace.repr();
+  }
+  public boolean isTruthy() {
+    return true;
   }
 }
 
@@ -521,7 +564,8 @@ public static abstract class BuiltinMethodValue extends FunctionValue {
   }
   public final void call(Context c, ArrayList<Value> args) {
     c.exc = true;
-    c.value = new StringValue(
+    c.value = new ExceptionValue(
+        c.trace,
         "Can't call a builtin method without binding it first");
   }
   public abstract void callm(Context c, Value owner, ArrayList<Value> args);
@@ -544,6 +588,15 @@ public static abstract class BuiltinFunctionValue extends FunctionValue {
 public static void calls(
     Scope fnScope, String[] fnArgs, String fnVararg, Ast body,
     Context c, Value owner, ArrayList<Value> args) {
+
+  if (fnVararg == null) {
+    if (expectArglen(c, fnArgs.length, args))
+      return;
+  } else {
+    if (expectArglenStar(c, fnArgs.length, args))
+      return;
+  }
+
   Scope scope = new Scope(fnScope);
 
   if (owner != null)
@@ -649,7 +702,8 @@ public static final class ClassValue extends NamedValue {
     FunctionValue f = (FunctionValue) getForInstance("__new__");
     if (f == null) {
       c.exc = true;
-      c.value = new StringValue("Could not create new " + name);
+      c.value = new ExceptionValue(
+          c.trace, "Could not create new " + name);
       return;
     }
     f.bind(this).call(c, args);
@@ -739,8 +793,41 @@ public static final class Token {
     this.lexer = lexer;
     this.i = i;
   }
+  public String getLocationString() {
+    int a = i, b = i, c = i, lc = 1;
+    while (a > 1 && lexer.string.charAt(a-1) != '\n')
+      a--;
+    while (b < lexer.string.length() && lexer.string.charAt(b) != '\n')
+      b++;
+    for (int j = 0; j < i; j++)
+      if (lexer.string.charAt(j) == '\n')
+        lc++;
+
+    String spaces = "";
+    for (int j = 0; j < i-a; j++)
+      spaces = spaces + " ";
+
+    return
+        "*** In file '" + lexer.filespec + "' on line " + Integer.toString(lc) +
+        " ***\n" + lexer.string.substring(a, b) + "\n" +
+        spaces + "*\n";
+  }
 }
 
+public static final class StackTrace {
+  public final Ast node;
+  public final StackTrace next;
+  public StackTrace(Ast node, StackTrace next) {
+    this.node = node;
+    this.next = next;
+  }
+  public String repr() {
+    StringBuilder sb = new StringBuilder();
+    for (StackTrace t = this; t != null; t = t.next)
+      sb.append(t.node.token.getLocationString());
+    return sb.toString();
+  }
+}
 
 public static final class Context {
   // Exception flag.
@@ -768,6 +855,9 @@ public static final class Context {
 
   // The scope to use to evaluate things with.
   public Scope scope;
+
+  // For generating error messages.
+  public StackTrace trace = null;
 
   public Context(Scope scope) {
     this.scope = scope;
@@ -813,7 +903,8 @@ public static final class NameAst extends Ast {
   public void eval(Context c) {
     if ((c.value = c.scope.getOrNull(name)) == null) {
       c.exc = true;
-      c.value = new StringValue("Name '" + name + "' is not defined");
+      c.value = new ExceptionValue(
+          c.trace, "Name '" + name + "' is not defined");
     }
   }
 }
@@ -865,7 +956,8 @@ public static final class CallAst extends Ast {
       Value vararg = c.value;
       if (!(vararg instanceof ListValue)) {
         c.exc = true;
-        c.value = new StringValue(
+        c.value = new ExceptionValue(
+            c.trace,
             "Expected List for vararg but found: " + vararg.getType().name);
         return;
       }
@@ -875,7 +967,13 @@ public static final class CallAst extends Ast {
         args.add(va.get(i));
     }
 
-    f.call(c, args);
+    StackTrace oldTrace = c.trace;
+    try {
+      c.trace = new StackTrace(this, oldTrace);
+      f.call(c, args);
+    } finally {
+      c.trace = oldTrace;
+    }
   }
 }
 
@@ -898,7 +996,8 @@ public static final class GetAttrAst extends Ast {
 
     if (c.value == null) {
       c.exc = true;
-      c.value = new StringValue("Couldn't get attribute '" + attr + "'");
+      c.value = new ExceptionValue(
+          c.trace, "Couldn't get attribute '" + attr + "'");
     }
   }
 }
@@ -978,7 +1077,8 @@ public static final class ClassAst extends Ast {
       Value varbase = c.value;
       if (!(varbase instanceof ListValue)) {
         c.exc = true;
-        c.value = new StringValue(
+        c.value = new ExceptionValue(
+            c.trace,
             "Expected List for varbase but found " + varbase.getType().name);
         return;
       }
