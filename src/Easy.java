@@ -117,6 +117,17 @@ public static final ClassValue classString =
             String format = owner.getStringValue();
             c.value = new StringValue(String.format(format, (Object[]) aa));
           }
+        })
+        .put(new BuiltinMethodValue("__eq__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 1, args))
+              return;
+
+            c.value =
+                args.get(0) instanceof StringValue &&
+                owner.getStringValue().equals(args.get(0).getStringValue()) ?
+                trueValue : falseValue;
+          }
         });
 public static final ClassValue classList =
     new ClassValue("List", classObject)
@@ -153,30 +164,30 @@ public static void importModule(Context c, String moduleName) {
   if (c.exc)
     return;
   try {
-    Method method = cls.getMethod("importModule", Context.class);
-    method.invoke(null, c);
+    Method method = cls.getMethod("importModule", Context.class, String.class);
+    method.invoke(null, c, moduleName);
   } catch (ReflectiveOperationException e) {
     c.exc = true;
-    c.value = new StringValue("Module " + moduleName + " is not importable");
+    c.value = new StringValue(
+        "Module " + moduleName + " is not importable: " + e.getCause().toString());
     return;
   }
 }
 
-public static void runAndGetValue(Context c, Ast body) {
+public static void runAndGetValue(Context c, Ast body, String name) {
   Scope oldScope = c.scope;
   try {
     c.scope = new Scope(BUILTIN_SCOPE);
+
+    if (name == null)
+      name = "__main__";
+    c.scope.put("__name__", new StringValue(name));
+
     body.eval(c);
     if (c.exc)
       return;
 
-    Value value = new UserValue(classModule);
-    Iterator<String> it = c.scope.table.keySet().iterator();
-    while (it.hasNext()) {
-      String name = it.next();
-      value.put(name, c.scope.table.get(name));
-    }
-    c.value = value;
+    c.value = new UserValue(classModule, c.scope.table);
   } finally {
     c.scope = oldScope;
   }
@@ -216,15 +227,15 @@ public static boolean expectArglen(
   return false;
 }
 
-public static void run(Ast ast, Context c) {
-  ast.eval(c);
+public static void run(Context c, Ast ast) {
+  runAndGetValue(c, ast, null);
   if (c.exc) {
     System.out.println("**** Exception ****\n" + c.value.toString());
   }
 }
 
 public static void run(Ast ast) {
-  run(ast, new Context(new Scope(BUILTIN_SCOPE)));
+  run(new Context(new Scope(BUILTIN_SCOPE)), ast);
 }
 
 public static abstract class Value {
@@ -274,8 +285,11 @@ public static final class UserValue extends Value {
   public final ClassValue cls;
   public final HashMap<String, Value> attrs;
   public UserValue(ClassValue cls) {
+    this(cls, new HashMap<String, Value>());
+  }
+  public UserValue(ClassValue cls, HashMap<String, Value> attrs) {
     this.cls = cls;
-    attrs = new HashMap<String, Value>();
+    this.attrs = attrs;
   }
   public ClassValue getType() {
     return cls;
@@ -445,6 +459,7 @@ public static abstract class FunctionValue extends NamedValue {
   public ClassValue getType() {
     return classFunction;
   }
+  public abstract void call(Context c, ArrayList<Value> args);
 }
 
 public static abstract class BuiltinMethodValue extends FunctionValue {
@@ -541,8 +556,12 @@ public static final class UserFunctionValue extends FunctionValue {
   public final void call(Context c, ArrayList<Value> args) {
     calls(scope, this.args, vararg, body, c, null, args);
   }
-  public Value bind(Value owner) {
-    return new UserMethodValue(owner, scope, name, args, vararg, body);
+  public Value bind(final Value owner) {
+    return new FunctionValue(name) {
+      public final void call(Context c, ArrayList<Value> cargs) {
+        calls(scope, args, vararg, body, c, owner, cargs);
+      }
+    };
   }
 }
 
