@@ -167,10 +167,11 @@ public static void importModule(Context c, String moduleName) {
     Method method = cls.getMethod("importModule", Context.class, String.class);
     method.invoke(null, c, moduleName);
   } catch (ReflectiveOperationException e) {
-    c.exc = true;
-    c.value = new StringValue(
-        "Module " + moduleName + " is not importable: " + e.getCause().toString());
-    return;
+    // This is a real FUBAR, since this is not a CCL exception but a Java
+    // exception. For the purposes of debugging, I might as well just
+    // dump stack trace so I can debug it more easily.
+    e.getCause().printStackTrace();
+    throw new RuntimeException(e.getCause());
   }
 }
 
@@ -1031,10 +1032,13 @@ public static final class IfAst extends Ast {
     if (c.exc)
       return;
 
-    if (c.value.isTruthy())
+    if (c.value.isTruthy()) {
       body.eval(c);
-    else
+    } else if (other != null) {
       other.eval(c);
+    } else {
+      c.value = nil;
+    }
   }
 }
 
