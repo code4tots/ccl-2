@@ -33,3 +33,5 @@ print[x]
 import Blarg
 
 Blarg.blargf[]
+
+Blarg.fail[]

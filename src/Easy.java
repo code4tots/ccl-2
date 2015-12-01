@@ -264,7 +264,10 @@ public static boolean expectArglenStar(
 public static void run(Context c, Ast ast) {
   runAndGetValue(c, ast, null);
   if (c.exc) {
-    System.out.println("**** Exception ****\n" + c.value.toString());
+    System.out.println(
+        "===================\n" +
+        "**** Exception ****\n" +
+        "===================\n" + c.value.toString());
   }
 }
 
@@ -1323,7 +1326,17 @@ public static final class ImportAst extends Ast {
     this.name = name;
   }
   public void eval(Context c) {
-    importModule(c, name);
+    StackTrace oldTrace = c.trace;
+    try {
+      c.trace = new StackTrace(this, oldTrace);
+      importModule(c, name);
+    } catch (BarrierException e) {
+      c.exc = true;
+      c.value = new ExceptionValue(
+          joinStackTraces(c.trace, e.e.trace), e.e.message);
+    } finally {
+      c.trace = oldTrace;
+    }
     c.scope.put(name, c.value);
   }
 }

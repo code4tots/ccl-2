@@ -10,4 +10,6 @@ if __name__ == '__main__' {
   print['__name__ is __main__']
 }
 
-'hi' + 5
+def fail[] {
+  'hi' + 5
+}
