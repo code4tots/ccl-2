@@ -33,6 +33,21 @@ public static final ClassValue classObject =
               return;
             c.value = nil;
           }
+        })
+        .put(new BuiltinMethodValue("__repr__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value =
+                new StringValue("<" + owner.getType().name + " instance>");
+          }
+        })
+        .put(new BuiltinMethodValue("__str__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+
+          }
         });
 public static final ClassValue classClass =
     new ClassValue("Class", classObject);
@@ -255,6 +270,13 @@ public static abstract class Value {
       al.add(args[i]);
     call(c, al);
   }
+  public void get(Context c, String name) {
+    Value value = getOrNull(name);
+    if (value == null) {
+      c.exc = true;
+      c.value = new StringValue("No attr " + name);
+    }
+  }
   public Value getOrNull(String name) {
     Value value = getType().getForInstance(name);
     return value == null ? null : value.bind(this);
@@ -262,21 +284,31 @@ public static abstract class Value {
   public Value put(String name, Value value) {
     throw new RuntimeException(getClass().getName() + "." + name);
   }
-  public abstract boolean isTruthy();
   public Value bind(Value owner) {
     return this;
   }
+
+  // For the sake of consistency, I think all of the following methods should
+  // really take a Context argument. However, it is just more convenient this
+  // way. And really, these are the sort of operations where you really
+  // don't expect an exception unless something really goes wrong.
+  // So instead if there is an error here, a BarrierException is thrown.
+  //
+  // Also, for isTruthy, repr, hashCode and toString, unless this is a
+  // UserValue, the implementation should come from the java version.
+  // Of course for UserValues, these are implemented in the CCL class objects.
   public double getNumberValue() {
-    throw new RuntimeException(getClass().getName());
+    throw new BarrierException(getClass().getName());
   }
   public String getStringValue() {
-    throw new RuntimeException(getClass().getName());
+    throw new BarrierException(getClass().getName());
   }
   public ArrayList<Value> getListValue()  {
-    throw new RuntimeException(getClass().getName());
+    throw new BarrierException(getClass().getName());
   }
-  public abstract int hashCode();
+  public abstract boolean isTruthy();
   public abstract String repr();
+  public abstract int hashCode();
   public String toString() {
     return repr();
   }
@@ -304,10 +336,30 @@ public static final class UserValue extends Value {
     return this;
   }
   public boolean isTruthy() {
-    return true; // TODO
+    Value m = getOrNull("__bool__");
+
+    if (m == null)
+      return true;
+
+    Context c = new Context(null);
+    m.call(c);
+    if (c.exc)
+      throw new BarrierException(c);
+
+    return c.value.isTruthy();
   }
   public String repr() {
-    return "<UserValue>"; // TODO
+    Value m = getOrNull("__repr__");
+
+    if (m == null)
+      throw new BarrierException("__repr__ FUBAR in UserValue");
+
+    Context c = new Context(null);
+    m.call(c);
+    if (c.exc)
+      throw new BarrierException(c);
+
+    return c.value.getStringValue();
   }
   public int hashCode() {
     return 0; // TODO
@@ -440,7 +492,7 @@ public static final class ListValue extends Value {
 public static abstract class NamedValue extends Value {
   public final String name;
   public NamedValue(String name) {
-    this.name = name;
+    this.name = name == null ? "[anonymous]" : name;
   }
   public final boolean isTruthy() {
     return true;
@@ -625,6 +677,22 @@ public static final class ClassValue extends NamedValue {
   }
 }
 
+// This exception is for crossing barriers where 'Context' was not
+// explicitly passed down.
+public static class BarrierException extends RuntimeException {
+  public static final long serialVersionUID = 42L;
+  public final Context c;
+  public BarrierException(String s) {
+    super(s);
+    c = new Context(null);
+    c.value = new StringValue(s);
+  }
+  public BarrierException(Context c) {
+    super(c.value.toString());
+    this.c = c;
+  }
+}
+
 public static final class Scope {
   public final HashMap<String, Value> table;
   public final Scope parent;
@@ -673,19 +741,6 @@ public static final class Token {
   }
 }
 
-public static final class ReturnException extends RuntimeException {
-  public static final long serialVersionUID = 42L;
-  public final Value value;
-  public ReturnException(Value value) {
-    this.value = value;
-  }
-}
-public static final class BreakException extends RuntimeException {
-  public static final long serialVersionUID = 42L;
-}
-public static final class ContinueException extends RuntimeException {
-  public static final long serialVersionUID = 42L;
-}
 
 public static final class Context {
   // Exception flag.
