@@ -318,13 +318,13 @@ public static abstract class Value {
   // UserValue, the implementation should come from the java version.
   // Of course for UserValues, these are implemented in the CCL class objects.
   public double getNumberValue() {
-    throw new BarrierException(getClass().getName());
+    throw new BarrierException(new ExceptionValue(null, "Expected a number"));
   }
   public String getStringValue() {
-    throw new BarrierException(getClass().getName());
+    throw new BarrierException(new ExceptionValue(null, "Expected a string"));
   }
   public ArrayList<Value> getListValue()  {
-    throw new BarrierException(getClass().getName());
+    throw new BarrierException(new ExceptionValue(null, "Expected a list"));
   }
   public abstract boolean isTruthy();
   public abstract String repr();
@@ -387,7 +387,7 @@ public static final class UserValue extends Value {
     Context c = new Context(null);
     m.call(c);
     if (c.exc)
-      throw new BarrierException(c);
+      throw new BarrierException((ExceptionValue) c.value);
 
     return c.value.isTruthy();
   }
@@ -395,17 +395,28 @@ public static final class UserValue extends Value {
     Value m = getOrNull("__repr__");
 
     if (m == null)
-      throw new BarrierException("__repr__ FUBAR in UserValue");
+      throw new BarrierException(
+          new ExceptionValue(null, "missing __repr__ attribute"));
 
     Context c = new Context(null);
     m.call(c);
     if (c.exc)
-      throw new BarrierException(c);
+      throw new BarrierException((ExceptionValue) c.value);
 
     return c.value.getStringValue();
   }
   public int hashCode() {
-    return 0; // TODO
+    Value m = getOrNull("__hash__");
+
+    if (m == null)
+      return 0;
+
+    Context c = new Context(null);
+    m.call(c);
+    if (c.exc)
+      throw new BarrierException((ExceptionValue) c.value);
+
+    return (int) c.value.getNumberValue();
   }
 }
 
@@ -731,19 +742,20 @@ public static final class ClassValue extends NamedValue {
   }
 }
 
+public static StackTrace joinStackTraces(StackTrace left, StackTrace right) {
+  if (right == null)
+    return left;
+  return right == null ? left :
+      new StackTrace(right.node, joinStackTraces(left, right.next));
+}
+
 // This exception is for crossing barriers where 'Context' was not
 // explicitly passed down.
 public static class BarrierException extends RuntimeException {
   public static final long serialVersionUID = 42L;
-  public final Context c;
-  public BarrierException(String s) {
-    super(s);
-    c = new Context(null);
-    c.value = new StringValue(s);
-  }
-  public BarrierException(Context c) {
-    super(c.value.toString());
-    this.c = c;
+  public final ExceptionValue e;
+  public BarrierException(ExceptionValue e) {
+    this.e = e;
   }
 }
 
@@ -971,6 +983,10 @@ public static final class CallAst extends Ast {
     try {
       c.trace = new StackTrace(this, oldTrace);
       f.call(c, args);
+    } catch (BarrierException e) {
+      c.exc = true;
+      c.value = new ExceptionValue(
+          joinStackTraces(c.trace, e.e.trace), e.e.message);
     } finally {
       c.trace = oldTrace;
     }

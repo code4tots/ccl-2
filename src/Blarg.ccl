@@ -10,15 +10,4 @@ if __name__ == '__main__' {
   print['__name__ is __main__']
 }
 
-
-def f1[] {
-  print['inside f1']
-  f2[5]
-}
-
-def f2[] {
-  print['inside f2']
-}
-
-f1[]
-
+'hi' + 5
