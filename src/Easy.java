@@ -45,9 +45,7 @@ public static final ClassValue classObject =
         })
         .put(new BuiltinMethodValue("__str__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
-
+            owner.call(c, "__repr__", args);
           }
         });
 public static final ClassValue classClass =
@@ -286,19 +284,34 @@ public static abstract class Value {
     c.value = new ExceptionValue(
         c.trace,getType().name + " is not callable");
   }
-  public void call(Context c, Value... args) {
+  public final void call(Context c, Value... args) {
     ArrayList<Value> al = new ArrayList<Value>();
     for (int i = 0; i < args.length; i++)
       al.add(args[i]);
     call(c, al);
   }
-  public void get(Context c, String name) {
+  public final Value callOrThrow(Value... args) {
+    Context c = new Context(null);
+    call(c, args);
+    if (c.exc)
+      throw new BarrierException((ExceptionValue) c.value);
+    return c.value;
+  }
+  public final Value getOrThrow(String name) {
+    Context c = new Context(null);
+    get(c, name);
+    if (c.exc)
+      throw new BarrierException((ExceptionValue) c.value);
+    return c.value;
+  }
+  public final void get(Context c, String name) {
     Value value = getOrNull(name);
     if (value == null) {
       c.exc = true;
       c.value = new ExceptionValue(
           c.trace, "No attr " + name);
     }
+    c.value = value;
   }
   public Value getOrNull(String name) {
     Value value = getType().getForInstance(name);
@@ -316,10 +329,6 @@ public static abstract class Value {
   // way. And really, these are the sort of operations where you really
   // don't expect an exception unless something really goes wrong.
   // So instead if there is an error here, a BarrierException is thrown.
-  //
-  // Also, for isTruthy, repr, hashCode and toString, unless this is a
-  // UserValue, the implementation should come from the java version.
-  // Of course for UserValues, these are implemented in the CCL class objects.
   public double getNumberValue() {
     throw new BarrierException(new ExceptionValue(null, "Expected a number"));
   }
@@ -329,11 +338,36 @@ public static abstract class Value {
   public ArrayList<Value> getListValue()  {
     throw new BarrierException(new ExceptionValue(null, "Expected a list"));
   }
-  public abstract boolean isTruthy();
-  public abstract String repr();
-  public abstract int hashCode();
+  public boolean getBoolValue() {
+    throw new BarrierException(new ExceptionValue(null, "Expected a bool"));
+  }
+  public final void call(Context c, String methodName, ArrayList<Value> args) {
+    get(c, methodName);
+    if (c.exc)
+      return;
+    c.value.call(c, args);
+  }
+  public final Value callOrThrow(String methodName, ArrayList<Value> args) {
+    Context c = new Context(null);
+    call(c, methodName, args);
+    if (c.exc)
+      throw new BarrierException((ExceptionValue) c.value);
+    return c.value;
+  }
+  public final Value callOrThrow(String methodName, Value... args) {
+    return getOrThrow(methodName).callOrThrow(args);
+  }
   public String toString() {
-    return repr();
+    return callOrThrow("__str__").getStringValue();
+  }
+  public boolean isTruthy() {
+    return callOrThrow("__bool__").getBoolValue();
+  }
+  public String repr() {
+    return callOrThrow("__repr__").getStringValue();
+  }
+  public int hashCode() {
+    return (int) callOrThrow("__hash__").getNumberValue();
   }
 }
 
@@ -380,46 +414,6 @@ public static final class UserValue extends Value {
   public Value put(String name, Value value) {
     attrs.put(name, value);
     return this;
-  }
-  public boolean isTruthy() {
-    Value m = getOrNull("__bool__");
-
-    if (m == null)
-      return true;
-
-    Context c = new Context(null);
-    m.call(c);
-    if (c.exc)
-      throw new BarrierException((ExceptionValue) c.value);
-
-    return c.value.isTruthy();
-  }
-  public String repr() {
-    Value m = getOrNull("__repr__");
-
-    if (m == null)
-      throw new BarrierException(
-          new ExceptionValue(null, "missing __repr__ attribute"));
-
-    Context c = new Context(null);
-    m.call(c);
-    if (c.exc)
-      throw new BarrierException((ExceptionValue) c.value);
-
-    return c.value.getStringValue();
-  }
-  public int hashCode() {
-    Value m = getOrNull("__hash__");
-
-    if (m == null)
-      return 0;
-
-    Context c = new Context(null);
-    m.call(c);
-    if (c.exc)
-      throw new BarrierException((ExceptionValue) c.value);
-
-    return (int) c.value.getNumberValue();
   }
 }
 
