@@ -340,9 +340,9 @@ public static abstract class Value {
 // TODO: Make exceptions subclassable.
 // TODO: Extend 'Value'
 public static final class ExceptionValue extends Value {
-  public final StackTrace trace;
+  public final TraceValue trace;
   public final String message;
-  public ExceptionValue(StackTrace trace, String message) {
+  public ExceptionValue(TraceValue trace, String message) {
     this.trace = trace;
     this.message = message;
   }
@@ -745,11 +745,11 @@ public static final class ClassValue extends NamedValue {
   }
 }
 
-public static StackTrace joinStackTraces(StackTrace left, StackTrace right) {
+public static TraceValue joinStackTraces(TraceValue left, TraceValue right) {
   if (right == null)
     return left;
   return right == null ? left :
-      new StackTrace(right.node, joinStackTraces(left, right.next));
+      new TraceValue(right.node, joinStackTraces(left, right.next));
 }
 
 // This exception is for crossing barriers where 'Context' was not
@@ -829,18 +829,27 @@ public static final class Token {
   }
 }
 
-public static final class StackTrace {
+public static final class TraceValue extends Value {
   public final Ast node;
-  public final StackTrace next;
-  public StackTrace(Ast node, StackTrace next) {
+  public final TraceValue next;
+  public TraceValue(Ast node, TraceValue next) {
     this.node = node;
     this.next = next;
   }
+  public ClassValue getType() {
+    return classObject;
+  }
   public String repr() {
     StringBuilder sb = new StringBuilder();
-    for (StackTrace t = this; t != null; t = t.next)
+    for (TraceValue t = this; t != null; t = t.next)
       sb.append(t.node.token.getLocationString());
     return sb.toString();
+  }
+  public int hashCode() {
+    return System.identityHashCode(this);
+  }
+  public boolean isTruthy() {
+    return true;
   }
 }
 
@@ -872,7 +881,7 @@ public static final class Context {
   public Scope scope;
 
   // For generating error messages.
-  public StackTrace trace = null;
+  public TraceValue trace = null;
 
   public Context(Scope scope) {
     this.scope = scope;
@@ -982,9 +991,9 @@ public static final class CallAst extends Ast {
         args.add(va.get(i));
     }
 
-    StackTrace oldTrace = c.trace;
+    TraceValue oldTrace = c.trace;
     try {
-      c.trace = new StackTrace(this, oldTrace);
+      c.trace = new TraceValue(this, oldTrace);
       f.call(c, args);
     } catch (BarrierException e) {
       c.exc = true;
@@ -1326,9 +1335,9 @@ public static final class ImportAst extends Ast {
     this.name = name;
   }
   public void eval(Context c) {
-    StackTrace oldTrace = c.trace;
+    TraceValue oldTrace = c.trace;
     try {
-      c.trace = new StackTrace(this, oldTrace);
+      c.trace = new TraceValue(this, oldTrace);
       importModule(c, name);
     } catch (BarrierException e) {
       c.exc = true;
