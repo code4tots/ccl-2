@@ -47,6 +47,13 @@ public static final ClassValue classObject =
           public void callm(Context c, Value owner, ArrayList<Value> args) {
             owner.call(c, "__repr__", args);
           }
+        })
+        .put(new BuiltinMethodValue("__hash__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = new NumberValue(System.identityHashCode(owner));
+          }
         });
 public static final ClassValue classClass =
     new ClassValue("Class", classObject);
@@ -57,6 +64,16 @@ public static final ClassValue classBool =
     new ClassValue("Bool", classObject);
 public static final ClassValue classNumber =
     new ClassValue("Number", classObject)
+        .put(new BuiltinMethodValue("__eq__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 1, args))
+              return;
+            c.value =
+                (args.get(0).getType() == classNumber) &&
+                owner.getNumberValue() == args.get(0).getNumberValue() ?
+                trueValue : falseValue;
+          }
+        })
         .put(new BuiltinMethodValue("__add__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args))
@@ -366,8 +383,11 @@ public static abstract class Value {
   public String repr() {
     return callOrThrow("__repr__").getStringValue();
   }
-  public int hashCode() {
+  public final int hashCode() {
     return (int) callOrThrow("__hash__").getNumberValue();
+  }
+  public final boolean equals(Object v) {
+    return (v instanceof Value) && callOrThrow("__eq__", (Value) v).isTruthy();
   }
 }
 
@@ -382,9 +402,6 @@ public static final class ExceptionValue extends Value {
   }
   public ClassValue getType() {
     return classException;
-  }
-  public int hashCode() {
-    return 0;
   }
   public String repr() {
     return message + "\n" + trace.repr();
@@ -427,9 +444,6 @@ public static final class NilValue extends Value {
   public String repr() {
     return "nil";
   }
-  public int hashCode() {
-    return 0;
-  }
 }
 
 public static final class BoolValue extends Value {
@@ -445,9 +459,6 @@ public static final class BoolValue extends Value {
   }
   public String repr() {
     return value ? "true" : "false";
-  }
-  public int hashCode() {
-    return new Boolean(value).hashCode();
   }
 }
 
@@ -482,9 +493,6 @@ public static final class StringValue extends Value {
   public String getStringValue() {
     return value;
   }
-  public int hashCode() {
-    return value.hashCode();
-  }
 }
 
 public static final class NumberValue extends Value {
@@ -506,9 +514,6 @@ public static final class NumberValue extends Value {
       return Integer.toString((int) value);
     return Double.toString(value);
   }
-  public int hashCode() {
-    return new Double(value).hashCode();
-  }
 }
 
 public static final class ListValue extends Value {
@@ -521,9 +526,6 @@ public static final class ListValue extends Value {
   }
   public boolean isTruthy() {
     return value.size() != 0;
-  }
-  public int hashCode() {
-    return value.hashCode();
   }
   public String repr() {
     StringBuilder sb = new StringBuilder("[");
@@ -544,12 +546,6 @@ public static abstract class NamedValue extends Value {
   public final String name;
   public NamedValue(String name) {
     this.name = name == null ? "[anonymous]" : name;
-  }
-  public final boolean isTruthy() {
-    return true;
-  }
-  public final int hashCode() {
-    return System.identityHashCode(this);
   }
   public String repr() {
     return "<" + getType().name + " '" + name + "'>";
@@ -838,9 +834,6 @@ public static final class TraceValue extends Value {
     for (TraceValue t = this; t != null; t = t.next)
       sb.append(t.node.token.getLocationString());
     return sb.toString();
-  }
-  public int hashCode() {
-    return System.identityHashCode(this);
   }
   public boolean isTruthy() {
     return true;
