@@ -58,12 +58,44 @@ public static final ClassValue classObject =
 public static final ClassValue classClass =
     new ClassValue("Class", classObject);
 public static final ClassValue classException =
-    new ClassValue("Exception", classObject);
-public static final ClassValue classNil = new ClassValue("Nil", classObject);
+    new ClassValue("Exception", classObject)
+        .put(new BuiltinMethodValue("__repr__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = new StringValue()
+          }
+        });
+public static final ClassValue classNil =
+    new ClassValue("Nil", classObject)
+        .put(new BuiltinMethodValue("__repr__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = new StringValue("nil");
+          }
+        });
 public static final ClassValue classBool =
-    new ClassValue("Bool", classObject);
+    new ClassValue("Bool", classObject)
+        .put(new BuiltinMethodValue("__repr__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = new StringValue(owner.getBoolValue() ? "true" : "false");
+          }
+        });
 public static final ClassValue classNumber =
     new ClassValue("Number", classObject)
+        .put(new BuiltinMethodValue("__repr__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            double val = owner.getNumberValue();
+            c.value = new StringValue(
+                val == Math.floor(val) ?
+                Integer.toString((int) val) : Double.toString(val));
+          }
+        })
         .put(new BuiltinMethodValue("__eq__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args))
@@ -440,9 +472,6 @@ public static final class NilValue extends Value {
   }
   public boolean isTruthy() {
     return false;
-  }
-  public String repr() {
-    return "nil";
   }
 }
 
