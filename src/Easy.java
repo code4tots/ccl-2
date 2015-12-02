@@ -18,7 +18,7 @@ public static final ClassValue classObject =
             Value method = value.getOrNull("__init__");
             if (method == null) {
               c.exc = true;
-              c.value = new ExceptionValue(
+              c.value = makeException(
                   c.trace,
                   value.getType().name + " has no __init__");
               return;
@@ -91,9 +91,21 @@ public static final ClassValue classException =
         .put(new BuiltinMethodValue("__repr__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
-            c.value = new StringValue(
-                ((ExceptionValue) owner).message + "\n" +
-                ((ExceptionValue) owner).trace.repr());
+            UserValue v = (UserValue) owner;
+
+            v.get(c, "message");
+            if (c.exc) return;
+            String message = c.value.getStringValue();
+
+            v.get(c, "trace");
+            if (c.exc) return;
+            Value t = c.value;
+
+            t.call(c, "__repr__");
+            if (c.exc) return;
+            String traceStr = c.value.getStringValue();
+
+            c.value = new StringValue(message + "\n" + traceStr);
           }
         });
 public static final ClassValue classNil =
@@ -305,7 +317,7 @@ public static Class<?> getModuleClass(Context c, String moduleName) {
       cls = Class.forName("CclModule" + moduleName);
     } catch (ClassNotFoundException e) {
       c.exc = true;
-      c.value = new ExceptionValue(
+      c.value = makeException(
           c.trace, "Module " + moduleName + " not found");
       return null;
     }
@@ -372,7 +384,7 @@ public static boolean expectArglen(
     Context c, int len, ArrayList<Value> args) {
   if (len != args.size()) {
     c.exc = true;
-    c.value = new ExceptionValue(
+    c.value = makeException(
         c.trace,
         "Expected " + Integer.toString(len) + " args but found " +
         Integer.toString(args.size()));
@@ -385,13 +397,41 @@ public static boolean expectArglenStar(
     Context c, int len, ArrayList<Value> args) {
   if (len > args.size()) {
     c.exc = true;
-    c.value = new ExceptionValue(
+    c.value = makeException(
         c.trace,
         "Expected at least " + Integer.toString(len) + " args but found " +
         Integer.toString(args.size()));
     return true;
   }
   return false;
+}
+
+public static UserValue makeException(TraceValue tr, String message) {
+  return new UserValue(classException)
+      .put("trace", tr)
+      .put("message", new StringValue(message));
+}
+
+public static UserValue makeException(Value tr, Value message) {
+  return new UserValue(classException)
+      .put("trace", tr)
+      .put("message", message);
+}
+
+public static void handleBarrierException(Context c, BarrierException e) {
+  // TODO: Figure out how to handle exception while handling a barrier
+  // exception.
+  Context cc = new Context(null);
+  e.e.get(cc, "trace");
+  if (cc.exc) throw new RuntimeException("FUBAR");
+  TraceValue trace = (TraceValue) cc.value;
+
+  e.e.get(cc, "message");
+  if (cc.exc) throw new RuntimeException("FUBAR");
+  String message = cc.value.getStringValue();
+
+  c.exc = true;
+  c.value = makeException(joinStackTraces(c.trace, trace), message);
 }
 
 public static void run(Context c, Ast ast) {
@@ -416,7 +456,7 @@ public static abstract class Value {
   }
   public void call(Context c, ArrayList<Value> args) {
     c.exc = true;
-    c.value = new ExceptionValue(
+    c.value = makeException(
         c.trace,getType().name + " is not callable");
   }
   public final void call(Context c, Value... args) {
@@ -428,20 +468,20 @@ public static abstract class Value {
   public final Value callOrThrow(Value... args) {
     Context c = new Context(null);
     call(c, args);
-    if (c.exc) throw new BarrierException((ExceptionValue) c.value);
+    if (c.exc) throw new BarrierException(c.value);
     return c.value;
   }
   public final Value getOrThrow(String name) {
     Context c = new Context(null);
     get(c, name);
-    if (c.exc) throw new BarrierException((ExceptionValue) c.value);
+    if (c.exc) throw new BarrierException(c.value);
     return c.value;
   }
   public final void get(Context c, String name) {
     Value value = getOrNull(name);
     if (value == null) {
       c.exc = true;
-      c.value = new ExceptionValue(
+      c.value = makeException(
           c.trace, "No attr " + name);
     }
     c.value = value;
@@ -463,19 +503,19 @@ public static abstract class Value {
   // don't expect an exception unless something really goes wrong.
   // So instead if there is an error here, a BarrierException is thrown.
   public double getNumberValue() {
-    throw new BarrierException(new ExceptionValue(
+    throw new BarrierException(makeException(
         null, "Expected a Number but found " + getType().name));
   }
   public String getStringValue() {
-    throw new BarrierException(new ExceptionValue(
+    throw new BarrierException(makeException(
         null, "Expected a String but found " + getType().name));
   }
   public ArrayList<Value> getListValue()  {
-    throw new BarrierException(new ExceptionValue(
+    throw new BarrierException(makeException(
         null, "Expected a List but found " + getType().name));
   }
   public boolean getBoolValue() {
-    throw new BarrierException(new ExceptionValue(
+    throw new BarrierException(makeException(
         null, "Expected a Bool but found " + getType().name));
   }
   public final void call(Context c, String methodName, ArrayList<Value> args) {
@@ -489,7 +529,7 @@ public static abstract class Value {
   public final Value callOrThrow(String methodName, ArrayList<Value> args) {
     Context c = new Context(null);
     call(c, methodName, args);
-    if (c.exc) throw new BarrierException((ExceptionValue) c.value);
+    if (c.exc) throw new BarrierException(c.value);
     return c.value;
   }
   public final Value callOrThrow(String methodName, Value... args) {
@@ -512,20 +552,6 @@ public static abstract class Value {
   }
 }
 
-// TODO: Make exceptions subclassable.
-// TODO: Extend 'Value'
-public static final class ExceptionValue extends Value {
-  public final TraceValue trace;
-  public final String message;
-  public ExceptionValue(TraceValue trace, String message) {
-    this.trace = trace;
-    this.message = message;
-  }
-  public ClassValue getType() {
-    return classException;
-  }
-}
-
 public static final class UserValue extends Value {
   public final ClassValue cls;
   public final HashMap<String, Value> attrs;
@@ -543,7 +569,7 @@ public static final class UserValue extends Value {
     Value value = super.getOrNull(name);
     return value == null ? attrs.get(name) : value;
   }
-  public Value put(String name, Value value) {
+  public UserValue put(String name, Value value) {
     attrs.put(name, value);
     return this;
   }
@@ -630,7 +656,7 @@ public static abstract class BuiltinMethodValue extends FunctionValue {
   }
   public final void call(Context c, ArrayList<Value> args) {
     c.exc = true;
-    c.value = new ExceptionValue(
+    c.value = makeException(
         c.trace,
         "Can't call a builtin method without binding it first");
   }
@@ -746,7 +772,7 @@ public static final class ClassValue extends NamedValue {
     FunctionValue f = (FunctionValue) getForInstance("__new__");
     if (f == null) {
       c.exc = true;
-      c.value = new ExceptionValue(
+      c.value = makeException(
           c.trace, "Could not create new " + name);
       return;
     }
@@ -786,8 +812,8 @@ public static TraceValue joinStackTraces(TraceValue left, TraceValue right) {
 // explicitly passed down.
 public static class BarrierException extends RuntimeException {
   public static final long serialVersionUID = 42L;
-  public final ExceptionValue e;
-  public BarrierException(ExceptionValue e) {
+  public final Value e;
+  public BarrierException(Value e) {
     this.e = e;
   }
 }
@@ -945,7 +971,7 @@ public static final class NameAst extends Ast {
   public void eval(Context c) {
     if ((c.value = c.scope.getOrNull(name)) == null) {
       c.exc = true;
-      c.value = new ExceptionValue(
+      c.value = makeException(
           c.trace, "Name '" + name + "' is not defined");
     }
   }
@@ -995,7 +1021,7 @@ public static final class CallAst extends Ast {
       Value vararg = c.value;
       if (!(vararg instanceof ListValue)) {
         c.exc = true;
-        c.value = new ExceptionValue(
+        c.value = makeException(
             c.trace,
             "Expected List for vararg but found: " + vararg.getType().name);
         return;
@@ -1011,9 +1037,7 @@ public static final class CallAst extends Ast {
       c.trace = new TraceValue(this, oldTrace);
       f.call(c, args);
     } catch (BarrierException e) {
-      c.exc = true;
-      c.value = new ExceptionValue(
-          joinStackTraces(c.trace, e.e.trace), e.e.message);
+      handleBarrierException(c, e);
     } finally {
       c.trace = oldTrace;
     }
@@ -1038,7 +1062,7 @@ public static final class GetAttrAst extends Ast {
 
     if (c.value == null) {
       c.exc = true;
-      c.value = new ExceptionValue(
+      c.value = makeException(
           c.trace, "Couldn't get attribute '" + attr + "'");
     }
   }
@@ -1115,7 +1139,7 @@ public static final class ClassAst extends Ast {
       Value varbase = c.value;
       if (!(varbase instanceof ListValue)) {
         c.exc = true;
-        c.value = new ExceptionValue(
+        c.value = makeException(
             c.trace,
             "Expected List for varbase but found " + varbase.getType().name);
         return;
@@ -1339,9 +1363,7 @@ public static final class ImportAst extends Ast {
       c.trace = new TraceValue(this, oldTrace);
       importModule(c, name);
     } catch (BarrierException e) {
-      c.exc = true;
-      c.value = new ExceptionValue(
-          joinStackTraces(c.trace, e.e.trace), e.e.message);
+      handleBarrierException(c, e);
     } finally {
       c.trace = oldTrace;
     }
