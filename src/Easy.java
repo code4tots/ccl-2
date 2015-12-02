@@ -13,8 +13,7 @@ public static final ClassValue classObject =
     new ClassValue("Object")
         .put(new BuiltinMethodValue("__new__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             Value value = new UserValue((ClassValue) owner);
             Value method = value.getOrNull("__init__");
             if (method == null) {
@@ -30,15 +29,13 @@ public static final ClassValue classObject =
         })
         .put(new BuiltinMethodValue("__init__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = nil;
           }
         })
         .put(new BuiltinMethodValue("__repr__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value =
                 new StringValue("<" + owner.getType().name + " instance>");
           }
@@ -50,24 +47,38 @@ public static final ClassValue classObject =
         })
         .put(new BuiltinMethodValue("__hash__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = new NumberValue(System.identityHashCode(owner));
           }
         })
         .put(new BuiltinMethodValue("__bool__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = trueValue;
+          }
+        });
+public static final ClassValue classTrace =
+    new ClassValue("Trace", classObject)
+        .put(new BuiltinFunctionValue("__new__") {
+          public void call(Context c, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args)) return;
+            c.value = c.trace;
+          }
+        })
+        .put(new BuiltinMethodValue("__repr__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args)) return;
+            StringBuilder sb = new StringBuilder();
+            for (TraceValue t = (TraceValue) owner; t != null; t = t.next)
+              sb.append(t.node.token.getLocationString());
+            c.value = new StringValue(sb.toString());
           }
         });
 public static final ClassValue classNamedObject =
     new ClassValue("NamedObject", classObject)
         .put(new BuiltinMethodValue("__repr__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = new StringValue(
                 "<" + owner.getType().name + " " +
                 ((NamedValue) owner).name + ">");
@@ -79,8 +90,7 @@ public static final ClassValue classException =
     new ClassValue("Exception", classObject)
         .put(new BuiltinMethodValue("__repr__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = new StringValue(
                 ((ExceptionValue) owner).message + "\n" +
                 ((ExceptionValue) owner).trace.repr());
@@ -90,15 +100,13 @@ public static final ClassValue classNil =
     new ClassValue("Nil", classObject)
         .put(new BuiltinMethodValue("__repr__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = new StringValue("nil");
           }
         })
         .put(new BuiltinMethodValue("__bool__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = falseValue;
           }
         });
@@ -106,15 +114,13 @@ public static final ClassValue classBool =
     new ClassValue("Bool", classObject)
         .put(new BuiltinMethodValue("__repr__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = new StringValue(owner.getBoolValue() ? "true" : "false");
           }
         })
         .put(new BuiltinMethodValue("__bool__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = owner;
           }
         });
@@ -122,8 +128,7 @@ public static final ClassValue classNumber =
     new ClassValue("Number", classObject)
         .put(new BuiltinMethodValue("__repr__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             double val = owner.getNumberValue();
             c.value = new StringValue(
                 val == Math.floor(val) ?
@@ -132,15 +137,13 @@ public static final ClassValue classNumber =
         })
         .put(new BuiltinMethodValue("__bool__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = owner.getNumberValue() != 0 ? trueValue : falseValue;
           }
         })
         .put(new BuiltinMethodValue("__eq__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 1, args))
-              return;
+            if (expectArglen(c, 1, args)) return;
             c.value =
                 (args.get(0).getType() == classNumber) &&
                 owner.getNumberValue() == args.get(0).getNumberValue() ?
@@ -149,55 +152,48 @@ public static final ClassValue classNumber =
         })
         .put(new BuiltinMethodValue("__add__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 1, args))
-              return;
+            if (expectArglen(c, 1, args)) return;
             c.value = new NumberValue(
                 owner.getNumberValue() + args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__sub__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 1, args))
-              return;
+            if (expectArglen(c, 1, args)) return;
             c.value = new NumberValue(
                 owner.getNumberValue() - args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__mul__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 1, args))
-              return;
+            if (expectArglen(c, 1, args)) return;
             c.value = new NumberValue(
                 owner.getNumberValue() * args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__div__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 1, args))
-              return;
+            if (expectArglen(c, 1, args)) return;
             c.value = new NumberValue(
                 owner.getNumberValue() / args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__mod__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 1, args))
-              return;
+            if (expectArglen(c, 1, args)) return;
             c.value = new NumberValue(
                 owner.getNumberValue() % args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("floor") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = new NumberValue(Math.floor(owner.getNumberValue()));
           }
         })
         .put(new BuiltinMethodValue("frac") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             double value = owner.getNumberValue();
             c.value = new NumberValue(value - Math.floor(value));
           }
@@ -206,31 +202,45 @@ public static final ClassValue classString =
     new ClassValue("String", classObject)
         .put(new BuiltinMethodValue("__str__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value = owner;
+          }
+        })
+        .put(new BuiltinMethodValue("__repr__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args)) return;
+            String value = owner.getStringValue();
+            StringBuilder sb = new StringBuilder();
+            sb.append("\"");
+            for (int i = 0; i < value.length(); i++) {
+              char ch = value.charAt(i);
+              switch(ch) {
+              case '\n': sb.append("\\n"); break;
+              case '"': sb.append("\\\""); break;
+              default: sb.append(ch);
+              }
+            }
+            sb.append("\"");
+            c.value = new StringValue(sb.toString());
           }
         })
         .put(new BuiltinMethodValue("__bool__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value =
                 owner.getStringValue().length() != 0 ? trueValue : falseValue;
           }
         })
         .put(new BuiltinMethodValue("__add__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 1, args))
-              return;
+            if (expectArglen(c, 1, args)) return;
             c.value = new StringValue(
                 owner.getStringValue() + args.get(0).getStringValue());
           }
         })
         .put(new BuiltinMethodValue("__mod__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 1, args))
-              return;
+            if (expectArglen(c, 1, args)) return;
             ArrayList<Value> items = args.get(0).getListValue();
             String[] aa = new String[items.size()];
             for (int i = 0; i < items.size(); i++)
@@ -241,8 +251,7 @@ public static final ClassValue classString =
         })
         .put(new BuiltinMethodValue("__eq__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 1, args))
-              return;
+            if (expectArglen(c, 1, args)) return;
 
             c.value =
                 args.get(0) instanceof StringValue &&
@@ -257,10 +266,25 @@ public static final ClassValue classList =
             c.value = new ListValue(args);
           }
         })
+        .put(new BuiltinMethodValue("__repr__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args)) return;
+            ArrayList<Value> value = owner.getListValue();
+            StringBuilder sb = new StringBuilder("List[");
+            for (int i = 0; i < value.size(); i++) {
+              if (i != 0)
+                sb.append(", ");
+              value.get(i).call(c, "__repr__");
+              if (c.exc) return;
+              sb.append(c.value.getStringValue());
+            }
+            sb.append("]");
+            c.value = new StringValue(sb.toString());
+          }
+        })
         .put(new BuiltinMethodValue("__bool__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
-            if (expectArglen(c, 0, args))
-              return;
+            if (expectArglen(c, 0, args)) return;
             c.value =
                 owner.getListValue().size() != 0 ? trueValue : falseValue;
           }
@@ -291,8 +315,7 @@ public static Class<?> getModuleClass(Context c, String moduleName) {
 
 public static void importModule(Context c, String moduleName) {
   Class<?> cls = getModuleClass(c, moduleName);
-  if (c.exc)
-    return;
+  if (c.exc) return;
   try {
     Method method = cls.getMethod("importModule", Context.class, String.class);
     method.invoke(null, c, moduleName);
@@ -315,8 +338,7 @@ public static void runAndGetValue(Context c, Ast body, String name) {
     c.scope.put("__name__", new StringValue(name));
 
     body.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
 
     c.value = new UserValue(classModule, c.scope.table);
   } finally {
@@ -337,10 +359,10 @@ public static Scope BUILTIN_SCOPE = new Scope(null)
     .put(classList)
     .put(classMap)
     .put(classFunction)
+    .put(classTrace)
     .put(new BuiltinFunctionValue("print") {
       public void call(Context c, ArrayList<Value> args) {
-        if (expectArglen(c, 1, args))
-          return;
+        if (expectArglen(c, 1, args)) return;
         System.out.println(args.get(0));
         c.value = args.get(0);
       }
@@ -406,15 +428,13 @@ public static abstract class Value {
   public final Value callOrThrow(Value... args) {
     Context c = new Context(null);
     call(c, args);
-    if (c.exc)
-      throw new BarrierException((ExceptionValue) c.value);
+    if (c.exc) throw new BarrierException((ExceptionValue) c.value);
     return c.value;
   }
   public final Value getOrThrow(String name) {
     Context c = new Context(null);
     get(c, name);
-    if (c.exc)
-      throw new BarrierException((ExceptionValue) c.value);
+    if (c.exc) throw new BarrierException((ExceptionValue) c.value);
     return c.value;
   }
   public final void get(Context c, String name) {
@@ -460,15 +480,16 @@ public static abstract class Value {
   }
   public final void call(Context c, String methodName, ArrayList<Value> args) {
     get(c, methodName);
-    if (c.exc)
-      return;
+    if (c.exc) return;
     c.value.call(c, args);
+  }
+  public final void call(Context c, String methodName, Value... args) {
+    call(c, methodName, valueArrayToArrayList(args));
   }
   public final Value callOrThrow(String methodName, ArrayList<Value> args) {
     Context c = new Context(null);
     call(c, methodName, args);
-    if (c.exc)
-      throw new BarrierException((ExceptionValue) c.value);
+    if (c.exc) throw new BarrierException((ExceptionValue) c.value);
     return c.value;
   }
   public final Value callOrThrow(String methodName, Value... args) {
@@ -480,7 +501,7 @@ public static abstract class Value {
   public final boolean isTruthy() {
     return callOrThrow("__bool__").getBoolValue();
   }
-  public String repr() {
+  public final String repr() {
     return callOrThrow("__repr__").getStringValue();
   }
   public final int hashCode() {
@@ -502,9 +523,6 @@ public static final class ExceptionValue extends Value {
   }
   public ClassValue getType() {
     return classException;
-  }
-  public String repr() {
-    return message + "\n" + trace.repr();
   }
 }
 
@@ -545,9 +563,6 @@ public static final class BoolValue extends Value {
   public ClassValue getType() {
     return classBool;
   }
-  public String repr() {
-    return value ? "true" : "false";
-  }
   public boolean getBoolValue() {
     return value;
   }
@@ -560,20 +575,6 @@ public static final class StringValue extends Value {
   }
   public ClassValue getType() {
     return classString;
-  }
-  public String repr() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("\"");
-    for (int i = 0; i < value.length(); i++) {
-      char c = value.charAt(i);
-      switch(c) {
-      case '\n': sb.append("\\n"); break;
-      case '"': sb.append("\\\""); break;
-      default: sb.append(c);
-      }
-    }
-    sb.append("\"");
-    return sb.toString();
   }
   public String getStringValue() {
     return value;
@@ -591,11 +592,6 @@ public static final class NumberValue extends Value {
   public double getNumberValue() {
     return value;
   }
-  public String repr() {
-    if (value == Math.floor(value))
-      return Integer.toString((int) value);
-    return Double.toString(value);
-  }
 }
 
 public static final class ListValue extends Value {
@@ -606,16 +602,6 @@ public static final class ListValue extends Value {
   public ClassValue getType() {
     return classList;
   }
-  public String repr() {
-    StringBuilder sb = new StringBuilder("[");
-    for (int i = 0; i < value.size(); i++) {
-      if (i != 0)
-        sb.append(", ");
-      sb.append(value.get(i).repr());
-    }
-    sb.append("]");
-    return sb.toString();
-  }
   public ArrayList<Value> getListValue()  {
     return value;
   }
@@ -625,9 +611,6 @@ public static abstract class NamedValue extends Value {
   public final String name;
   public NamedValue(String name) {
     this.name = name == null ? "[anonymous]" : name;
-  }
-  public String repr() {
-    return "<" + getType().name + " '" + name + "'>";
   }
 }
 
@@ -673,8 +656,7 @@ public static void calls(
     Context c, Value owner, ArrayList<Value> args) {
 
   if (fnVararg == null) {
-    if (expectArglen(c, fnArgs.length, args))
-      return;
+    if (expectArglen(c, fnArgs.length, args)) return;
   } else {
     if (expectArglenStar(c, fnArgs.length, args))
       return;
@@ -885,13 +867,7 @@ public static final class TraceValue extends Value {
     this.next = next;
   }
   public ClassValue getType() {
-    return classObject;
-  }
-  public String repr() {
-    StringBuilder sb = new StringBuilder();
-    for (TraceValue t = this; t != null; t = t.next)
-      sb.append(t.node.token.getLocationString());
-    return sb.toString();
+    return classTrace;
   }
 }
 
@@ -1002,22 +978,19 @@ public static final class CallAst extends Ast {
   }
   public void eval(Context c) {
     this.f.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
     Value f = c.value;
 
     ArrayList<Value> args = new ArrayList<Value>();
     for (int i = 0; i < this.args.length; i++) {
       this.args[i].eval(c);
-      if (c.exc)
-        return;
+      if (c.exc) return;
       args.add(c.value);
     }
 
     if (this.vararg != null) {
       this.vararg.eval(c);
-      if (c.exc)
-        return;
+      if (c.exc) return;
 
       Value vararg = c.value;
       if (!(vararg instanceof ListValue)) {
@@ -1057,8 +1030,7 @@ public static final class GetAttrAst extends Ast {
   }
   public void eval(Context c) {
     expr.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
 
     Value owner = c.value;
 
@@ -1084,13 +1056,11 @@ public static final class SetAttrAst extends Ast {
   }
   public void eval(Context c) {
     expr.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
     Value owner = c.value;
 
     this.val.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
     Value val = c.value;
 
     owner.put(attr, val);
@@ -1135,15 +1105,13 @@ public static final class ClassAst extends Ast {
     ArrayList<Value> bases = new ArrayList<Value>();
     for (int i = 0; i < this.bases.length; i++) {
       this.bases[i].eval(c);
-      if (c.exc)
-        return;
+      if (c.exc) return;
       bases.add(c.value);
     }
 
     if (this.varbase != null) {
       this.varbase.eval(c);
-      if (c.exc)
-        return;
+      if (c.exc) return;
       Value varbase = c.value;
       if (!(varbase instanceof ListValue)) {
         c.exc = true;
@@ -1163,8 +1131,7 @@ public static final class ClassAst extends Ast {
     c.scope = new Scope(scope);
 
     body.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
     ClassValue cv = new ClassValue(name, bases, c.scope.table);
     if (name != null)
       scope.put(name, cv);
@@ -1182,8 +1149,7 @@ public static final class ReturnAst extends Ast {
   }
   public void eval(Context c) {
     expr.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
 
     c.exc = c.ret = true;
   }
@@ -1218,8 +1184,7 @@ public static final class WhileAst extends Ast {
   public void eval(Context c) {
     while (true) {
       cond.eval(c);
-      if (c.exc)
-        return;
+      if (c.exc) return;
 
       if (!c.value.isTruthy())
         break;
@@ -1236,8 +1201,7 @@ public static final class WhileAst extends Ast {
         continue;
       }
 
-      if (c.exc)
-        return;
+      if (c.exc) return;
     }
   }
 }
@@ -1254,8 +1218,7 @@ public static final class IfAst extends Ast {
   }
   public void eval(Context c) {
     cond.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
 
     if (c.value.isTruthy()) {
       body.eval(c);
@@ -1276,8 +1239,7 @@ public static final class BlockAst extends Ast {
   public void eval(Context c) {
     for (int i = 0; i < exprs.length; i++) {
       exprs[i].eval(c);
-      if (c.exc)
-        return;
+      if (c.exc) return;
     }
   }
 }
@@ -1290,8 +1252,7 @@ public static final class NotAst extends Ast {
   }
   public void eval(Context c) {
     expr.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
     c.value = c.value.isTruthy() ? falseValue : trueValue;
   }
 }
@@ -1306,8 +1267,7 @@ public static final class OrAst extends Ast {
   }
   public void eval(Context c) {
     this.left.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
 
     Value left = c.value;
     if (!left.isTruthy())
@@ -1325,8 +1285,7 @@ public static final class AndAst extends Ast {
   }
   public void eval(Context c) {
     this.left.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
 
     Value left = c.value;
     if (left.isTruthy())
@@ -1355,14 +1314,12 @@ public static final class IsAst extends Ast {
   }
   public void eval(Context c) {
     this.left.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
 
     Value left = c.value;
 
     this.right.eval(c);
-    if (c.exc)
-      return;
+    if (c.exc) return;
 
     Value right = c.value;
 

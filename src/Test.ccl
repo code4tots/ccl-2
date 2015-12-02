@@ -33,3 +33,7 @@ print[x]
 import Blarg
 
 Blarg.blargf[]
+
+print['hi'.__repr__[]]
+print[List[1, 2, 3]]
+print[Trace[]]
