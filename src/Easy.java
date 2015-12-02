@@ -54,9 +54,27 @@ public static final ClassValue classObject =
               return;
             c.value = new NumberValue(System.identityHashCode(owner));
           }
+        })
+        .put(new BuiltinMethodValue("__bool__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = trueValue;
+          }
+        });
+public static final ClassValue classNamedObject =
+    new ClassValue("NamedObject", classObject)
+        .put(new BuiltinMethodValue("__repr__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = new StringValue(
+                "<" + owner.getType().name + " " +
+                ((NamedValue) owner).name + ">");
+          }
         });
 public static final ClassValue classClass =
-    new ClassValue("Class", classObject);
+    new ClassValue("Class", classNamedObject);
 public static final ClassValue classException =
     new ClassValue("Exception", classObject)
         .put(new BuiltinMethodValue("__repr__") {
@@ -76,6 +94,13 @@ public static final ClassValue classNil =
               return;
             c.value = new StringValue("nil");
           }
+        })
+        .put(new BuiltinMethodValue("__bool__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = falseValue;
+          }
         });
 public static final ClassValue classBool =
     new ClassValue("Bool", classObject)
@@ -84,6 +109,13 @@ public static final ClassValue classBool =
             if (expectArglen(c, 0, args))
               return;
             c.value = new StringValue(owner.getBoolValue() ? "true" : "false");
+          }
+        })
+        .put(new BuiltinMethodValue("__bool__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = owner;
           }
         });
 public static final ClassValue classNumber =
@@ -96,6 +128,13 @@ public static final ClassValue classNumber =
             c.value = new StringValue(
                 val == Math.floor(val) ?
                 Integer.toString((int) val) : Double.toString(val));
+          }
+        })
+        .put(new BuiltinMethodValue("__bool__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = owner.getNumberValue() != 0 ? trueValue : falseValue;
           }
         })
         .put(new BuiltinMethodValue("__eq__") {
@@ -172,6 +211,14 @@ public static final ClassValue classString =
             c.value = owner;
           }
         })
+        .put(new BuiltinMethodValue("__bool__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value =
+                owner.getStringValue().length() != 0 ? trueValue : falseValue;
+          }
+        })
         .put(new BuiltinMethodValue("__add__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args))
@@ -209,10 +256,18 @@ public static final ClassValue classList =
           public void call(Context c, ArrayList<Value> args) {
             c.value = new ListValue(args);
           }
+        })
+        .put(new BuiltinMethodValue("__bool__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value =
+                owner.getListValue().size() != 0 ? trueValue : falseValue;
+          }
         });
 public static final ClassValue classMap = new ClassValue("Map", classObject);
 public static final ClassValue classFunction =
-    new ClassValue("Function", classObject);
+    new ClassValue("Function", classNamedObject);
 public static final ClassValue classModule =
     new ClassValue("Module", classObject);
 
@@ -422,7 +477,7 @@ public static abstract class Value {
   public final String toString() {
     return callOrThrow("__str__").getStringValue();
   }
-  public boolean isTruthy() {
+  public final boolean isTruthy() {
     return callOrThrow("__bool__").getBoolValue();
   }
   public String repr() {
@@ -450,9 +505,6 @@ public static final class ExceptionValue extends Value {
   }
   public String repr() {
     return message + "\n" + trace.repr();
-  }
-  public boolean isTruthy() {
-    return true;
   }
 }
 
@@ -483,9 +535,6 @@ public static final class NilValue extends Value {
   public ClassValue getType() {
     return classNil;
   }
-  public boolean isTruthy() {
-    return false;
-  }
 }
 
 public static final class BoolValue extends Value {
@@ -495,9 +544,6 @@ public static final class BoolValue extends Value {
   }
   public ClassValue getType() {
     return classBool;
-  }
-  public boolean isTruthy() {
-    return value;
   }
   public String repr() {
     return value ? "true" : "false";
@@ -514,9 +560,6 @@ public static final class StringValue extends Value {
   }
   public ClassValue getType() {
     return classString;
-  }
-  public boolean isTruthy() {
-    return value.length() != 0;
   }
   public String repr() {
     StringBuilder sb = new StringBuilder();
@@ -545,9 +588,6 @@ public static final class NumberValue extends Value {
   public ClassValue getType() {
     return classNumber;
   }
-  public boolean isTruthy() {
-    return value != 0.0;
-  }
   public double getNumberValue() {
     return value;
   }
@@ -565,9 +605,6 @@ public static final class ListValue extends Value {
   }
   public ClassValue getType() {
     return classList;
-  }
-  public boolean isTruthy() {
-    return value.size() != 0;
   }
   public String repr() {
     StringBuilder sb = new StringBuilder("[");
@@ -855,9 +892,6 @@ public static final class TraceValue extends Value {
     for (TraceValue t = this; t != null; t = t.next)
       sb.append(t.node.token.getLocationString());
     return sb.toString();
-  }
-  public boolean isTruthy() {
-    return true;
   }
 }
 
