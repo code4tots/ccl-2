@@ -165,6 +165,13 @@ public static final ClassValue classNumber =
         });
 public static final ClassValue classString =
     new ClassValue("String", classObject)
+        .put(new BuiltinMethodValue("__str__") {
+          public void callm(Context c, Value owner, ArrayList<Value> args) {
+            if (expectArglen(c, 0, args))
+              return;
+            c.value = owner;
+          }
+        })
         .put(new BuiltinMethodValue("__add__") {
           public void callm(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args))
@@ -381,16 +388,20 @@ public static abstract class Value {
   // don't expect an exception unless something really goes wrong.
   // So instead if there is an error here, a BarrierException is thrown.
   public double getNumberValue() {
-    throw new BarrierException(new ExceptionValue(null, "Expected a number"));
+    throw new BarrierException(new ExceptionValue(
+        null, "Expected a Number but found " + getType().name));
   }
   public String getStringValue() {
-    throw new BarrierException(new ExceptionValue(null, "Expected a string"));
+    throw new BarrierException(new ExceptionValue(
+        null, "Expected a String but found " + getType().name));
   }
   public ArrayList<Value> getListValue()  {
-    throw new BarrierException(new ExceptionValue(null, "Expected a list"));
+    throw new BarrierException(new ExceptionValue(
+        null, "Expected a List but found " + getType().name));
   }
   public boolean getBoolValue() {
-    throw new BarrierException(new ExceptionValue(null, "Expected a bool"));
+    throw new BarrierException(new ExceptionValue(
+        null, "Expected a Bool but found " + getType().name));
   }
   public final void call(Context c, String methodName, ArrayList<Value> args) {
     get(c, methodName);
@@ -408,7 +419,7 @@ public static abstract class Value {
   public final Value callOrThrow(String methodName, Value... args) {
     return getOrThrow(methodName).callOrThrow(args);
   }
-  public String toString() {
+  public final String toString() {
     return callOrThrow("__str__").getStringValue();
   }
   public boolean isTruthy() {
@@ -520,9 +531,6 @@ public static final class StringValue extends Value {
     }
     sb.append("\"");
     return sb.toString();
-  }
-  public String toString() {
-    return value;
   }
   public String getStringValue() {
     return value;
@@ -660,27 +668,6 @@ public static void calls(
     c.exc = c.ret = false;
 
   c.scope = oldScope;
-}
-
-public static final class UserMethodValue extends FunctionValue {
-  public final Value owner;
-  public final Scope scope;
-  public final String[] args;
-  public final String vararg;
-  public final Ast body;
-  public UserMethodValue(
-      Value owner, Scope scope,
-      String name, String[] args, String vararg, Ast body) {
-    super(name);
-    this.owner = owner;
-    this.scope = scope;
-    this.args = args;
-    this.vararg = vararg;
-    this.body = body;
-  }
-  public final void call(Context c, ArrayList<Value> args) {
-    calls(scope, this.args, vararg, body, c, owner, args);
-  }
 }
 
 public static final class UserFunctionValue extends FunctionValue {

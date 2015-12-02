@@ -100,6 +100,11 @@ public abstract static class Value {
   }
 
   // Java bridge methods
+  public final double toNumber(Context c) {
+    if (!(this instanceof NumberValue)) {
+      c.exc = true; // TODO: c.val
+    }
+  }
   public final boolean toBool(Context c) {
     call(c, "__bool__");
     if (!(c.val instanceof BoolValue)) {
