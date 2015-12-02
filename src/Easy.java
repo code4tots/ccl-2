@@ -63,7 +63,9 @@ public static final ClassValue classException =
           public void callm(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args))
               return;
-            c.value = new StringValue()
+            c.value = new StringValue(
+                ((ExceptionValue) owner).message + "\n" +
+                ((ExceptionValue) owner).trace.repr());
           }
         });
 public static final ClassValue classNil =
@@ -488,6 +490,9 @@ public static final class BoolValue extends Value {
   }
   public String repr() {
     return value ? "true" : "false";
+  }
+  public boolean getBoolValue() {
+    return value;
   }
 }
 
