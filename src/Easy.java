@@ -2,6 +2,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Collections;
 
 public abstract class Easy {
 
@@ -751,6 +752,7 @@ public static ArrayList<Value> valueArrayToArrayList(Value... bases) {
 public static final class ClassValue extends NamedValue {
   public final ArrayList<ClassValue> bases;
   public final HashMap<String, Value> attrs;
+  public final ArrayList<ClassValue> mro;
   public ClassValue(
       String name, ArrayList<Value> bases, HashMap<String, Value> attrs) {
     super(name);
@@ -758,6 +760,27 @@ public static final class ClassValue extends NamedValue {
     for (int i = 0; i < bases.size(); i++)
       this.bases.add((ClassValue) bases.get(i));
     this.attrs = attrs;
+    mro = new ArrayList<ClassValue>();
+    for (int i = this.bases.size()-1; i >= 0; i--) {
+      ClassValue base = this.bases.get(i);
+      for (int j = base.mro.size()-1; j >= 0; j--) {
+        ClassValue ancestor = base.mro.get(j);
+
+        // I can't use 'contains' here because an 'equals' call involves
+        // looking up the mro.
+        boolean found = false;
+        for (int k = 0; k < mro.size(); k++) {
+          if (ancestor == mro.get(k)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found)
+          mro.add(ancestor);
+      }
+    }
+    mro.add(this);
+    Collections.reverse(mro);
   }
   public ClassValue(String name, ArrayList<Value> bases) {
     this(name, bases, new HashMap<String, Value>());
@@ -782,11 +805,10 @@ public static final class ClassValue extends NamedValue {
     return classClass;
   }
   public Value getForInstance(String name) {
-    // TODO: C3 MRO
     Value value = attrs.get(name);
     if (value == null) {
-      for (int i = 0; i < bases.size() && value == null; i++) {
-        value = bases.get(i).getForInstance(name);
+      for (int i = 0; i < mro.size() && value == null; i++) {
+        value = mro.get(i).attrs.get(name);
       }
     }
     return value;
