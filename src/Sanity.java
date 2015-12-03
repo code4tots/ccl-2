@@ -15,6 +15,7 @@ public static void main(String[] args) {
 
 /// Effectively the core library.
 
+public static final NilValue nil = new NilValue();
 public static final TypeValue typeValue = new TypeValue("Value");
 public static final TypeValue typeType = new TypeValue("Type", typeValue);
 public static final TypeValue typeNil = new TypeValue("Nil", typeValue);
@@ -31,6 +32,14 @@ public static final TypeValue typeFunction = new TypeValue("Function", typeValue
     });
 
 // Core library -- some values need custom subclassing.
+public static final class NilValue extends Value {
+  public final TypeValue getType() { return typeNil; }
+}
+public static final class NumberValue extends Value {
+  public final Double value;
+  public NumberValue(Double value) { this.value = value; }
+  public final TypeValue getType() { return typeNumber; }
+}
 public static final class StringValue extends Value {
   public final String value;
   public StringValue(String value) { this.value = value; }
@@ -54,8 +63,21 @@ public static final class Context {
   public boolean br = false; // break
   public boolean cont = false; // continue
 
+  // For variable lookups.
+  public Scope scope;
+
+  public Context(Scope scope) { this.scope = scope; }
+
   // Verify the snaity of Context
-  public final void check() {
+  public final void checkStart() {
+    if (ret)
+      err(this, "ret is set");
+    if (br)
+      err(this, "br is set");
+    if (cont)
+      err(this, "cont is set");
+  }
+  public final void checkEnd() {
     if (value == null)
       err(this, "val is null");
   }
@@ -63,6 +85,18 @@ public static final class Context {
   // Indicates whether any of the special control flow flags are set.
   public final boolean jump() {
     return ret || br || cont;
+  }
+
+  public final Value get(String name) {
+    Value value = scope.getOrNull(name);
+    if (value == null)
+      throw new Err(trace, "No variable named " + name);
+    return value;
+  }
+
+  public final Context put(String name, Value value) {
+    scope.put(name, value);
+    return this;
   }
 }
 
@@ -93,8 +127,9 @@ public abstract static class Value {
     Trace oldTrace = c.trace;
     try {
       c.trace = new CallTrace(c.trace, ownerType, methodType, method);
+      c.checkStart();
       method.call(c, this, args);
-      c.check();
+      c.checkEnd();
     } finally {
       c.trace = oldTrace;
     }
@@ -103,9 +138,9 @@ public abstract static class Value {
   // TODO: Figure out what to do about these java bridge methods.
   // The problem is that I can't pass a 'Context' argument so when there is a
   // problem I can't get a full stack trace.
-  public final boolean equals(Object x) { throw new RuntimeException("FUBAR"); }
-  public final int hashCode() { throw new RuntimeException("FUBAR"); }
-  public final String toString() { throw new RuntimeException("FUBAR"); }
+  public final boolean equals(Object x) { throw new Fubar(); }
+  public final int hashCode() { throw new Fubar(); }
+  public final String toString() { throw new Fubar(); }
 }
 
 public static final class TypeValue extends Value {
@@ -116,7 +151,7 @@ public static final class TypeValue extends Value {
   public final TypeValue getType() { return typeType; }
   public TypeValue(String n, ArrayList<Value> bs) {
     if (n == null)
-      throw new RuntimeException("FUBAR");
+      throw new Fubar();
 
     name = n;
     for (int i = bs.size()-1; i >= 0; i--) {
@@ -152,8 +187,9 @@ public abstract static class FunctionValue extends Value {
   public FunctionValue(String name) { this.name = name; }
   public abstract void calli(Context c, ArrayList<Value> args);
   public final void call(Context c, ArrayList<Value> args) {
+    c.checkStart();
     calli(c, args);
-    c.check();
+    c.checkEnd();
   }
 }
 
@@ -220,8 +256,20 @@ public abstract static class Ast {
   public Ast(Token token) { this.token = token; }
   public abstract void evali(Context c);
   public final void eval(Context c) {
+    c.checkStart();
     evali(c);
-    c.check();
+    c.checkEnd();
+  }
+}
+
+public static final class NameAst extends Ast {
+  public final String name;
+  public NameAst(Token token, String name) {
+    super(token);
+    this.name = name;
+  }
+  public final void evali(Context c) {
+    c.value = c.get(name);
   }
 }
 
@@ -236,15 +284,80 @@ public static final class StringAst extends Ast {
   }
 }
 
+public static final class NumberAst extends Ast {
+  public final NumberValue value;
+  public NumberAst(Token token, Double value) {
+    super(token);
+    this.value = new NumberValue(value);
+  }
+  public final void evali(Context c) {
+    c.value = value;
+  }
+}
+
+public static final class BlockAst extends Ast {
+  public final ArrayList<Ast> body;
+  public BlockAst(Token token, ArrayList<Ast> body) {
+    super(token);
+    this.body = body;
+  }
+  public final void evali(Context c) {
+    c.value = nil;
+    for (int i = 0; i < body.size(); i++) {
+      body.get(i).eval(c);
+      if (c.jump())
+        return;
+    }
+  }
+}
+
+public static final class ModuleAst extends Ast {
+  public final String name;
+  public final BlockAst body;
+  public ModuleAst(Token token, String name, BlockAst body) {
+    super(token);
+    this.name = name;
+    this.body = body;
+  }
+  public final void evali(Context c) {
+    body.eval(c);
+  }
+}
+
+/// Scope
+
+public static final class Scope {
+  public final HashMap<String, Value> table;
+  public final Scope parent;
+  public Scope(Scope parent) {
+    this.parent = parent;
+    table = new HashMap<String, Value>();
+  }
+  public Value getOrNull(String name) {
+    Value value = table.get(name);
+    if (value == null && parent != null)
+      return parent.getOrNull(name);
+    return value;
+  }
+  public Scope put(String name, Value value) {
+    table.put(name, value);
+    return this;
+  }
+}
+
 /// Parser
 
 public static final class Parser {
   public final Lexer lexer;
+  public final String name;
+  public final String filespec;
   public Parser(String string, String filespec) {
     this(new Lexer(string, filespec));
   }
   public Parser(Lexer lexer) {
     this.lexer = lexer;
+    this.filespec = lexer.filespec;
+    this.name = filespecToName(lexer.filespec);
   }
   private Token peek() { return lexer.peek; }
   private Token next() { return lexer.next(); }
@@ -258,23 +371,91 @@ public static final class Parser {
   }
   private Token expect(String type) {
     if (!at(type))
-      throw new RuntimeException(
-          "Expected " + type + " but found " + peek().type);
+      throw new SyntaxError(
+          peek(), "Expected " + type + " but found " + peek().type);
     return next();
+  }
+  public ModuleAst parse() {
+    Token token = peek();
+    ArrayList<Ast> exprs = new ArrayList<Ast>();
+    while (!at("EOF"))
+      exprs.add(parseExpression());
+    return new ModuleAst(token, name, new BlockAst(token, exprs));
+  }
+  public Ast parseExpression() {
+    return parsePrimaryExpression();
+  }
+  public Ast parsePrimaryExpression() {
+
+    if (at("STR")) {
+      Token token = next();
+      return new StringAst(token, (String) token.value);
+    }
+
+    if (at("NUM")) {
+      Token token = next();
+      return new NumberAst(token, (Double) token.value);
+    }
+
+    if (at("ID")) {
+      Token token = next();
+      return new NameAst(token, (String) token.value);
+    }
+
+    if (consume("(")) {
+      Ast expr = parseExpression();
+      expect(")");
+      return expr;
+    }
+
+    throw new SyntaxError(peek(), "Expected expression");
+  }
+}
+
+// Parser test
+static {
+  if (TEST) {
+    Parser parser;
+    Ast node;
+
+    parser = new Parser("5", "<test>");
+    node = parser.parseExpression();
+    expect(node instanceof NumberAst);
+    expect(((NumberAst) node).value.value.equals(5.0));
+
+    parser = new Parser("'hi'", "<test>");
+    node = parser.parseExpression();
+    expect(node instanceof StringAst);
+    expect(((StringAst) node).value.value.equals("hi"));
+
+    parser = new Parser("hi", "<test>");
+    node = parser.parseExpression();
+    expect(node instanceof NameAst);
+    expect(((NameAst) node).name.equals("hi"));
+
+    parser = new Parser("(hi)", "<test>");
+    node = parser.parseExpression();
+    expect(node instanceof NameAst);
+    expect(((NameAst) node).name.equals("hi"));
+
+    System.out.println("Parser tests pass");
   }
 }
 
 /// Lexer and Token
 
-public static final ArrayList<String> KEYWORDS = toArrayList("def");
-public static final ArrayList<String> SYMBOLS;
-static {
-  SYMBOLS = toArrayList(
-    "(", ")", "[", "]", "{", "}", ".", ":",
-    "+", "-", "*", "/", "%");
-}
-
 public static final class Lexer {
+  public static final ArrayList<String> KEYWORDS = toArrayList("def");
+  public static final ArrayList<String> SYMBOLS;
+
+  // My syntax highlighter does funny things if it sees "{", "}" in the
+  // surrounding scope.
+  static {
+    SYMBOLS = toArrayList(
+        "(", ")", "[", "]", ".", ":",
+        "+", "-", "*", "/", "%");
+  }
+
   public final String string;
   public final String filespec;
   public final ArrayList<Token> tokens;
@@ -317,14 +498,19 @@ public static final class Lexer {
       StringBuilder sb = new StringBuilder();
       while (!startsWith(quote)) {
         if (!more())
-          throw new RuntimeException("Finish your string literals");
+          throw new SyntaxError(
+              makeToken(start, "ERR"),
+              "Finish your string literals");
         if (!raw && startsWith("\\")) {
           pos++;
           if (!more())
-            throw new RuntimeException("Finish your string escapes");
+            throw new SyntaxError(
+                makeToken(pos, "ERR"),
+                "Finish your string escapes");
           switch (ch()) {
           case '\\': sb.append('\\'); break;
-          default: throw new RuntimeException(
+          default: throw new SyntaxError(
+              makeToken(pos, "ERR"), 
               "Invalid string escape " + Character.toString(ch()));
           }
           pos++;
@@ -384,7 +570,8 @@ public static final class Lexer {
     // ERR
     while (more() && !Character.isWhitespace(ch()))
       pos++;
-    throw new RuntimeException("Unrecognized token " + cut(start));
+    Token token = makeToken(start, "ERR");
+    throw new SyntaxError(token, "Unrecognized token");
   }
   public boolean isdigit() {
     return more() && Character.isDigit(ch());
@@ -511,6 +698,40 @@ static {
   }
 }
 
+/// Exceptions
+
+// SyntaxError is thrown if an error is encountered in either
+// the lex or parse process.
+public static final class SyntaxError extends RuntimeException {
+  public final static long serialVersionUID = 42L;
+  public final Token token;
+  public final String message;
+  public SyntaxError(Token token, String message) {
+    super(message + "\n" + token.getLocationString());
+    this.token = token;
+    this.message = message;
+  }
+}
+
+// Fubar exception is thrown whenever we have an error but no context
+// instance to get a stack trace.
+public static final class Fubar extends RuntimeException {
+  public final static long serialVersionUID = 42L;
+}
+
+// Err is the general exception thrown whenever we encounter an error
+// while a fully parsed program is running.
+public static final class Err extends RuntimeException {
+  public final static long serialVersionUID = 42L;
+  public final Trace trace;
+  public final String message;
+  public Err(Trace trace, String message) {
+    super(message + "\n" + trace.toString());
+    this.trace = trace;
+    this.message = message;
+  }
+}
+
 /// utils
 public static ArrayList<Value> toArrayList(Value... args) {
   ArrayList<Value> al = new ArrayList<Value>();
@@ -526,11 +747,21 @@ public static ArrayList<String> toArrayList(String... args) {
 }
 
 public static void err(Context c, String message) {
-  throw new RuntimeException(message);
+  throw new Err(c.trace, message);
 }
 
 public static void expect(boolean cond) {
-  if (!cond) throw new RuntimeException();
+  if (!cond) throw new Fubar();
+}
+
+public static String filespecToName(String filespec) {
+  int start, end = filespec.length();
+  for (start = filespec.length()-1;
+        start >= 1 && filespec.charAt(start-1) != '/' &&
+        filespec.charAt(start-1) != '\\'; start--);
+  if (filespec.endsWith(".ccl"))
+    end -= ".ccl".length();
+  return filespec.substring(start, end);
 }
 
 }
