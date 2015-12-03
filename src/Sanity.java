@@ -97,15 +97,15 @@ public static final class Context {
   // Verify the snaity of Context
   public final void checkStart() {
     if (ret)
-      err(this, "ret is set");
+      throw err(this, "ret is set");
     if (br)
-      err(this, "br is set");
+      throw err(this, "br is set");
     if (cont)
-      err(this, "cont is set");
+      throw err(this, "cont is set");
   }
   public final void checkEnd() {
     if (value == null)
-      err(this, "val is null");
+      throw err(this, "val is null");
   }
 
   // Indicates whether any of the special control flow flags are set.
@@ -148,7 +148,7 @@ public abstract static class Value {
     }
 
     if (method == null)
-      err(c, "No such method " + name);
+      throw err(c, "No such method " + name);
 
     Trace oldTrace = c.trace;
     try {
@@ -159,6 +159,20 @@ public abstract static class Value {
     } finally {
       c.trace = oldTrace;
     }
+  }
+
+  // Only UserValue should override this method.
+  // This method should be considered final for all other purposes.
+  public Value get(Context c, String name) {
+    for (int i = 0; i < getType().mro.size(); i++) {
+      TypeValue ancestor = getType().mro.get(i);
+      Method method = ancestor.methods.get(name);
+      if (method != null)
+        return new BoundMethodValue(this, method);
+    }
+    throw err(c,
+        "No attribute named " + name +
+        " for value of instance " + getType().name);
   }
 
   // TODO: Figure out what to do about these java bridge methods.
@@ -219,20 +233,32 @@ public static final class UserValue extends Value {
   public final TypeValue getType() { return type; }
   public final Value get(Context c, String name) {
     Value value = attrs.get(name);
-    if (value == null)
-      err(c, "No attribute named " + name);
-    return value;
+    return value == null ? super.get(c, name) : value;
   }
 }
 
 public abstract static class FunctionValue extends Value {
   public final String name;
   public FunctionValue(String name) { this.name = name; }
+  public final TypeValue getType() { return typeFunction; }
   public abstract void calli(Context c, ArrayList<Value> args);
   public final void call(Context c, ArrayList<Value> args) {
     c.checkStart();
     calli(c, args);
     c.checkEnd();
+  }
+}
+
+public static final class BoundMethodValue extends FunctionValue {
+  public final Value owner;
+  public final Method method;
+  public BoundMethodValue(Value owner, Method method) {
+    super(method.name);
+    this.owner = owner;
+    this.method = method;
+  }
+  public final void calli(Context c, ArrayList<Value> args) {
+    method.call(c, owner, args);
   }
 }
 
@@ -803,8 +829,8 @@ public static ArrayList<String> toArrayList(String... args) {
   return al;
 }
 
-public static void err(Context c, String message) {
-  throw new Err(c.trace, message);
+public static Err err(Context c, String message) {
+  return new Err(c.trace, message);
 }
 
 public static void expect(boolean cond) {
