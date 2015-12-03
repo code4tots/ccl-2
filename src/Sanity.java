@@ -452,7 +452,7 @@ static {
     expect(tok.type.equals("."));
     expect(tok.value == null);
 
-    lexer = new Lexer("a b # c", "<test>");
+    lexer = new Lexer("a # b\nc", "<test>");
     while (!lexer.done)
       lexer.next();
 
