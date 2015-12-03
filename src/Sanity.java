@@ -1,6 +1,7 @@
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 
 public class Sanity {
 
@@ -11,6 +12,30 @@ public static final boolean TEST = true;
 public static void main(String[] args) {
   if (TEST)
     System.out.println("All tests pass!");
+}
+
+public static HashMap<String, Value> run(ModuleAst node) {
+  return run(new Context(), node);
+}
+
+public static HashMap<String, Value> run(Context c, ModuleAst node) {
+  c.checkStart();
+  node.eval(c);
+  c.checkEnd();
+  return c.scope.table;
+}
+
+public static UserValue importModule(ModuleAst node) {
+  HashMap<String, Value> table = run(node);
+  UserValue value = new UserValue(typeModule);
+
+  Iterator<String> it = table.keySet().iterator();
+  while (it.hasNext()) {
+    String key = it.next();
+    value.put(key, table.get(key));
+  }
+
+  return value;
 }
 
 /// Effectively the core library.
@@ -30,8 +55,11 @@ public static final TypeValue typeFunction = new TypeValue("Function", typeValue
         ((FunctionValue) owner).call(c, args);
       }
     });
+public static final TypeValue typeModule = new TypeValue("Module", typeValue);
 
-// Core library -- some values need custom subclassing.
+public static final Scope BUILTIN_SCOPE = new Scope(null)
+    .put("nil", nil);
+
 public static final class NilValue extends Value {
   public final TypeValue getType() { return typeNil; }
 }
@@ -64,9 +92,7 @@ public static final class Context {
   public boolean cont = false; // continue
 
   // For variable lookups.
-  public Scope scope;
-
-  public Context(Scope scope) { this.scope = scope; }
+  public Scope scope = new Scope(BUILTIN_SCOPE);
 
   // Verify the snaity of Context
   public final void checkStart() {
@@ -179,6 +205,23 @@ public static final class TypeValue extends Value {
   public TypeValue put(Method method) {
     methods.put(method.name, method);
     return this;
+  }
+}
+
+public static final class UserValue extends Value {
+  public final TypeValue type;
+  public final HashMap<String, Value> attrs = new HashMap<String, Value>();
+  public UserValue(TypeValue type) { this.type = type; }
+  public UserValue put(String name, Value value) {
+    attrs.put(name, value);
+    return this;
+  }
+  public final TypeValue getType() { return type; }
+  public final Value get(Context c, String name) {
+    Value value = attrs.get(name);
+    if (value == null)
+      err(c, "No attribute named " + name);
+    return value;
   }
 }
 
@@ -321,6 +364,20 @@ public static final class ModuleAst extends Ast {
   }
   public final void evali(Context c) {
     body.eval(c);
+  }
+}
+
+// Ast test
+
+static {
+  if (TEST) {
+    Context c = new Context();
+
+    run(c, new Parser("5", "<test>").parse());
+    expect(c.value instanceof NumberValue);
+    expect(((NumberValue) c.value).value.equals(5.0));
+
+    System.out.println("Ast tests pass");
   }
 }
 
