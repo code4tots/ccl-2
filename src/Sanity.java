@@ -30,6 +30,13 @@ public static final TypeValue typeFunction = new TypeValue("Function", typeValue
       }
     });
 
+// Core library -- some values need custom subclassing.
+public static final class StringValue extends Value {
+  public final String value;
+  public StringValue(String value) { this.value = value; }
+  public final TypeValue getType() { return typeString; }
+}
+
 /// Language core dispatch features (i.e. Value and Method)
 
 public static final class Context {
@@ -215,6 +222,45 @@ public abstract static class Ast {
   public final void eval(Context c) {
     evali(c);
     c.check();
+  }
+}
+
+public static final class StringAst extends Ast {
+  public final StringValue value;
+  public StringAst(Token token, String value) {
+    super(token);
+    this.value = new StringValue(value);
+  }
+  public final void evali(Context c) {
+    c.value = value;
+  }
+}
+
+/// Parser
+
+public static final class Parser {
+  public final Lexer lexer;
+  public Parser(String string, String filespec) {
+    this(new Lexer(string, filespec));
+  }
+  public Parser(Lexer lexer) {
+    this.lexer = lexer;
+  }
+  private Token peek() { return lexer.peek; }
+  private Token next() { return lexer.next(); }
+  private boolean at(String type) { return peek().type.equals(type); }
+  private boolean consume(String type) {
+    if (at(type)) {
+      next();
+      return true;
+    }
+    return false;
+  }
+  private Token expect(String type) {
+    if (!at(type))
+      throw new RuntimeException(
+          "Expected " + type + " but found " + peek().type);
+    return next();
   }
 }
 
