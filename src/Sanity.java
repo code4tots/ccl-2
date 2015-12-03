@@ -14,8 +14,10 @@ public static void main(String[] args) {
     System.out.println("All tests pass!");
 }
 
-public static HashMap<String, Value> run(ModuleAst node) {
-  return run(new Context(), node);
+public static HashMap<String, Value> run(ModuleAst node, String name) {
+  Context c = new Context();
+  c.put("__name__", new StringValue(name));
+  return run(c, node);
 }
 
 public static HashMap<String, Value> run(Context c, ModuleAst node) {
@@ -26,7 +28,7 @@ public static HashMap<String, Value> run(Context c, ModuleAst node) {
 }
 
 public static UserValue importModule(ModuleAst node) {
-  HashMap<String, Value> table = run(node);
+  HashMap<String, Value> table = run(node, node.name);
   UserValue value = new UserValue(typeModule);
 
   Iterator<String> it = table.keySet().iterator();
