@@ -16,7 +16,7 @@ public static final TypeValue typeList = new TypeValue("List", typeValue);
 public static final TypeValue typeMap = new TypeValue("Map", typeValue);
 public static final TypeValue typeFunction = new TypeValue("Function", typeValue)
     .put(new Method("__call__") {
-      public final void calli(Context c, Value owner, ArrayList<Value> args) {
+      public final void call(Context c, Value owner, ArrayList<Value> args) {
         ((FunctionValue) owner).call(c, args);
       }
     });
@@ -25,30 +25,63 @@ public static final TypeValue typeFunction = new TypeValue("Function", typeValue
 
 public static final class Context {
 
+  // Value to propagate, either to the next expression,
+  // or as return value, depending on other flags.
+  public Value value = null;
+
+  // For the sake of my sanity.
+  // Meant to help with debugging.
+  public Trace trace = EmptyTrace.instance;
+
+  // Special control flow flags.
+  public boolean ret = false; // return
+  public boolean br = false; // break
+  public boolean cont = false; // continue
+
   // Verify the snaity of Context
   public final void check() {
+    if (value == null)
+      err(this, "val is null");
+  }
+
+  // Indicates whether any of the special control flow flags are set.
+  public final boolean jump() {
+    return ret || br || cont;
   }
 }
 
 public abstract static class Method {
   public final String name;
   public Method(String name) { this.name = name; }
-  public abstract void calli(Context c, Value owner, ArrayList<Value> args);
-  public final void call(Context c, Value owner, ArrayList<Value> args) {
-    calli(c, owner, args);
-    c.check();
-  }
+  public abstract void call(Context c, Value owner, ArrayList<Value> args);
 }
 
 public abstract static class Value {
   public abstract TypeValue getType();
   public final void call(Context c, String name, ArrayList<Value> args) {
-    Method method = getType().getMethodOrNull(name);
+
+    TypeValue ownerType = getType();
+    TypeValue methodType = null;
+    Method method = null;
+
+    for (int i = 0; i < ownerType.mro.size(); i++) {
+      methodType = ownerType.mro.get(i);
+      method = methodType.methods.get(name);
+      if (method != null)
+        break;
+    }
 
     if (method == null)
       err(c, "No such method " + name);
 
-    method.call(c, this, args);
+    Trace oldTrace = c.trace;
+    try {
+      c.trace = new CallTrace(c.trace, ownerType, methodType, method);
+      method.call(c, this, args);
+      c.check();
+    } finally {
+      c.trace = oldTrace;
+    }
   }
 
   // TODO: Figure out what to do about these java bridge methods.
@@ -96,15 +129,6 @@ public static final class TypeValue extends Value {
     methods.put(method.name, method);
     return this;
   }
-  public final Method getMethodOrNull(String name) {
-    for (int i = 0; i < mro.size(); i++) {
-      TypeValue type = mro.get(i);
-      Method method = type.methods.get(name);
-      if (method != null)
-        return method;
-    }
-    return null;
-  }
 }
 
 public abstract static class FunctionValue extends Value {
@@ -120,10 +144,111 @@ public abstract static class FunctionValue extends Value {
 /// Ast
 
 public abstract static class Ast {
+  public final Token token;
+  public Ast(Token token) { this.token = token; }
   public abstract void evali(Context c);
   public final void eval(Context c) {
     evali(c);
     c.check();
+  }
+}
+
+/// Lexer and Token
+public static final class Lexer {
+  public final String string;
+  public final String filespec;
+  public final ArrayList<Token> tokens;
+  public Lexer(String string, String filespec, int... ii) {
+    this.string = string;
+    this.filespec = filespec;
+    tokens = new ArrayList<Token>();
+    for (int i = 0; i < ii.length; i++)
+      tokens.add(new Token(this, ii[i]));
+  }
+}
+
+public static final class Token {
+  public final Lexer lexer;
+  public final int i;
+  public Token(Lexer lexer, int i) {
+    this.lexer = lexer;
+    this.i = i;
+  }
+  public String getLocationString() {
+    int a = i, b = i, c = i, lc = 1;
+    while (a > 1 && lexer.string.charAt(a-1) != '\n')
+      a--;
+    while (b < lexer.string.length() && lexer.string.charAt(b) != '\n')
+      b++;
+    for (int j = 0; j < i; j++)
+      if (lexer.string.charAt(j) == '\n')
+        lc++;
+
+    String spaces = "";
+    for (int j = 0; j < i-a; j++)
+      spaces = spaces + " ";
+
+    return
+        "*** In file '" + lexer.filespec + "' on line " + Integer.toString(lc) +
+        " ***\n" + lexer.string.substring(a, b) + "\n" +
+        spaces + "*\n";
+  }
+}
+
+
+/// Trace
+
+public abstract static class Trace {
+  public final Trace next;
+  public Trace(Trace next) { this.next = next; }
+  public final String toString() {
+    StringBuilder sb = new StringBuilder();
+    for (Trace t = this; t != null; t = t.next) {
+      sb.append(t.topToString());
+    }
+    return sb.toString();
+  }
+  public abstract String topToString();
+}
+
+public static final class EmptyTrace extends Trace {
+  private EmptyTrace() { super(null); }
+  public static final EmptyTrace instance = new EmptyTrace();
+  public final String topToString() { return ""; }
+}
+
+public static final class AstTrace extends Trace {
+  public final Ast node;
+  public AstTrace(Trace next, Ast node) { super(next); this.node = node; }
+  public final String topToString() {
+    return "\n" + node.token.getLocationString(); // TODO
+  }
+}
+
+public static final class CallTrace extends Trace {
+  // Type of the object we are calling the method on.
+  public final TypeValue valueType;
+
+  // Type of the class that the method is actually implemented in.
+  // As such, methodType must be in valueType.mro.
+  public final TypeValue methodType;
+
+  // The actual method being invoked.
+  // Should be one of the entries in methodType.methods.
+  public final Method method;
+
+  public CallTrace(
+      Trace next, TypeValue valueType, TypeValue methodType, Method method) {
+    super(next);
+    this.valueType = valueType;
+    this.methodType = methodType;
+    this.method = method;
+  }
+
+  public final String topToString() {
+    return
+        "\n*** in method call " + valueType.name + "->" +
+        methodType.name + "." + method.name;
   }
 }
 
