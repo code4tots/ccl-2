@@ -13,7 +13,7 @@ public static final BoolValue falseValue = new BoolValue(false);
 public static final ClassValue classObject =
     new ClassValue("Object")
         .put(new BuiltinMethodValue("__new__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             Value value = new UserValue((ClassValue) owner);
             Value method = value.getOrNull("__init__");
@@ -29,31 +29,31 @@ public static final ClassValue classObject =
           }
         })
         .put(new BuiltinMethodValue("__init__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = nil;
           }
         })
         .put(new BuiltinMethodValue("__repr__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value =
                 new StringValue("<" + owner.getType().name + " instance>");
           }
         })
         .put(new BuiltinMethodValue("__str__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             owner.call(c, "__repr__", args);
           }
         })
         .put(new BuiltinMethodValue("__hash__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = new NumberValue(System.identityHashCode(owner));
           }
         })
         .put(new BuiltinMethodValue("__bool__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = trueValue;
           }
@@ -67,7 +67,7 @@ public static final ClassValue classTrace =
           }
         })
         .put(new BuiltinMethodValue("__repr__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             StringBuilder sb = new StringBuilder();
             for (TraceValue t = (TraceValue) owner; t != null; t = t.next)
@@ -78,7 +78,7 @@ public static final ClassValue classTrace =
 public static final ClassValue classNamedObject =
     new ClassValue("NamedObject", classObject)
         .put(new BuiltinMethodValue("__repr__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = new StringValue(
                 "<" + owner.getType().name + " " +
@@ -90,7 +90,7 @@ public static final ClassValue classClass =
 public static final ClassValue classException =
     new ClassValue("Exception", classObject)
         .put(new BuiltinMethodValue("__repr__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             UserValue v = (UserValue) owner;
 
@@ -98,11 +98,19 @@ public static final ClassValue classException =
             if (c.exc) return;
             String message = c.value.getStringValue();
 
+            System.out.println("YYYFFF");
+            System.out.println(c.value);
             v.get(c, "trace");
+            System.out.println(c.exc);
+            if (c.exc) {
+              System.out.println("YYY");
+              System.out.println(c.value);
+            }
             if (c.exc) return;
-            Value t = c.value;
+            TraceValue trace = (TraceValue) c.value;
+            System.out.println("XXX " + trace.getType().name);
 
-            t.call(c, "__repr__");
+            trace.call(c, "__repr__");
             if (c.exc) return;
             String traceStr = c.value.getStringValue();
 
@@ -112,13 +120,13 @@ public static final ClassValue classException =
 public static final ClassValue classNil =
     new ClassValue("Nil", classObject)
         .put(new BuiltinMethodValue("__repr__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = new StringValue("nil");
           }
         })
         .put(new BuiltinMethodValue("__bool__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = falseValue;
           }
@@ -126,13 +134,13 @@ public static final ClassValue classNil =
 public static final ClassValue classBool =
     new ClassValue("Bool", classObject)
         .put(new BuiltinMethodValue("__repr__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = new StringValue(owner.getBoolValue() ? "true" : "false");
           }
         })
         .put(new BuiltinMethodValue("__bool__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = owner;
           }
@@ -140,7 +148,7 @@ public static final ClassValue classBool =
 public static final ClassValue classNumber =
     new ClassValue("Number", classObject)
         .put(new BuiltinMethodValue("__repr__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             double val = owner.getNumberValue();
             c.value = new StringValue(
@@ -149,13 +157,13 @@ public static final ClassValue classNumber =
           }
         })
         .put(new BuiltinMethodValue("__bool__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = owner.getNumberValue() != 0 ? trueValue : falseValue;
           }
         })
         .put(new BuiltinMethodValue("__eq__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args)) return;
             c.value =
                 (args.get(0).getType() == classNumber) &&
@@ -164,48 +172,48 @@ public static final ClassValue classNumber =
           }
         })
         .put(new BuiltinMethodValue("__add__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args)) return;
             c.value = new NumberValue(
                 owner.getNumberValue() + args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__sub__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args)) return;
             c.value = new NumberValue(
                 owner.getNumberValue() - args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__mul__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args)) return;
             c.value = new NumberValue(
                 owner.getNumberValue() * args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__div__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args)) return;
             c.value = new NumberValue(
                 owner.getNumberValue() / args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("__mod__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args)) return;
             c.value = new NumberValue(
                 owner.getNumberValue() % args.get(0).getNumberValue());
           }
         })
         .put(new BuiltinMethodValue("floor") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = new NumberValue(Math.floor(owner.getNumberValue()));
           }
         })
         .put(new BuiltinMethodValue("frac") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             double value = owner.getNumberValue();
             c.value = new NumberValue(value - Math.floor(value));
@@ -214,13 +222,13 @@ public static final ClassValue classNumber =
 public static final ClassValue classString =
     new ClassValue("String", classObject)
         .put(new BuiltinMethodValue("__str__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value = owner;
           }
         })
         .put(new BuiltinMethodValue("__repr__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             String value = owner.getStringValue();
             StringBuilder sb = new StringBuilder();
@@ -238,21 +246,21 @@ public static final ClassValue classString =
           }
         })
         .put(new BuiltinMethodValue("__bool__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value =
                 owner.getStringValue().length() != 0 ? trueValue : falseValue;
           }
         })
         .put(new BuiltinMethodValue("__add__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args)) return;
             c.value = new StringValue(
                 owner.getStringValue() + args.get(0).getStringValue());
           }
         })
         .put(new BuiltinMethodValue("__mod__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args)) return;
             ArrayList<Value> items = args.get(0).getListValue();
             String[] aa = new String[items.size()];
@@ -263,7 +271,7 @@ public static final ClassValue classString =
           }
         })
         .put(new BuiltinMethodValue("__eq__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 1, args)) return;
 
             c.value =
@@ -280,7 +288,7 @@ public static final ClassValue classList =
           }
         })
         .put(new BuiltinMethodValue("__repr__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             ArrayList<Value> value = owner.getListValue();
             StringBuilder sb = new StringBuilder("List[");
@@ -296,7 +304,7 @@ public static final ClassValue classList =
           }
         })
         .put(new BuiltinMethodValue("__bool__") {
-          public void callm(Context c, Value owner, ArrayList<Value> args) {
+          public void callimpl(Context c, Value owner, ArrayList<Value> args) {
             if (expectArglen(c, 0, args)) return;
             c.value =
                 owner.getListValue().size() != 0 ? trueValue : falseValue;
@@ -354,6 +362,8 @@ public static void runAndGetValue(Context c, Ast body, String name) {
     if (c.exc) return;
 
     c.value = new UserValue(classModule, c.scope.table);
+  } catch(BarrierException e) {
+    handleBarrierException(c, e);
   } finally {
     c.scope = oldScope;
   }
@@ -441,7 +451,8 @@ public static void run(Context c, Ast ast) {
     System.out.println(
         "===================\n" +
         "**** Exception ****\n" +
-        "===================\n" + c.value.toString());
+        "===================\n" +
+        c.value.toString());
   }
 }
 
@@ -469,13 +480,13 @@ public static abstract class Value {
   public final Value callOrThrow(Value... args) {
     Context c = new Context(null);
     call(c, args);
-    if (c.exc) throw new BarrierException(c.value);
+    if (c.exc) throw new BarrierException(c);
     return c.value;
   }
   public final Value getOrThrow(String name) {
     Context c = new Context(null);
     get(c, name);
-    if (c.exc) throw new BarrierException(c.value);
+    if (c.exc) throw new BarrierException(c);
     return c.value;
   }
   public final void get(Context c, String name) {
@@ -661,7 +672,12 @@ public static abstract class BuiltinMethodValue extends FunctionValue {
         c.trace,
         "Can't call a builtin method without binding it first");
   }
-  public abstract void callm(Context c, Value owner, ArrayList<Value> args);
+  public abstract void callimpl(Context c, Value owner, ArrayList<Value> args);
+  public final void callm(Context c, Value owner, ArrayList<Value> args) {
+    callimpl(c, owner, args);
+    if (c.exc && c.value == null)
+      throw new RuntimeException("FUBAR");
+  }
   public final Value bind(final Value owner) {
     return new BuiltinFunctionValue(name) {
       public void call(Context c, ArrayList<Value> args) {
@@ -835,8 +851,27 @@ public static TraceValue joinStackTraces(TraceValue left, TraceValue right) {
 public static class BarrierException extends RuntimeException {
   public static final long serialVersionUID = 42L;
   public final Value e;
+  public final TraceValue tr;
+  public BarrierException(Context c) {
+    this(c.value, c.trace);
+  }
   public BarrierException(Value e) {
+    this(e, null);
+  }
+  public BarrierException(Value e, TraceValue t) {
+    tr = t;
+    if (e == null) {
+      String message = "Barrier exception with no exception";
+      if (t == null)
+        message += "\nnull";
+      else
+        message += "\n" + t.toString();
+      throw new RuntimeException(message);
+    }
     this.e = e;
+  }
+  public String toString() {
+    return e == null ? "null" : e.toString();
   }
 }
 
@@ -959,7 +994,12 @@ public static abstract class Ast {
   public Ast(Token token) {
     this.token = token;
   }
-  public abstract void eval(Context c);
+  public abstract void evalimpl(Context c);
+  public final void eval(Context c) {
+    evalimpl(c);
+    if (c.value == null)
+      throw new RuntimeException("FUBAR: " + getClass().toString());
+  }
 }
 
 public static final class StringAst extends Ast {
@@ -968,7 +1008,7 @@ public static final class StringAst extends Ast {
     super(token);
     this.value = value;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     c.value = new StringValue(value);
   }
 }
@@ -979,7 +1019,7 @@ public static final class NumberAst extends Ast {
     super(token);
     this.value = value;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     c.value = new NumberValue(value);
   }
 }
@@ -990,7 +1030,7 @@ public static final class NameAst extends Ast {
     super(token);
     this.name = name;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     if ((c.value = c.scope.getOrNull(name)) == null) {
       c.exc = true;
       c.value = makeException(
@@ -1007,7 +1047,7 @@ public static final class AssignAst extends Ast {
     this.name = name;
     this.expr = expr;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     expr.eval(c);
     if (!c.exc)
       c.scope.put(name, c.value);
@@ -1024,7 +1064,7 @@ public static final class CallAst extends Ast {
     this.args = args;
     this.vararg = vararg;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     this.f.eval(c);
     if (c.exc) return;
     Value f = c.value;
@@ -1074,19 +1114,13 @@ public static final class GetAttrAst extends Ast {
     this.expr = expr;
     this.attr = attr;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     expr.eval(c);
     if (c.exc) return;
 
     Value owner = c.value;
 
-    c.value = owner.getOrNull(attr);
-
-    if (c.value == null) {
-      c.exc = true;
-      c.value = makeException(
-          c.trace, "Couldn't get attribute '" + attr + "'");
-    }
+    owner.get(c, attr);
   }
 }
 
@@ -1100,7 +1134,7 @@ public static final class SetAttrAst extends Ast {
     this.attr = attr;
     this.val = val;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     expr.eval(c);
     if (c.exc) return;
     Value owner = c.value;
@@ -1126,7 +1160,7 @@ public static final class FuncAst extends Ast {
     this.vararg = vararg;
     this.body = body;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     c.value = new UserFunctionValue(c.scope, name, args, vararg, body);
 
     if (name != null)
@@ -1147,7 +1181,7 @@ public static final class ClassAst extends Ast {
     this.varbase = varbase;
     this.body = body;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     ArrayList<Value> bases = new ArrayList<Value>();
     for (int i = 0; i < this.bases.length; i++) {
       this.bases[i].eval(c);
@@ -1193,7 +1227,7 @@ public static final class ReturnAst extends Ast {
     super(token);
     this.expr = expr;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     expr.eval(c);
     if (c.exc) return;
 
@@ -1205,7 +1239,7 @@ public static final class BreakAst extends Ast {
   public BreakAst(Token token) {
     super(token);
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     c.exc = c.br = true;
   }
 }
@@ -1214,7 +1248,7 @@ public static final class ContinueAst extends Ast {
   public ContinueAst(Token token) {
     super(token);
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     c.exc = c.cont = true;
   }
 }
@@ -1227,7 +1261,7 @@ public static final class WhileAst extends Ast {
     this.cond = cond;
     this.body = body;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     while (true) {
       cond.eval(c);
       if (c.exc) return;
@@ -1262,7 +1296,7 @@ public static final class IfAst extends Ast {
     this.body = body;
     this.other = other;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     cond.eval(c);
     if (c.exc) return;
 
@@ -1282,7 +1316,7 @@ public static final class BlockAst extends Ast {
     super(token);
     this.exprs = exprs;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     for (int i = 0; i < exprs.length; i++) {
       exprs[i].eval(c);
       if (c.exc) return;
@@ -1296,7 +1330,7 @@ public static final class NotAst extends Ast {
     super(token);
     this.expr = expr;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     expr.eval(c);
     if (c.exc) return;
     c.value = c.value.isTruthy() ? falseValue : trueValue;
@@ -1311,7 +1345,7 @@ public static final class OrAst extends Ast {
     this.left = left;
     this.right = right;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     this.left.eval(c);
     if (c.exc) return;
 
@@ -1329,7 +1363,7 @@ public static final class AndAst extends Ast {
     this.left = left;
     this.right = right;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     this.left.eval(c);
     if (c.exc) return;
 
@@ -1345,7 +1379,7 @@ public static final class ModuleAst extends Ast {
     super(token);
     this.expr = expr;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     expr.eval(c);
   }
 }
@@ -1358,7 +1392,7 @@ public static final class IsAst extends Ast {
     this.left = left;
     this.right = right;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     this.left.eval(c);
     if (c.exc) return;
 
@@ -1379,7 +1413,7 @@ public static final class ImportAst extends Ast {
     super(token);
     this.name = name;
   }
-  public void eval(Context c) {
+  public void evalimpl(Context c) {
     TraceValue oldTrace = c.trace;
     try {
       c.trace = new TraceValue(this, oldTrace);
