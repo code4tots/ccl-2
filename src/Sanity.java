@@ -27,9 +27,9 @@ public static HashMap<String, Value> run(Context c, ModuleAst node) {
   return c.scope.table;
 }
 
-public static UserValue importModule(ModuleAst node) {
+public static UserValue importModule(Context c, ModuleAst node) {
   HashMap<String, Value> table = run(node, node.name);
-  UserValue value = new UserValue(typeModule);
+  UserValue value = new UserValue(c, typeModule);
 
   Iterator<String> it = table.keySet().iterator();
   while (it.hasNext()) {
@@ -82,16 +82,7 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
     .put(new FunctionValue("new") {
       public void calli(Context c, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
-
-        if (!(args.get(0) instanceof TypeValue))
-          throw err(c, "Expected type value but found " + args.get(0).getType().name);
-
-        TypeValue type = (TypeValue) args.get(0);
-
-        if (!type.userCreatable)
-          throw err(c, "Type " + type.name + " cannot be instantiated");
-
-        c.value = new UserValue((TypeValue) args.get(0));
+        c.value = new UserValue(c, args.get(0));
       }
     })
     .put(new FunctionValue("print") {
@@ -302,7 +293,18 @@ public static final class TypeValue extends Value {
 public static final class UserValue extends Value {
   public final TypeValue type;
   public final HashMap<String, Value> attrs = new HashMap<String, Value>();
-  public UserValue(TypeValue type) { this.type = type; }
+  public UserValue(Context c, Value typeValue) {
+
+    if (!(typeValue instanceof TypeValue))
+      throw err(c, "Expected type value but found " + typeValue.getType().name);
+
+    TypeValue type = (TypeValue) typeValue;
+
+    if (!type.userCreatable)
+      throw err(c, "Type " + type.name + " cannot be instantiated");
+
+    this.type = type;
+  }
   public UserValue put(String name, Value value) {
     attrs.put(name, value);
     return this;
