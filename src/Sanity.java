@@ -43,9 +43,19 @@ public static UserValue importModule(ModuleAst node) {
 /// Effectively the core library.
 
 public static final NilValue nil = new NilValue();
-public static final TypeValue typeValue = new TypeValue("Value");
+public static final TypeValue typeValue = new TypeValue(true, "Value")
+    .put(new Method("__str__") {
+      public final void call(Context c, Value owner, ArrayList<Value> args) {
+        owner.call(c, "__repr__", args);
+      }
+    });
 public static final TypeValue typeType = new TypeValue("Type", typeValue);
-public static final TypeValue typeNil = new TypeValue("Nil", typeValue);
+public static final TypeValue typeNil = new TypeValue("Nil", typeValue)
+    .put(new Method("__repr__") {
+      public final void call(Context c, Value owner, ArrayList<Value> args) {
+        c.value = new StringValue("nil");
+      }
+    });
 public static final TypeValue typeBool = new TypeValue("Bool", typeValue);
 public static final TypeValue typeNumber = new TypeValue("Number", typeValue);
 public static final TypeValue typeString = new TypeValue("String", typeValue);
@@ -60,7 +70,44 @@ public static final TypeValue typeFunction = new TypeValue("Function", typeValue
 public static final TypeValue typeModule = new TypeValue("Module", typeValue);
 
 public static final Scope BUILTIN_SCOPE = new Scope(null)
-    .put("nil", nil);
+    .put("nil", nil)
+    .put(typeValue)
+    .put(typeNil)
+    .put(typeBool)
+    .put(typeNumber)
+    .put(typeString)
+    .put(typeList)
+    .put(typeMap)
+    .put(typeFunction)
+    .put(new FunctionValue("new") {
+      public void calli(Context c, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+
+        if (!(args.get(0) instanceof TypeValue))
+          throw err(c, "Expected type value but found " + args.get(0).getType().name);
+
+        TypeValue type = (TypeValue) args.get(0);
+
+        if (!type.userCreatable)
+          throw err(c, "Type " + type.name + " cannot be instantiated");
+
+        c.value = new UserValue((TypeValue) args.get(0));
+      }
+    })
+    .put(new FunctionValue("print") {
+      public void calli(Context c, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        args.get(0).call(c, "__str__");
+
+        if (!(c.value instanceof StringValue))
+          throw err(
+              c,
+              "Expected the result of __str__ to be a String but found " +
+              c.value.getType().name);
+
+        System.out.println(((StringValue) c.value).value);
+      }
+    });
 
 public static final class NilValue extends Value {
   public final TypeValue getType() { return typeNil; }
@@ -74,6 +121,11 @@ public static final class StringValue extends Value {
   public final String value;
   public StringValue(String value) { this.value = value; }
   public final TypeValue getType() { return typeString; }
+}
+public static final class ListValue extends Value {
+  public final ArrayList<Value> value;
+  public ListValue(ArrayList<Value> value) { this.value = value; }
+  public final TypeValue getType() { return typeList; }
 }
 
 /// Language core dispatch features (i.e. Value and Method)
@@ -89,30 +141,34 @@ public static final class Context {
   public Trace trace = EmptyTrace.instance;
 
   // Special control flow flags.
-  public boolean ret = false; // return
-  public boolean br = false; // break
-  public boolean cont = false; // continue
+  public boolean return_ = false; // return
+  public boolean break_ = false; // break
+  public boolean continue_ = false; // continue
 
   // For variable lookups.
   public Scope scope = new Scope(BUILTIN_SCOPE);
 
-  // Verify the snaity of Context
+  // Verify the sanity (roll credits!) of Context
   public final void checkStart() {
-    if (ret)
-      throw err(this, "ret is set");
-    if (br)
-      throw err(this, "br is set");
-    if (cont)
-      throw err(this, "cont is set");
+    if (return_)
+      throw err(this, "return_ is set");
+    if (break_)
+      throw err(this, "break_ is set");
+    if (continue_)
+      throw err(this, "continue_ is set");
+
+    // Just to verify that operation doesn't depend on
+    // garbage data stored in value.
+    value = null;
   }
   public final void checkEnd() {
-    if (value == null)
-      throw err(this, "val is null");
+    if (!jump() && value == null)
+      throw err(this, "value is null");
   }
 
   // Indicates whether any of the special control flow flags are set.
   public final boolean jump() {
-    return ret || br || cont;
+    return return_ || break_ || continue_;
   }
 
   public final Value get(String name) {
@@ -136,6 +192,9 @@ public abstract static class Method {
 
 public abstract static class Value {
   public abstract TypeValue getType();
+  public final void call(Context c, String name, Value... args) {
+    call(c, name, toArrayList(args));
+  }
   public final void call(Context c, String name, ArrayList<Value> args) {
 
     TypeValue ownerType = getType();
@@ -150,7 +209,7 @@ public abstract static class Value {
     }
 
     if (method == null)
-      throw err(c, "No such method " + name);
+      throw err(c, "No such method " + name + " for type " + ownerType.name);
 
     Trace oldTrace = c.trace;
     try {
@@ -177,6 +236,13 @@ public abstract static class Value {
         " for value of instance " + getType().name);
   }
 
+  // Only UserValue should override this method.
+  // This method should be considered final for all other purposes.
+  public void set(Context c, String name, Value value) {
+    throw err(
+        c, getType().name + " instances do not support setting attributes");
+  }
+
   // TODO: Figure out what to do about these java bridge methods.
   // The problem is that I can't pass a 'Context' argument so when there is a
   // problem I can't get a full stack trace.
@@ -186,14 +252,20 @@ public abstract static class Value {
 }
 
 public static final class TypeValue extends Value {
+  public final boolean userCreatable;
   public final String name;
   public final ArrayList<TypeValue> bases = new ArrayList<TypeValue>();
   public final ArrayList<TypeValue> mro = new ArrayList<TypeValue>();
   public final HashMap<String, Method> methods = new HashMap<String, Method>();
   public final TypeValue getType() { return typeType; }
   public TypeValue(String n, ArrayList<Value> bs) {
+    this(false, n, bs);
+  }
+  public TypeValue(boolean userCreatable, String n, ArrayList<Value> bs) {
     if (n == null)
       throw new Fubar();
+
+    this.userCreatable = userCreatable;
 
     name = n;
     for (int i = bs.size()-1; i >= 0; i--) {
@@ -217,6 +289,9 @@ public static final class TypeValue extends Value {
   }
   public TypeValue(String n, Value... args) {
     this(n, toArrayList(args));
+  }
+  public TypeValue(boolean userCreatable, String n, Value... args) {
+    this(userCreatable, n, toArrayList(args));
   }
   public TypeValue put(Method method) {
     methods.put(method.name, method);
@@ -366,6 +441,145 @@ public static final class NumberAst extends Ast {
   }
 }
 
+public static final class AssignAst extends Ast {
+  public final String name;
+  public final Ast value;
+  public AssignAst(Token token, String name, Ast value) {
+    super(token);
+    this.name = name;
+    this.value = value;
+  }
+  public final void evali(Context c) {
+    this.value.eval(c);
+    if (c.jump())
+      return;
+
+    c.put(name, c.value);
+  }
+}
+
+public static final class CallAst extends Ast {
+  public final Ast owner;
+  public final ArrayList<Ast> args;
+  public final Ast vararg;
+  public CallAst(Token token, Ast owner, ArrayList<Ast> args, Ast vararg) {
+    super(token);
+    this.owner = owner;
+    this.args = args;
+    this.vararg = vararg;
+  }
+  public final void evali(Context c) {
+
+    this.owner.eval(c);
+    if (c.jump())
+      return;
+
+    Value owner = c.value;
+
+    ArrayList<Value> args = new ArrayList<Value>();
+    for (int i = 0; i < this.args.size(); i++) {
+
+      this.args.get(i).eval(c);
+      if (c.jump())
+        return;
+
+      args.add(c.value);
+    }
+
+    if (this.vararg != null) {
+      this.vararg.eval(c);
+      if (c.jump())
+        return;
+
+      if (!(c.value instanceof ListValue))
+        throw err(
+            c, "Splat argument must evaluate to a list but found " + c.value.getType().name);
+
+      ArrayList<Value> va = ((ListValue) c.value).value;
+
+      for (int i = 0; i < va.size(); i++)
+        args.add(va.get(i));
+    }
+
+    owner.call(c, "__call__", args);
+  }
+}
+
+public static final class SetItemAst extends Ast {
+  public final Ast owner;
+  public final Ast index;
+  public final Ast value;
+  public SetItemAst(Token token, Ast owner, Ast index, Ast value) {
+    super(token);
+    this.owner = owner;
+    this.index = index;
+    this.value = value;
+  }
+  public final void evali(Context c) {
+
+    this.owner.eval(c);
+    if (c.jump())
+      return;
+    Value owner = c.value;
+
+    this.index.eval(c);
+    if (c.jump())
+      return;
+    Value index = c.value;
+
+    this.value.eval(c);
+    if (c.jump())
+      return;
+    Value value = c.value;
+
+    owner.call(c, "__setitem__", index, value);
+  }
+}
+
+public static final class GetAttributeAst extends Ast {
+  public final Ast owner;
+  public final String attribute;
+  public GetAttributeAst(Token token, Ast owner, String attribute) {
+    super(token);
+    this.owner = owner;
+    this.attribute = attribute;
+  }
+  public final void evali(Context c) {
+
+    owner.eval(c);
+    if (c.jump())
+      return;
+
+    c.value = c.value.get(c, attribute);
+  }
+}
+public static final class SetAttributeAst extends Ast {
+  public final Ast owner;
+  public final String attribute;
+  public final Ast value;
+  public SetAttributeAst(Token token, Ast owner, String attribute, Ast value) {
+    super(token);
+    this.owner = owner;
+    this.attribute = attribute;
+    this.value = value;
+  }
+  public final void evali(Context c) {
+
+    this.owner.eval(c);
+    if (c.jump())
+      return;
+
+    if (!(c.value instanceof UserValue))
+      throw err(c, "Values of type " + c.value.getType().name + " are not assignable");
+
+    UserValue owner = (UserValue) c.value;
+
+    this.value.eval(c);
+
+    owner.put(attribute, c.value);
+  }
+}
+
 public static final class BlockAst extends Ast {
   public final ArrayList<Ast> body;
   public BlockAst(Token token, ArrayList<Ast> body) {
@@ -405,6 +619,25 @@ static {
     expect(c.value instanceof NumberValue);
     expect(((NumberValue) c.value).value.equals(5.0));
 
+    run(c, new Parser("nil", "<test>").parse());
+    expect(c.value == nil);
+
+    run(c, new Parser("nil.__str__[]", "<test>").parse());
+    expect(c.value instanceof StringValue);
+    expect(((StringValue) c.value).value.equals("nil"));
+
+    run(c, new Parser("new[Value]", "<test>").parse());
+    expect(c.value instanceof UserValue);
+    expect(((UserValue) c.value).type == typeValue);
+
+    run(c, new Parser("a = 5 a", "<test>").parse());
+    expect(c.value instanceof NumberValue);
+    expect(((NumberValue) c.value).value.equals(5.0));
+
+    run(c, new Parser("x = new[Value] x.a = 6.2 x.a", "<test>").parse());
+    expect(c.value instanceof NumberValue);
+    expect(((NumberValue) c.value).value.equals(6.2));
+
     System.out.println("Ast tests pass");
   }
 }
@@ -426,6 +659,14 @@ public static final class Scope {
   }
   public Scope put(String name, Value value) {
     table.put(name, value);
+    return this;
+  }
+  public Scope put(FunctionValue f) {
+    table.put(f.name, f);
+    return this;
+  }
+  public Scope put(TypeValue t) {
+    table.put(t.name, t);
     return this;
   }
 }
@@ -468,7 +709,50 @@ public static final class Parser {
     return new ModuleAst(token, name, new BlockAst(token, exprs));
   }
   public Ast parseExpression() {
-    return parsePrimaryExpression();
+    return parsePostfixExpression();
+  }
+  public Ast parsePostfixExpression() {
+    Ast node = parsePrimaryExpression();
+    while (true) {
+      if (at("[")) {
+        Token token = next();
+        ArrayList<Ast> args = new ArrayList<Ast>();
+        while (!at("]") && !at("*")) {
+          args.add(parseExpression());
+          consume(",");
+        }
+        Ast vararg = null;
+        if (consume("*"))
+          vararg = parseExpression();
+        expect("]");
+        if (at("=")) {
+          token = next();
+          if (vararg != null || args.size() != 1)
+            throw new SyntaxError(
+                token, "For setitem syntax, must have exactly one argument");
+          node = new SetItemAst(token, node, args.get(0), parseExpression());
+        } else {
+          node = new CallAst(token, node, args, vararg);
+        }
+        continue;
+      }
+
+      if (at(".")) {
+        Token token = next();
+        String name = (String) expect("ID").value;
+
+        if (at("=")) {
+          token = next();
+          Ast value = parseExpression();
+          node = new SetAttributeAst(token, node, name, value);
+        } else {
+          node = new GetAttributeAst(token, node, name);
+        }
+        continue;
+      }
+      break;
+    }
+    return node;
   }
   public Ast parsePrimaryExpression() {
 
@@ -484,7 +768,15 @@ public static final class Parser {
 
     if (at("ID")) {
       Token token = next();
-      return new NameAst(token, (String) token.value);
+      String name = (String) token.value;
+
+      if (at("=")) {
+        token = next();
+        Ast value = parseExpression();
+        return new AssignAst(token, name, value);
+      } else {
+        return new NameAst(token, name);
+      }
     }
 
     if (consume("(")) {
@@ -538,6 +830,7 @@ public static final class Lexer {
   static {
     SYMBOLS = toArrayList(
         "(", ")", "[", "]", ".", ":",
+        "=", "==", "!=", "<", "<=", ">", ">=",
         "+", "-", "*", "/", "%");
   }
 
@@ -720,7 +1013,7 @@ public static final class Token {
   }
   public String getLocationString() {
     int a = i, b = i, c = i, lc = 1;
-    while (a > 1 && lexer.string.charAt(a-1) != '\n')
+    while (a > 0 && lexer.string.charAt(a-1) != '\n')
       a--;
     while (b < lexer.string.length() && lexer.string.charAt(b) != '\n')
       b++;
@@ -847,6 +1140,14 @@ public static String filespecToName(String filespec) {
   if (filespec.endsWith(".ccl"))
     end -= ".ccl".length();
   return filespec.substring(start, end);
+}
+
+public static void expectArgLen(Context c, ArrayList<Value> args, int len) {
+  if (args.size() != len)
+    throw err(
+        c,
+        "Expected argument of length " + Integer.toString(len) +
+        " but found " + Integer.toString(args.size()) + " arguments.");
 }
 
 }
