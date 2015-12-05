@@ -310,13 +310,6 @@ public abstract static class Value {
         getTypeDescription());
   }
 
-  // Only UserValue should override this method.
-  // This method should be considered final for all other purposes.
-  public void set(Context c, String name, Value value) {
-    throw err(
-        c, getType().name + " instances do not support setting attributes");
-  }
-
   public final String getTypeDescription() {
     return getType().name + " (" + getClass().getName() + ")";
   }
@@ -716,7 +709,7 @@ public static final class SetAttributeAst extends Ast {
       return;
 
     if (!(c.value instanceof UserValue))
-      throw err(c, "Values of type " + c.value.getType().name + " are not assignable");
+      throw err(c, "Values of type " + c.value.getTypeDescription() + " are not assignable");
 
     UserValue owner = (UserValue) c.value;
 
