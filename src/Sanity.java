@@ -619,7 +619,9 @@ public static final class CallAst extends Ast {
 
       if (!(c.value instanceof ListValue))
         throw err(
-            c, "Splat argument must evaluate to a list but found " + c.value.getType().name);
+            c,
+            "Splat argument must evaluate to a List but found " +
+            c.value.getTypeDescription());
 
       ArrayList<Value> va = ((ListValue) c.value).value;
 
@@ -709,7 +711,10 @@ public static final class SetAttributeAst extends Ast {
       return;
 
     if (!(c.value instanceof UserValue))
-      throw err(c, "Values of type " + c.value.getTypeDescription() + " are not assignable");
+      throw err(
+          c,
+          "Values of type " + c.value.getTypeDescription() +
+          " cannot have its attributes set");
 
     UserValue owner = (UserValue) c.value;
 
@@ -1291,3 +1296,4 @@ public static void expectArgLen(Context c, ArrayList<Value> args, int len) {
 }
 
 }
+0
