@@ -2,33 +2,77 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.io.IOException;
+import java.io.FileReader;
+import java.io.BufferedReader;
 
 public class Sanity {
 
-/// Flag indicating whether we should perform tests on startup.
+// Flag indicating whether we should perform tests on startup.
 public static final boolean TEST = true;
+
+public static final HashMap<String, ModuleAst> MODULE_REGISTRY =
+    new HashMap<String, ModuleAst>();
 
 // Tests are run in static blocks so we don't need to load them here.
 public static void main(String[] args) {
   if (TEST)
     System.out.println("All tests pass!");
+
+  if (args.length > 0) {
+    ModuleAst mainModule = readModule(args[0]);
+    for (int i = 1; i < args.length; i++)
+      loadModule(args[i]);
+
+    run(new Context(), mainModule, "__main__");
+  }
 }
 
-public static HashMap<String, Value> run(ModuleAst node, String name) {
-  Context c = new Context();
+public static ModuleAst readModule(String path) {
+  return new Parser(readFile(path), path).parse();
+}
+
+public static void loadModule(String path) {
+  ModuleAst module = readModule(path);
+  MODULE_REGISTRY.put(module.name, module);
+}
+
+public static String readFile(String path) {
+  try {
+    BufferedReader reader = new BufferedReader(new FileReader(path));
+    String line = null;
+    StringBuilder sb = new StringBuilder();
+    String separator = System.getProperty("line.separator");
+
+    while((line = reader.readLine()) != null) {
+      sb.append(line);
+      sb.append(separator);
+    }
+
+    return sb.toString();
+  } catch (IOException e) {
+    throw new Fubar("Exception while reading " + path + ": " + e.toString());
+  }
+}
+
+public static HashMap<String, Value> run(Context c, ModuleAst node, String name) {
+  Scope oldScope = c.scope;
+  c.scope = new Scope(BUILTIN_SCOPE);
   c.put("__name__", new StringValue(name));
-  return run(c, node);
-}
-
-public static HashMap<String, Value> run(Context c, ModuleAst node) {
   c.checkStart();
   node.eval(c);
   c.checkEnd();
-  return c.scope.table;
+  Scope newScope = c.scope;
+  c.scope = oldScope;
+  return newScope.table;
 }
 
-public static UserValue importModule(Context c, ModuleAst node) {
-  HashMap<String, Value> table = run(node, node.name);
+private static HashMap<String, Value> run(Context c, ModuleAst node) {
+  return run(c, node, "<test>");
+}
+
+public static void importModule(Context c, String name, ModuleAst node) {
+  HashMap<String, Value> table = run(c, node, name);
   UserValue value = new UserValue(c, typeModule);
 
   Iterator<String> it = table.keySet().iterator();
@@ -37,7 +81,15 @@ public static UserValue importModule(Context c, ModuleAst node) {
     value.put(key, table.get(key));
   }
 
-  return value;
+  c.put(name, value);
+  c.value = value;
+}
+
+public static void importModule(Context c, String name) {
+  ModuleAst node = MODULE_REGISTRY.get(name);
+  if (node == null)
+    throw err(c, "No module named " + name);
+  importModule(c, name, node);
 }
 
 /// Effectively the core library.
@@ -53,18 +105,40 @@ public static final TypeValue typeType = new TypeValue("Type", typeValue);
 public static final TypeValue typeNil = new TypeValue("Nil", typeValue)
     .put(new Method("__repr__") {
       public final void call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
         c.value = new StringValue("nil");
       }
     });
 public static final TypeValue typeBool = new TypeValue("Bool", typeValue);
-public static final TypeValue typeNumber = new TypeValue("Number", typeValue);
-public static final TypeValue typeString = new TypeValue("String", typeValue);
+public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
+    .put(new Method("__repr__") {
+      public final void call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        if (!(owner instanceof NumberValue))
+          throw err(c, "self is not a Number in Number.__repr__");
+        NumberValue nv = (NumberValue) owner;
+        double value = nv.value;
+        String sv;
+        if (value == Math.floor(value))
+          sv = Integer.toString((int) value);
+        else
+          sv = Double.toString(value);
+        c.value = new StringValue(sv);
+      }
+    });
+public static final TypeValue typeString = new TypeValue("String", typeValue)
+    .put(new Method("__str__") {
+      public final void call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        c.value = owner;
+      }
+    });
 public static final TypeValue typeList = new TypeValue("List", typeValue);
 public static final TypeValue typeMap = new TypeValue("Map", typeValue);
-public static final TypeValue typeFunction = new TypeValue("Function", typeValue)
+public static final TypeValue typeCallable = new TypeValue("Callable", typeValue)
     .put(new Method("__call__") {
       public final void call(Context c, Value owner, ArrayList<Value> args) {
-        ((FunctionValue) owner).call(c, args);
+        ((CallableValue) owner).call(c, args);
       }
     });
 public static final TypeValue typeModule = new TypeValue("Module", typeValue);
@@ -78,7 +152,7 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
     .put(typeString)
     .put(typeList)
     .put(typeMap)
-    .put(typeFunction)
+    .put(typeCallable)
     .put(new FunctionValue("new") {
       public void calli(Context c, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
@@ -94,7 +168,7 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
           throw err(
               c,
               "Expected the result of __str__ to be a String but found " +
-              c.value.getType().name);
+              c.value.getTypeDescription());
 
         System.out.println(((StringValue) c.value).value);
       }
@@ -177,8 +251,19 @@ public static final class Context {
 
 public abstract static class Method {
   public final String name;
+  private TypeValue type;
   public Method(String name) { this.name = name; }
   public abstract void call(Context c, Value owner, ArrayList<Value> args);
+  public void setType(TypeValue type) {
+    if (this.type != null)
+      throw new Fubar("Method " + name + " is already associated with type " + type.name);
+    this.type = type;
+  }
+  public TypeValue getType() {
+    if (type == null)
+      throw new Fubar("Method " + name + " has not yet been associated with a type yet");
+    return type;
+  }
 }
 
 public abstract static class Value {
@@ -187,44 +272,32 @@ public abstract static class Value {
     call(c, name, toArrayList(args));
   }
   public final void call(Context c, String name, ArrayList<Value> args) {
-
-    TypeValue ownerType = getType();
-    TypeValue methodType = null;
-    Method method = null;
-
-    for (int i = 0; i < ownerType.mro.size(); i++) {
-      methodType = ownerType.mro.get(i);
-      method = methodType.methods.get(name);
-      if (method != null)
-        break;
-    }
-
-    if (method == null)
-      throw err(c, "No such method " + name + " for type " + ownerType.name);
-
-    Trace oldTrace = c.trace;
-    try {
-      c.trace = new CallTrace(c.trace, ownerType, methodType, method);
-      c.checkStart();
-      method.call(c, this, args);
-      c.checkEnd();
-    } finally {
-      c.trace = oldTrace;
-    }
+    getBoundMethod(c, name).call(c, args);
   }
 
-  // Only UserValue should override this method.
-  // This method should be considered final for all other purposes.
-  public Value get(Context c, String name) {
+  public BoundMethodValue getBoundMethodOrNull(String name) {
     for (int i = 0; i < getType().mro.size(); i++) {
       TypeValue ancestor = getType().mro.get(i);
       Method method = ancestor.methods.get(name);
       if (method != null)
         return new BoundMethodValue(this, method);
     }
-    throw err(c,
-        "No attribute named " + name +
+    return null;
+  }
+
+  public BoundMethodValue getBoundMethod(Context c, String name) {
+    BoundMethodValue method = getBoundMethodOrNull(name);
+    if (method == null)
+      throw err(c,
+        "No method named " + name +
         " for value of instance " + getType().name);
+    return method;
+  }
+
+  // Only UserValue should override this method.
+  // This method should be considered final for all other purposes.
+  public Value get(Context c, String name) {
+    return getBoundMethod(c, name);
   }
 
   // Only UserValue should override this method.
@@ -234,12 +307,16 @@ public abstract static class Value {
         c, getType().name + " instances do not support setting attributes");
   }
 
+  public final String getTypeDescription() {
+    return getType().name + " (" + getClass().getName() + ")";
+  }
+
   // TODO: Figure out what to do about these java bridge methods.
   // The problem is that I can't pass a 'Context' argument so when there is a
   // problem I can't get a full stack trace.
-  public final boolean equals(Object x) { throw new Fubar(); }
-  public final int hashCode() { throw new Fubar(); }
-  public final String toString() { throw new Fubar(); }
+  public final boolean equals(Object x) { throw new Fubar("Value does not support equals"); }
+  public final int hashCode() { throw new Fubar("Value does not support hashCode"); }
+  public final String toString() { throw new Fubar("Value does not support toString"); }
 }
 
 public static final class TypeValue extends Value {
@@ -254,7 +331,7 @@ public static final class TypeValue extends Value {
   }
   public TypeValue(boolean userCreatable, String n, ArrayList<Value> bs) {
     if (n == null)
-      throw new Fubar();
+      throw new Fubar("TypeValue needs a name");
 
     this.userCreatable = userCreatable;
 
@@ -285,6 +362,7 @@ public static final class TypeValue extends Value {
     this(userCreatable, n, toArrayList(args));
   }
   public TypeValue put(Method method) {
+    method.setType(this);
     methods.put(method.name, method);
     return this;
   }
@@ -316,19 +394,31 @@ public static final class UserValue extends Value {
   }
 }
 
-public abstract static class FunctionValue extends Value {
+// Should only be subclassed by BoundMethodValue and FunctionValue.
+public abstract static class CallableValue extends Value {
   public final String name;
-  public FunctionValue(String name) { this.name = name; }
-  public final TypeValue getType() { return typeFunction; }
+  public CallableValue(String name) { this.name = name; }
+  public final TypeValue getType() { return typeCallable; }
+  public abstract void call(Context c, ArrayList<Value> args);
+}
+
+public abstract static class FunctionValue extends CallableValue {
+  public FunctionValue(String name) { super(name); }
   public abstract void calli(Context c, ArrayList<Value> args);
   public final void call(Context c, ArrayList<Value> args) {
-    c.checkStart();
-    calli(c, args);
-    c.checkEnd();
+    Trace oldTrace = c.trace;
+    try {
+      c.trace = new FunctionTrace(c.trace, this);
+      c.checkStart();
+      calli(c, args);
+      c.checkEnd();
+    } finally {
+      c.trace = oldTrace;
+    }
   }
 }
 
-public static final class BoundMethodValue extends FunctionValue {
+public static final class BoundMethodValue extends CallableValue {
   public final Value owner;
   public final Method method;
   public BoundMethodValue(Value owner, Method method) {
@@ -336,8 +426,17 @@ public static final class BoundMethodValue extends FunctionValue {
     this.owner = owner;
     this.method = method;
   }
-  public final void calli(Context c, ArrayList<Value> args) {
-    method.call(c, owner, args);
+  public final void call(Context c, ArrayList<Value> args) {
+    Trace oldTrace = c.trace;
+    try {
+      c.trace =
+          new MethodTrace(c.trace, owner.getType(), method.getType(), method);
+      c.checkStart();
+      method.call(c, owner, args);
+      c.checkEnd();
+    } finally {
+      c.trace = oldTrace;
+    }
   }
 }
 
@@ -370,7 +469,7 @@ public static final class AstTrace extends Trace {
   }
 }
 
-public static final class CallTrace extends Trace {
+public static final class MethodTrace extends Trace {
   // Type of the object we are calling the method on.
   public final TypeValue valueType;
 
@@ -382,7 +481,7 @@ public static final class CallTrace extends Trace {
   // Should be one of the entries in methodType.methods.
   public final Method method;
 
-  public CallTrace(
+  public MethodTrace(
       Trace next, TypeValue valueType, TypeValue methodType, Method method) {
     super(next);
     this.valueType = valueType;
@@ -392,8 +491,22 @@ public static final class CallTrace extends Trace {
 
   public final String topToString() {
     return
-        "\n*** in method call " + valueType.name + "->" +
+        "\n*** in method " + valueType.name + "->" +
         methodType.name + "." + method.name;
+  }
+}
+
+public static final class FunctionTrace extends Trace {
+  public final FunctionValue f;
+
+  public FunctionTrace(Trace next, FunctionValue f) {
+    super(next);
+    this.f = f;
+  }
+
+  public final String topToString() {
+    return
+        "\n*** in function " + f.name;
   }
 }
 
@@ -417,7 +530,13 @@ public static final class NameAst extends Ast {
     this.name = name;
   }
   public final void evali(Context c) {
-    c.value = c.get(name);
+    Trace oldTrace = c.trace;
+    try {
+      c.trace = new AstTrace(c.trace, this);
+      c.value = c.get(name);
+    } finally {
+      c.trace = oldTrace;
+    }
   }
 }
 
@@ -456,7 +575,13 @@ public static final class AssignAst extends Ast {
     if (c.jump())
       return;
 
-    c.put(name, c.value);
+    Trace oldTrace = c.trace;
+    try {
+      c.trace = new AstTrace(c.trace, this);
+      c.put(name, c.value);
+    } finally {
+      c.trace = oldTrace;
+    }
   }
 }
 
@@ -503,7 +628,20 @@ public static final class CallAst extends Ast {
         args.add(va.get(i));
     }
 
-    owner.call(c, "__call__", args);
+    Trace oldTrace = c.trace;
+    try {
+      c.trace = new AstTrace(c.trace, this);
+
+      // Technically this branching is unnecessary --
+      // typeCallable 
+      if (owner instanceof CallableValue)
+        ((CallableValue) owner).call(c, args);
+      else
+        owner.call(c, "__call__", args);
+
+    } finally {
+      c.trace = oldTrace;
+    }
   }
 }
 
@@ -831,7 +969,7 @@ public static final class Lexer {
   // surrounding scope.
   static {
     SYMBOLS = toArrayList(
-        "(", ")", "[", "]", ".", ":",
+        "(", ")", "[", "]", ".", ":", ",",
         "=", "==", "!=", "<", "<=", ">", ">=",
         "+", "-", "*", "/", "%");
   }
@@ -1028,7 +1166,7 @@ public static final class Token {
       spaces = spaces + " ";
 
     return
-        "*** In file '" + lexer.filespec + "' on line " + Integer.toString(lc) +
+        "*** in file '" + lexer.filespec + "' on line " + Integer.toString(lc) +
         " ***\n" + lexer.string.substring(a, b) + "\n" +
         spaces + "*\n";
   }
@@ -1097,6 +1235,7 @@ public static final class SyntaxError extends RuntimeException {
 // instance to get a stack trace.
 public static final class Fubar extends RuntimeException {
   public final static long serialVersionUID = 42L;
+  public Fubar(String message) { super(message); }
 }
 
 // Err is the general exception thrown whenever we encounter an error
@@ -1131,7 +1270,7 @@ public static Err err(Context c, String message) {
 }
 
 public static void expect(boolean cond) {
-  if (!cond) throw new Fubar();
+  if (!cond) throw new Fubar("Assertion failed");
 }
 
 public static String filespecToName(String filespec) {

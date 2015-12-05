@@ -1,0 +1,5 @@
+bower = 3
+print[bower]
+print['hello world!']
+# print.__call__[print]
+print[print]
