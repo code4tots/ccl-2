@@ -289,15 +289,25 @@ public abstract static class Value {
     BoundMethodValue method = getBoundMethodOrNull(name);
     if (method == null)
       throw err(c,
-        "No method named " + name +
-        " for value of instance " + getType().name);
+        "No method named " + name + " for type " + getType().name);
     return method;
   }
 
-  // Only UserValue should override this method.
-  // This method should be considered final for all other purposes.
-  public Value get(Context c, String name) {
-    return getBoundMethod(c, name);
+  public final Value get(Context c, String name) {
+    if (this instanceof UserValue) {
+      Value value = ((UserValue) this).attrs.get(name);
+      if (value != null)
+        return value;
+    }
+
+    BoundMethodValue method = getBoundMethodOrNull(name);
+    if (method != null)
+      return method;
+
+    throw err(
+        c,
+        "No method or attribute " + name + " for type " +
+        getTypeDescription());
   }
 
   // Only UserValue should override this method.
@@ -388,10 +398,6 @@ public static final class UserValue extends Value {
     return this;
   }
   public final TypeValue getType() { return type; }
-  public final Value get(Context c, String name) {
-    Value value = attrs.get(name);
-    return value == null ? super.get(c, name) : value;
-  }
 }
 
 // Should only be subclassed by BoundMethodValue and FunctionValue.
