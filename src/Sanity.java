@@ -1293,6 +1293,9 @@ public static void invoke(Context c, Value owner, ArrayList<Value> args) {
 
 // WARNING: c.value gets clobbered.
 public static StringValue asStringValue(Context c, Value value, String name) {
+  if (value instanceof StringValue)
+    return (StringValue) value;
+
   value.call(c, "__str__");
 
   if (!(c.value instanceof StringValue))
