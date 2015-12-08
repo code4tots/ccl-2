@@ -1307,8 +1307,10 @@ public static StringValue asStringValue(Context c, Value value, String name) {
         " to be a String but found " +
         c.value.getTypeDescription());
 
+  StringValue sv = (StringValue) c.value;
   c.value = oldValue;
-  return (StringValue) c.value;
+
+  return sv;
 }
 
 public static NumberValue asNumberValue(Context c, Value value, String name) {
