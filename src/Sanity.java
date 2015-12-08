@@ -162,15 +162,7 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
     .put(new FunctionValue("print") {
       public void calli(Context c, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
-        args.get(0).call(c, "__str__");
-
-        if (!(c.value instanceof StringValue))
-          throw err(
-              c,
-              "Expected the result of __str__ to be a String but found " +
-              c.value.getTypeDescription());
-
-        System.out.println(((StringValue) c.value).value);
+        System.out.println(convertToString(c, args.get(0)));
       }
     });
 
@@ -1297,6 +1289,30 @@ public static void invoke(Context c, Value owner, ArrayList<Value> args) {
     ((CallableValue) owner).call(c, args);
   else
     owner.call(c, "__call__", args);
+}
+
+/// conversion/extraction to Java type utils
+
+public static String convertToString(Context c, Value value) {
+  value.call(c, "__str__");
+
+  if (!(c.value instanceof StringValue))
+    throw err(
+        c,
+        "Expected the result of __str__ to be a String but found " +
+        c.value.getTypeDescription());
+
+  return ((StringValue) c.value).value;
+}
+
+public static double extractDouble(Context c, Value value) {
+  if (!(value instanceof NumberValue))
+    throw err(
+        c,
+        "Expected a Number but found " +
+        value.getTypeDescription());
+
+  return ((NumberValue) c.value).value;
 }
 
 }
