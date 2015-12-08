@@ -138,6 +138,12 @@ public static final TypeValue typeCallable = new TypeValue("Callable", typeValue
       public final void call(Context c, Value owner, ArrayList<Value> args) {
         asCallableValue(c, owner, "self").call(c, args);
       }
+    })
+    .put(new Method("__repr__") {
+      public final void call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        c.value = new StringValue(asCallableValue(c, owner, "self").name);
+      }
     });
 public static final TypeValue typeModule = new TypeValue("Module", typeValue);
 
