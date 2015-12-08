@@ -160,7 +160,9 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
     .put(new FunctionValue("print") {
       public void calli(Context c, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
-        System.out.println(asStringValue(c, args.get(0), "argument 0").value);
+        StringValue sv = asStringValue(c, args.get(0), "argument 0");
+        System.out.println(sv.value);
+        c.value = sv;
       }
     });
 
@@ -1291,11 +1293,11 @@ public static void invoke(Context c, Value owner, ArrayList<Value> args) {
 
 /// conversion/extraction to Java type utils
 
-// WARNING: c.value gets clobbered.
 public static StringValue asStringValue(Context c, Value value, String name) {
   if (value instanceof StringValue)
     return (StringValue) value;
 
+  Value oldValue = c.value;
   value.call(c, "__str__");
 
   if (!(c.value instanceof StringValue))
@@ -1305,6 +1307,7 @@ public static StringValue asStringValue(Context c, Value value, String name) {
         " to be a String but found " +
         c.value.getTypeDescription());
 
+  c.value = oldValue;
   return (StringValue) c.value;
 }
 
