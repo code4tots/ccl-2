@@ -60,8 +60,7 @@ public static HashMap<String, Value> run(Context c, ModuleAst node, String name)
   c.scope = new Scope(BUILTIN_SCOPE);
   c.put("__name__", new StringValue(name));
   c.checkStart();
-  node.eval(c);
-  c.checkEnd();
+  c.checkEndCall(node.eval(c));
   Scope newScope = c.scope;
   c.scope = oldScope;
   return newScope.table;
@@ -71,7 +70,17 @@ private static HashMap<String, Value> run(Context c, ModuleAst node) {
   return run(c, node, "<test>");
 }
 
-public static void importModule(Context c, String name, ModuleAst node) {
+public static Value xeval(String code) {
+  return xeval(new Parser(code, "<xeval>").parse());
+}
+
+public static Value xeval(Ast node) {
+  Context c = new Context();
+  c.checkStart();
+  return c.checkEndCall(node.eval(c));
+}
+
+public static Value importModule(Context c, String name, ModuleAst node) {
   HashMap<String, Value> table = run(c, node, name);
   UserValue value = new UserValue(c, typeModule);
 
@@ -82,14 +91,14 @@ public static void importModule(Context c, String name, ModuleAst node) {
   }
 
   c.put(name, value);
-  c.value = value;
+  return value;
 }
 
-public static void importModule(Context c, String name) {
+public static Value importModule(Context c, String name) {
   ModuleAst node = MODULE_REGISTRY.get(name);
   if (node == null)
     throw err(c, "No module named " + name);
-  importModule(c, name, node);
+  return importModule(c, name, node);
 }
 
 /// Effectively the core library.
@@ -97,22 +106,22 @@ public static void importModule(Context c, String name) {
 public static final NilValue nil = new NilValue();
 public static final TypeValue typeValue = new TypeValue(true, "Value")
     .put(new Method("__str__") {
-      public final void call(Context c, Value owner, ArrayList<Value> args) {
-        owner.call(c, "__repr__", args);
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        return owner.call(c, "__repr__", args);
       }
     });
 public static final TypeValue typeType = new TypeValue("Type", typeValue);
 public static final TypeValue typeNil = new TypeValue("Nil", typeValue)
     .put(new Method("__repr__") {
-      public final void call(Context c, Value owner, ArrayList<Value> args) {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
-        c.value = new StringValue("nil");
+        return new StringValue("nil");
       }
     });
 public static final TypeValue typeBool = new TypeValue("Bool", typeValue);
 public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
     .put(new Method("__repr__") {
-      public final void call(Context c, Value owner, ArrayList<Value> args) {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
         NumberValue nv = asNumberValue(c, owner, "self");
         double value = nv.value;
@@ -121,28 +130,28 @@ public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
           sv = Integer.toString((int) value);
         else
           sv = Double.toString(value);
-        c.value = new StringValue(sv);
+        return new StringValue(sv);
       }
     });
 public static final TypeValue typeString = new TypeValue("String", typeValue)
     .put(new Method("__str__") {
-      public final void call(Context c, Value owner, ArrayList<Value> args) {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
-        c.value = owner;
+        return owner;
       }
     });
 public static final TypeValue typeList = new TypeValue("List", typeValue);
 public static final TypeValue typeMap = new TypeValue("Map", typeValue);
 public static final TypeValue typeCallable = new TypeValue("Callable", typeValue)
     .put(new Method("__call__") {
-      public final void call(Context c, Value owner, ArrayList<Value> args) {
-        asCallableValue(c, owner, "self").call(c, args);
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        return asCallableValue(c, owner, "self").call(c, args);
       }
     })
     .put(new Method("__repr__") {
-      public final void call(Context c, Value owner, ArrayList<Value> args) {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
-        c.value = new StringValue(asCallableValue(c, owner, "self").name);
+        return new StringValue(asCallableValue(c, owner, "self").name);
       }
     });
 public static final TypeValue typeModule = new TypeValue("Module", typeValue);
@@ -158,17 +167,17 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
     .put(typeMap)
     .put(typeCallable)
     .put(new FunctionValue("new") {
-      public void calli(Context c, ArrayList<Value> args) {
+      public Value calli(Context c, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
-        c.value = new UserValue(c, args.get(0));
+        return new UserValue(c, args.get(0));
       }
     })
     .put(new FunctionValue("print") {
-      public void calli(Context c, ArrayList<Value> args) {
+      public Value calli(Context c, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
         StringValue sv = asStringValue(c, args.get(0), "argument 0");
         System.out.println(sv.value);
-        c.value = sv;
+        return sv;
       }
     });
 
@@ -195,10 +204,6 @@ public static final class ListValue extends Value {
 
 public static final class Context {
 
-  // Value to propagate, either to the next expression,
-  // or as return value, depending on other flags.
-  public Value value = null;
-
   // For the sake of my sanity.
   // Meant to help with debugging.
   public Trace trace = EmptyTrace.instance;
@@ -219,14 +224,28 @@ public static final class Context {
       throw err(this, "break_ is set");
     if (continue_)
       throw err(this, "continue_ is set");
-
-    // Just to verify that operation doesn't depend on
-    // garbage data stored in value.
-    value = null;
   }
-  public final void checkEnd() {
-    if (!jump() && value == null)
-      throw err(this, "value is null");
+  public final Value checkEndAst(Value result) {
+    if (return_ && result == null)
+      throw err(this, "return_ flag is set, but there is no return value");
+    if (break_ && result != null)
+      throw err(this, "break_ flag is set and there is a return value!");
+    if (continue_ && result != null)
+      throw err(this, "continue_ flag is set and there is a return value!");
+    if (!jump() && result == null)
+      throw err(this, "None of the jump flags are set, but there is no return value!");
+    return result;
+  }
+  public final Value checkEndCall(Value result) {
+    if (return_)
+      throw err(this, "return_ is set at the end of a function call");
+    if (break_)
+      throw err(this, "break_ is set at the end of a function call");
+    if (continue_)
+      throw err(this, "continue_ is set at the end of a function call");
+    if (result == null)
+      throw err(this, "There is no resulting value from this call");
+    return result;
   }
 
   // Indicates whether any of the special control flow flags are set.
@@ -251,7 +270,7 @@ public abstract static class Method {
   public final String name;
   private TypeValue type;
   public Method(String name) { this.name = name; }
-  public abstract void call(Context c, Value owner, ArrayList<Value> args);
+  public abstract Value call(Context c, Value owner, ArrayList<Value> args);
   public void setType(TypeValue type) {
     if (this.type != null)
       throw new Fubar("Method " + name + " is already associated with type " + type.name);
@@ -266,11 +285,11 @@ public abstract static class Method {
 
 public abstract static class Value {
   public abstract TypeValue getType();
-  public final void call(Context c, String name, Value... args) {
-    call(c, name, toArrayList(args));
+  public final Value call(Context c, String name, Value... args) {
+    return call(c, name, toArrayList(args));
   }
-  public final void call(Context c, String name, ArrayList<Value> args) {
-    getBoundMethod(c, name).call(c, args);
+  public final Value call(Context c, String name, ArrayList<Value> args) {
+    return getBoundMethod(c, name).call(c, args);
   }
 
   public BoundMethodValue getBoundMethodOrNull(String name) {
@@ -396,19 +415,18 @@ public abstract static class CallableValue extends Value {
   public final String name;
   public CallableValue(String name) { this.name = name; }
   public final TypeValue getType() { return typeCallable; }
-  public abstract void call(Context c, ArrayList<Value> args);
+  public abstract Value call(Context c, ArrayList<Value> args);
 }
 
 public abstract static class FunctionValue extends CallableValue {
   public FunctionValue(String name) { super(name); }
-  public abstract void calli(Context c, ArrayList<Value> args);
-  public final void call(Context c, ArrayList<Value> args) {
+  public abstract Value calli(Context c, ArrayList<Value> args);
+  public final Value call(Context c, ArrayList<Value> args) {
     Trace oldTrace = c.trace;
     try {
       c.trace = new FunctionTrace(c.trace, this);
       c.checkStart();
-      calli(c, args);
-      c.checkEnd();
+      return c.checkEndCall(calli(c, args));
     } finally {
       c.trace = oldTrace;
     }
@@ -423,14 +441,13 @@ public static final class BoundMethodValue extends CallableValue {
     this.owner = owner;
     this.method = method;
   }
-  public final void call(Context c, ArrayList<Value> args) {
+  public final Value call(Context c, ArrayList<Value> args) {
     Trace oldTrace = c.trace;
     try {
       c.trace =
           new MethodTrace(c.trace, owner.getType(), method.getType(), method);
       c.checkStart();
-      method.call(c, owner, args);
-      c.checkEnd();
+      return c.checkEndCall(method.call(c, owner, args));
     } finally {
       c.trace = oldTrace;
     }
@@ -512,11 +529,10 @@ public static final class FunctionTrace extends Trace {
 public abstract static class Ast {
   public final Token token;
   public Ast(Token token) { this.token = token; }
-  public abstract void evali(Context c);
-  public final void eval(Context c) {
+  public abstract Value evali(Context c);
+  public final Value eval(Context c) {
     c.checkStart();
-    evali(c);
-    c.checkEnd();
+    return c.checkEndAst(evali(c));
   }
 }
 
@@ -526,11 +542,11 @@ public static final class NameAst extends Ast {
     super(token);
     this.name = name;
   }
-  public final void evali(Context c) {
+  public final Value evali(Context c) {
     Trace oldTrace = c.trace;
     try {
       c.trace = new AstTrace(c.trace, this);
-      c.value = c.get(name);
+      return c.get(name);
     } finally {
       c.trace = oldTrace;
     }
@@ -543,8 +559,8 @@ public static final class StringAst extends Ast {
     super(token);
     this.value = new StringValue(value);
   }
-  public final void evali(Context c) {
-    c.value = value;
+  public final Value evali(Context c) {
+    return value;
   }
 }
 
@@ -554,8 +570,8 @@ public static final class NumberAst extends Ast {
     super(token);
     this.value = new NumberValue(value);
   }
-  public final void evali(Context c) {
-    c.value = value;
+  public final Value evali(Context c) {
+    return value;
   }
 }
 
@@ -567,15 +583,16 @@ public static final class AssignAst extends Ast {
     this.name = name;
     this.value = value;
   }
-  public final void evali(Context c) {
-    this.value.eval(c);
+  public final Value evali(Context c) {
+    Value value = this.value.eval(c);
     if (c.jump())
-      return;
+      return null;
 
     Trace oldTrace = c.trace;
     try {
       c.trace = new AstTrace(c.trace, this);
-      c.put(name, c.value);
+      c.put(name, value);
+      return value;
     } finally {
       c.trace = oldTrace;
     }
@@ -592,36 +609,34 @@ public static final class CallAst extends Ast {
     this.args = args;
     this.vararg = vararg;
   }
-  public final void evali(Context c) {
+  public final Value evali(Context c) {
 
-    this.owner.eval(c);
+    Value owner = this.owner.eval(c);
     if (c.jump())
-      return;
-
-    Value owner = c.value;
+      return null;
 
     ArrayList<Value> args = new ArrayList<Value>();
     for (int i = 0; i < this.args.size(); i++) {
 
-      this.args.get(i).eval(c);
+      Value arg = this.args.get(i).eval(c);
       if (c.jump())
-        return;
+        return null;
 
-      args.add(c.value);
+      args.add(arg);
     }
 
     if (this.vararg != null) {
-      this.vararg.eval(c);
+      Value value = this.vararg.eval(c);
       if (c.jump())
-        return;
+        return null;
 
-      if (!(c.value instanceof ListValue))
+      if (!(value instanceof ListValue))
         throw err(
             c,
             "Splat argument must evaluate to a List but found " +
-            c.value.getTypeDescription());
+            value.getTypeDescription());
 
-      ArrayList<Value> va = ((ListValue) c.value).value;
+      ArrayList<Value> va = ((ListValue) value).value;
 
       for (int i = 0; i < va.size(); i++)
         args.add(va.get(i));
@@ -631,8 +646,7 @@ public static final class CallAst extends Ast {
     try {
       c.trace = new AstTrace(c.trace, this);
 
-      invoke(c, owner, args);
-
+      return invoke(c, owner, args);
     } finally {
       c.trace = oldTrace;
     }
@@ -649,24 +663,21 @@ public static final class SetItemAst extends Ast {
     this.index = index;
     this.value = value;
   }
-  public final void evali(Context c) {
+  public final Value evali(Context c) {
 
-    this.owner.eval(c);
+    Value owner = this.owner.eval(c);
     if (c.jump())
-      return;
-    Value owner = c.value;
+      return null;
 
-    this.index.eval(c);
+    Value index = this.index.eval(c);
     if (c.jump())
-      return;
-    Value index = c.value;
+      return null;
 
-    this.value.eval(c);
+    Value value = this.value.eval(c);
     if (c.jump())
-      return;
-    Value value = c.value;
+      return null;
 
-    owner.call(c, "__setitem__", index, value);
+    return owner.call(c, "__setitem__", index, value);
   }
 }
 
@@ -678,13 +689,13 @@ public static final class GetAttributeAst extends Ast {
     this.owner = owner;
     this.attribute = attribute;
   }
-  public final void evali(Context c) {
+  public final Value evali(Context c) {
 
-    owner.eval(c);
+    Value value = owner.eval(c);
     if (c.jump())
-      return;
+      return null;
 
-    c.value = c.value.get(c, attribute);
+    return value.get(c, attribute);
   }
 }
 public static final class SetAttributeAst extends Ast {
@@ -697,23 +708,22 @@ public static final class SetAttributeAst extends Ast {
     this.attribute = attribute;
     this.value = value;
   }
-  public final void evali(Context c) {
+  public final Value evali(Context c) {
 
-    this.owner.eval(c);
+    Value ownerValue = this.owner.eval(c);
     if (c.jump())
-      return;
+      return null;
 
-    if (!(c.value instanceof UserValue))
+    if (!(ownerValue instanceof UserValue))
       throw err(
           c,
-          "Values of type " + c.value.getTypeDescription() +
+          "Values of type " + ownerValue.getTypeDescription() +
           " cannot have its attributes set");
 
-    UserValue owner = (UserValue) c.value;
-
-    this.value.eval(c);
-
-    owner.put(attribute, c.value);
+    UserValue owner = (UserValue) ownerValue;
+    Value value = this.value.eval(c);
+    owner.put(attribute, value);
+    return value;
   }
 }
 
@@ -723,13 +733,14 @@ public static final class BlockAst extends Ast {
     super(token);
     this.body = body;
   }
-  public final void evali(Context c) {
-    c.value = nil;
+  public final Value evali(Context c) {
+    Value last = nil;
     for (int i = 0; i < body.size(); i++) {
-      body.get(i).eval(c);
+      last = body.get(i).eval(c);
       if (c.jump())
-        return;
+        return null;
     }
+    return last;
   }
 }
 
@@ -741,8 +752,8 @@ public static final class ModuleAst extends Ast {
     this.name = name;
     this.body = body;
   }
-  public final void evali(Context c) {
-    body.eval(c);
+  public final Value evali(Context c) {
+    return body.eval(c);
   }
 }
 
@@ -751,29 +762,30 @@ public static final class ModuleAst extends Ast {
 static {
   if (TEST) {
     Context c = new Context();
+    Value value;
 
-    run(c, new Parser("5", "<test>").parse());
-    expect(c.value instanceof NumberValue);
-    expect(((NumberValue) c.value).value.equals(5.0));
+    value = xeval("5");
+    expect(value instanceof NumberValue);
+    expect(((NumberValue) value).value.equals(5.0));
 
-    run(c, new Parser("nil", "<test>").parse());
-    expect(c.value == nil);
+    value = xeval("nil");
+    expect(value == nil);
 
-    run(c, new Parser("nil.__str__[]", "<test>").parse());
-    expect(c.value instanceof StringValue);
-    expect(((StringValue) c.value).value.equals("nil"));
+    value = xeval("nil.__str__[]");
+    expect(value instanceof StringValue);
+    expect(((StringValue) value).value.equals("nil"));
 
-    run(c, new Parser("new[Value]", "<test>").parse());
-    expect(c.value instanceof UserValue);
-    expect(((UserValue) c.value).type == typeValue);
+    value = xeval("new[Value]");
+    expect(value instanceof UserValue);
+    expect(((UserValue) value).type == typeValue);
 
-    run(c, new Parser("a = 5 a", "<test>").parse());
-    expect(c.value instanceof NumberValue);
-    expect(((NumberValue) c.value).value.equals(5.0));
+    value = xeval("a = 5 a");
+    expect(value instanceof NumberValue);
+    expect(((NumberValue) value).value.equals(5.0));
 
-    run(c, new Parser("x = new[Value] x.a = 6.2 x.a", "<test>").parse());
-    expect(c.value instanceof NumberValue);
-    expect(((NumberValue) c.value).value.equals(6.2));
+    value = xeval("x = new[Value] x.a = 6.2 x.a");
+    expect(value instanceof NumberValue);
+    expect(((NumberValue) value).value.equals(6.2));
 
     System.out.println("Ast tests pass");
   }
@@ -1288,13 +1300,13 @@ public static void expectArgLen(Context c, ArrayList<Value> args, int len) {
         " but found " + Integer.toString(args.size()) + " arguments.");
 }
 
-public static void invoke(Context c, Value owner, ArrayList<Value> args) {
+public static Value invoke(Context c, Value owner, ArrayList<Value> args) {
   // Technically this branching is unnecessary --
   // It's just that this gives nicer looking stack trace.
   if (owner instanceof CallableValue)
-    ((CallableValue) owner).call(c, args);
+    return ((CallableValue) owner).call(c, args);
   else
-    owner.call(c, "__call__", args);
+    return owner.call(c, "__call__", args);
 }
 
 /// conversion/extraction to Java type utils
@@ -1303,20 +1315,16 @@ public static StringValue asStringValue(Context c, Value value, String name) {
   if (value instanceof StringValue)
     return (StringValue) value;
 
-  Value oldValue = c.value;
-  value.call(c, "__str__");
+  Value result = value.call(c, "__str__");
 
-  if (!(c.value instanceof StringValue))
+  if (!(result instanceof StringValue))
     throw err(
         c,
         "Expected the result of __str__ on " + name +
         " to be a String but found " +
-        c.value.getTypeDescription());
+        result.getTypeDescription());
 
-  StringValue sv = (StringValue) c.value;
-  c.value = oldValue;
-
-  return sv;
+  return (StringValue) result;
 }
 
 public static NumberValue asNumberValue(Context c, Value value, String name) {
