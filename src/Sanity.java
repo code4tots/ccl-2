@@ -114,9 +114,7 @@ public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
     .put(new Method("__repr__") {
       public final void call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
-        if (!(owner instanceof NumberValue))
-          throw err(c, "self is not a Number in Number.__repr__");
-        NumberValue nv = (NumberValue) owner;
+        NumberValue nv = asNumberValue(c, owner, "self");
         double value = nv.value;
         String sv;
         if (value == Math.floor(value))
@@ -138,7 +136,7 @@ public static final TypeValue typeMap = new TypeValue("Map", typeValue);
 public static final TypeValue typeCallable = new TypeValue("Callable", typeValue)
     .put(new Method("__call__") {
       public final void call(Context c, Value owner, ArrayList<Value> args) {
-        ((CallableValue) owner).call(c, args);
+        asCallableValue(c, owner, "self").call(c, args);
       }
     });
 public static final TypeValue typeModule = new TypeValue("Module", typeValue);
@@ -162,7 +160,7 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
     .put(new FunctionValue("print") {
       public void calli(Context c, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
-        System.out.println(convertToString(c, args.get(0)));
+        System.out.println(asStringValue(c, args.get(0), "argument 0").value);
       }
     });
 
@@ -1293,26 +1291,38 @@ public static void invoke(Context c, Value owner, ArrayList<Value> args) {
 
 /// conversion/extraction to Java type utils
 
-public static String convertToString(Context c, Value value) {
+// WARNING: c.value gets clobbered.
+public static StringValue asStringValue(Context c, Value value, String name) {
   value.call(c, "__str__");
 
   if (!(c.value instanceof StringValue))
     throw err(
         c,
-        "Expected the result of __str__ to be a String but found " +
+        "Expected the result of __str__ on " + name +
+        " to be a String but found " +
         c.value.getTypeDescription());
 
-  return ((StringValue) c.value).value;
+  return (StringValue) c.value;
 }
 
-public static double extractDouble(Context c, Value value) {
+public static NumberValue asNumberValue(Context c, Value value, String name) {
   if (!(value instanceof NumberValue))
     throw err(
         c,
-        "Expected a Number but found " +
+        "Expected " + name + " to be a Number but found " +
         value.getTypeDescription());
 
-  return ((NumberValue) c.value).value;
+  return (NumberValue) value;
+}
+
+public static CallableValue asCallableValue(Context c, Value value, String name) {
+  if (!(value instanceof CallableValue))
+    throw err(
+        c,
+        "Expected " + name + " to be a Callable but found " +
+        value.getTypeDescription());
+
+  return (CallableValue) value;
 }
 
 }
