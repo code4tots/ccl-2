@@ -633,12 +633,7 @@ public static final class CallAst extends Ast {
     try {
       c.trace = new AstTrace(c.trace, this);
 
-      // Technically this branching is unnecessary --
-      // typeCallable 
-      if (owner instanceof CallableValue)
-        ((CallableValue) owner).call(c, args);
-      else
-        owner.call(c, "__call__", args);
+      invoke(c, owner, args);
 
     } finally {
       c.trace = oldTrace;
@@ -1293,6 +1288,15 @@ public static void expectArgLen(Context c, ArrayList<Value> args, int len) {
         c,
         "Expected argument of length " + Integer.toString(len) +
         " but found " + Integer.toString(args.size()) + " arguments.");
+}
+
+public static void invoke(Context c, Value owner, ArrayList<Value> args) {
+  // Technically this branching is unnecessary --
+  // It's just that this gives nicer looking stack trace.
+  if (owner instanceof CallableValue)
+    ((CallableValue) owner).call(c, args);
+  else
+    owner.call(c, "__call__", args);
 }
 
 }
