@@ -586,7 +586,7 @@ public static final class AssignAst extends Ast {
   public final Value evali(Context c) {
     Value value = this.value.eval(c);
     if (c.jump())
-      return null;
+      return value;
 
     Trace oldTrace = c.trace;
     try {
@@ -613,14 +613,14 @@ public static final class CallAst extends Ast {
 
     Value owner = this.owner.eval(c);
     if (c.jump())
-      return null;
+      return owner;
 
     ArrayList<Value> args = new ArrayList<Value>();
     for (int i = 0; i < this.args.size(); i++) {
 
       Value arg = this.args.get(i).eval(c);
       if (c.jump())
-        return null;
+        return arg;
 
       args.add(arg);
     }
@@ -628,7 +628,7 @@ public static final class CallAst extends Ast {
     if (this.vararg != null) {
       Value value = this.vararg.eval(c);
       if (c.jump())
-        return null;
+        return value;
 
       if (!(value instanceof ListValue))
         throw err(
@@ -667,15 +667,15 @@ public static final class SetItemAst extends Ast {
 
     Value owner = this.owner.eval(c);
     if (c.jump())
-      return null;
+      return owner;
 
     Value index = this.index.eval(c);
     if (c.jump())
-      return null;
+      return index;
 
     Value value = this.value.eval(c);
     if (c.jump())
-      return null;
+      return value;
 
     return owner.call(c, "__setitem__", index, value);
   }
@@ -693,7 +693,7 @@ public static final class GetAttributeAst extends Ast {
 
     Value value = owner.eval(c);
     if (c.jump())
-      return null;
+      return value;
 
     return value.get(c, attribute);
   }
@@ -712,7 +712,7 @@ public static final class SetAttributeAst extends Ast {
 
     Value ownerValue = this.owner.eval(c);
     if (c.jump())
-      return null;
+      return ownerValue;
 
     if (!(ownerValue instanceof UserValue))
       throw err(
@@ -738,7 +738,7 @@ public static final class BlockAst extends Ast {
     for (int i = 0; i < body.size(); i++) {
       last = body.get(i).eval(c);
       if (c.jump())
-        return null;
+        return last;
     }
     return last;
   }
