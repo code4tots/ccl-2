@@ -125,8 +125,20 @@ public static final TypeValue typeNil = new TypeValue("Nil", typeValue)
         expectArgLen(c, args, 0);
         return new StringValue("nil");
       }
+    })
+    .put(new Method("__bool__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        return fal;
+      }
     });
-public static final TypeValue typeBool = new TypeValue("Bool", typeValue);
+public static final TypeValue typeBool = new TypeValue("Bool", typeValue)
+    .put(new Method("__bool__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        return owner;
+      }
+    });
 public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
     .put(new Method("__repr__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
@@ -140,6 +152,12 @@ public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
           sv = Double.toString(value);
         return new StringValue(sv);
       }
+    })
+    .put(new Method("__bool__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        return asNumberValue(c, owner, "self").value != 0 ? tru : fal;
+      }
     });
 public static final TypeValue typeString = new TypeValue("String", typeValue)
     .put(new Method("__str__") {
@@ -147,8 +165,20 @@ public static final TypeValue typeString = new TypeValue("String", typeValue)
         expectArgLen(c, args, 0);
         return owner;
       }
+    })
+    .put(new Method("__bool__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        return asStringValue(c, owner, "self").value.length() != 0 ? tru : fal;
+      }
     });
-public static final TypeValue typeList = new TypeValue("List", typeValue);
+public static final TypeValue typeList = new TypeValue("List", typeValue)
+    .put(new Method("__bool__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        return asListValue(c, owner, "self").value.size() != 0 ? tru : fal;
+      }
+    });
 public static final TypeValue typeMap = new TypeValue("Map", typeValue);
 public static final TypeValue typeCallable = new TypeValue("Callable", typeValue)
     .put(new Method("__call__") {
@@ -1374,6 +1404,16 @@ public static NumberValue asNumberValue(Context c, Value value, String name) {
         value.getTypeDescription());
 
   return (NumberValue) value;
+}
+
+public static ListValue asListValue(Context c, Value value, String name) {
+  if (!(value instanceof ListValue))
+    throw err(
+        c,
+        "Expected " + name + " to be a List but found " +
+        value.getTypeDescription());
+
+  return (ListValue) value;
 }
 
 public static CallableValue asCallableValue(Context c, Value value, String name) {
