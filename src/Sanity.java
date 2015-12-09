@@ -1349,6 +1349,7 @@ public static StringValue asStringValue(Context c, Value value, String name) {
 
   return (StringValue) result;
 }
+
 public static BoolValue asBoolValue(Context c, Value value, String name) {
   if (value instanceof BoolValue)
     return (BoolValue) value;
