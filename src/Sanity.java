@@ -104,10 +104,18 @@ public static Value importModule(Context c, String name) {
 /// Effectively the core library.
 
 public static final NilValue nil = new NilValue();
+public static final BoolValue tru = new BoolValue(true);
+public static final BoolValue fal = new BoolValue(false);
 public static final TypeValue typeValue = new TypeValue(true, "Value")
     .put(new Method("__str__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         return owner.call(c, "__repr__", args);
+      }
+    })
+    .put(new Method("__bool__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        return tru;
       }
     });
 public static final TypeValue typeType = new TypeValue("Type", typeValue);
@@ -158,6 +166,8 @@ public static final TypeValue typeModule = new TypeValue("Module", typeValue);
 
 public static final Scope BUILTIN_SCOPE = new Scope(null)
     .put("nil", nil)
+    .put("true", tru)
+    .put("false", fal)
     .put(typeValue)
     .put(typeNil)
     .put(typeBool)
@@ -179,14 +189,27 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
         System.out.println(sv.value);
         return sv;
       }
+    })
+    .put(new FunctionValue("assert") {
+      public Value calli(Context c, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        if (!asBoolValue(c, args.get(0), "argument 0").value)
+          throw err(c, "assertion failed");
+        return nil;
+      }
     });
 
 public static final class NilValue extends Value {
   public final TypeValue getType() { return typeNil; }
 }
+public static final class BoolValue extends Value {
+  public final Boolean value;
+  public BoolValue(Boolean value) { this.value = value; }
+  public final TypeValue getType() { return typeBool; }
+}
 public static final class NumberValue extends Value {
   public final Double value;
-  public NumberValue(Double value) { this.value = value; }
+  public NumberValue(double value) { this.value = value; }
   public final TypeValue getType() { return typeNumber; }
 }
 public static final class StringValue extends Value {
@@ -1325,6 +1348,21 @@ public static StringValue asStringValue(Context c, Value value, String name) {
         result.getTypeDescription());
 
   return (StringValue) result;
+}
+public static BoolValue asBoolValue(Context c, Value value, String name) {
+  if (value instanceof BoolValue)
+    return (BoolValue) value;
+
+  Value result = value.call(c, "__bool__");
+
+  if (!(result instanceof BoolValue))
+    throw err(
+        c,
+        "Expected the result of __bool__ on " + name +
+        " to be a Bool but found " +
+        result.getTypeDescription());
+
+  return (BoolValue) result;
 }
 
 public static NumberValue asNumberValue(Context c, Value value, String name) {
