@@ -520,6 +520,58 @@ public abstract static class FunctionValue extends CallableValue {
   }
 }
 
+public final static class UserFunctionValue extends FunctionValue {
+  public final ArrayList<String> args;
+  public final String vararg;
+  public final Ast body;
+  public final Scope scope;
+  public UserFunctionValue(
+      String name, ArrayList<String> args, String vararg, Ast body,
+      Scope scope) {
+    super(name);
+    this.args = args;
+    this.vararg = vararg;
+    this.body = body;
+    this.scope = scope;
+  }
+  public final Value calli(Context c, ArrayList<Value> args) {
+    if (vararg == null)
+      expectArgLen(c, args, this.args.size());
+    else
+      expectMinArgLen(c, args, this.args.size());
+
+    Scope oldScope = c.scope;
+    try {
+      c.scope = new Scope(scope);
+      for (int i = 0; i < this.args.size(); i++) {
+        c.put(this.args.get(i), args.get(i));
+      }
+
+      if (vararg != null) {
+        ArrayList<Value> va = new ArrayList<Value>();
+        for (int i = this.args.size(); i < args.size(); i++) {
+          va.add(args.get(i));
+        }
+        c.put(vararg, toListValue(va));
+      }
+
+      Value result = body.eval(c);
+
+      if (!c.return_)
+        result = nil;
+
+      c.return_ = false;
+
+      c.checkStart();
+
+      return result;
+
+    } finally {
+      c.scope = oldScope;
+    }
+  }
+}
+
 public static final class BoundMethodValue extends CallableValue {
   public final Value owner;
   public final Method method;
@@ -683,6 +735,43 @@ public static final class AssignAst extends Ast {
     } finally {
       c.trace = oldTrace;
     }
+  }
+}
+
+public static final class FunctionAst extends Ast {
+  public final String name;
+  public final ArrayList<String> args;
+  public final String vararg;
+  public final Ast body;
+  public FunctionAst(
+      Token token, String name, ArrayList<String> args, String vararg,
+      Ast body) {
+    super(token);
+    this.name = name;
+    this.args = args;
+    this.vararg = vararg;
+    this.body = body;
+  }
+  public final Value evali(Context c) {
+    FunctionValue f = new UserFunctionValue(name, args, vararg, body, c.scope);
+    c.put(name, f);
+    return f;
+  }
+}
+
+public static final class ReturnAst extends Ast {
+  public final Ast value;
+  public ReturnAst(Token token, Ast value) {
+    super(token);
+    this.value = value;
+  }
+  public final Value evali(Context c) {
+    Value result = value.eval(c);
+    if (c.jump())
+      return result;
+
+    c.return_ = true;
+    return result;
   }
 }
 
@@ -1215,6 +1304,39 @@ public static final class Parser {
       return expr;
     }
 
+    if (at("{")) {
+      Token token = next();
+      ArrayList<Ast> exprs = new ArrayList<Ast>();
+      while (!at("}"))
+        exprs.add(parseExpression());
+      expect("}");
+      return new BlockAst(token, exprs);
+    }
+
+    if (at("return")) {
+      Token token = next();
+      Ast value = parseExpression();
+      return new ReturnAst(token, value);
+    }
+
+    if (at("def")) {
+      Token token = next();
+      String name = (String) expect("ID").value;
+      expect("[");
+      ArrayList<String> args = new ArrayList<String>();
+      while (at("ID")) {
+        args.add((String) expect("ID").value);
+        consume(",");
+      }
+      String vararg = null;
+      if (consume("*")) {
+        vararg = (String) expect("ID").value;
+      }
+      expect("]");
+      Ast body = parseExpression();
+      return new FunctionAst(token, name, args, vararg, body);
+    }
+
     throw new SyntaxError(peek(), "Expected expression");
   }
 }
@@ -1253,7 +1375,7 @@ static {
 
 public static final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
-      "and", "or", "xor",
+      "and", "or", "xor", "return",
       "def", "not");
   public static final ArrayList<String> SYMBOLS;
 
@@ -1261,7 +1383,7 @@ public static final class Lexer {
   // surrounding scope.
   static {
     SYMBOLS = toArrayList(
-        "(", ")", "[", "]", ".", ":", ",",
+        "(", ")", "[", "]", "{", "}", ".", ":", ",",
         "=", "==", "!=", "<", "<=", ">", ">=",
         "+", "-", "*", "/", "%");
   }
@@ -1589,6 +1711,14 @@ public static void expectArgLen(Context c, ArrayList<Value> args, int len) {
         " but found " + Integer.toString(args.size()) + " arguments.");
 }
 
+public static void expectMinArgLen(Context c, ArrayList<Value> args, int len) {
+  if (args.size() >= len)
+    throw err(
+        c,
+        "Expected at least " + Integer.toString(len) + " arguments" +
+        " but found " + Integer.toString(args.size()) + " arguments.");
+}
+
 public static Value invoke(Context c, Value owner, ArrayList<Value> args) {
   // Technically this branching is unnecessary --
   // It's just that this gives nicer looking stack trace.
@@ -1668,6 +1798,10 @@ public static NumberValue toNumberValue(double d) {
 
 public static StringValue toStringValue(String s) {
   return new StringValue(s);
+}
+
+public static ListValue toListValue(ArrayList<Value> a) {
+  return new ListValue(a);
 }
 
 }
