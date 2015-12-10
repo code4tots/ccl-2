@@ -174,7 +174,7 @@ public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
     .put(new Method("__neg__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
-        return new NumberValue(-asNumberValue(c, owner, "self").value);
+        return toNumberValue(-asNumberValue(c, owner, "self").value);
       }
     })
     .put(new Method("__eq__") {
@@ -183,6 +183,14 @@ public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
         double left = asNumberValue(c, owner, "self").value;
         double right = asNumberValue(c, args.get(0), "argument 0").value;
         return left == right ? tru : fal;
+      }
+    })
+    .put(new Method("__add__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        double left = asNumberValue(c, owner, "self").value;
+        double right = asNumberValue(c, args.get(0), "argument 0").value;
+        return toNumberValue(left + right);
       }
     });
 public static final TypeValue typeString = new TypeValue("String", typeValue)
@@ -647,7 +655,7 @@ public static final class NumberAst extends Ast {
   public final NumberValue value;
   public NumberAst(Token token, Double value) {
     super(token);
-    this.value = new NumberValue(value);
+    this.value = toNumberValue(value);
   }
   public final Value evali(Context c) {
     return value;
@@ -974,18 +982,62 @@ public static final class Parser {
     return parseCompareExpression();
   }
   public Ast parseCompareExpression() {
-    Ast node = parsePrefixExpression();
+    Ast node = parseAdditiveExpression();
     while (true) {
       if (at("==")) {
         Token token = next();
-        Ast right = parsePrefixExpression();
+        Ast right = parseAdditiveExpression();
         node = new OperationAst(token, node, "__eq__", right);
         continue;
       }
       if (at("!=")) {
         Token token = next();
-        Ast right = parsePrefixExpression();
+        Ast right = parseAdditiveExpression();
         node = new OperationAst(token, node, "__ne__", right);
+        continue;
+      }
+      break;
+    }
+    return node;
+  }
+  public Ast parseAdditiveExpression() {
+    Ast node = parseMultiplicativeExpression();
+    while (true) {
+      if (at("+")) {
+        Token token = next();
+        Ast right = parseMultiplicativeExpression();
+        node = new OperationAst(token, node, "__add__", right);
+        continue;
+      }
+      if (at("-")) {
+        Token token = next();
+        Ast right = parseMultiplicativeExpression();
+        node = new OperationAst(token, node, "__sub__", right);
+        continue;
+      }
+      break;
+    }
+    return node;
+  }
+  public Ast parseMultiplicativeExpression() {
+    Ast node = parsePrefixExpression();
+    while (true) {
+      if (at("*")) {
+        Token token = next();
+        Ast right = parsePrefixExpression();
+        node = new OperationAst(token, node, "__mul__", right);
+        continue;
+      }
+      if (at("/")) {
+        Token token = next();
+        Ast right = parsePrefixExpression();
+        node = new OperationAst(token, node, "__div__", right);
+        continue;
+      }
+      if (at("%")) {
+        Token token = next();
+        Ast right = parsePrefixExpression();
+        node = new OperationAst(token, node, "__mod__", right);
         continue;
       }
       break;
@@ -1522,6 +1574,10 @@ public static CallableValue asCallableValue(Context c, Value value, String name)
         value.getTypeDescription());
 
   return (CallableValue) value;
+}
+
+public static NumberValue toNumberValue(double d) {
+  return new NumberValue(d);
 }
 
 }
