@@ -774,6 +774,21 @@ public static final class OperationAst extends Ast {
   }
 }
 
+public static final class NotAst extends Ast {
+  public final Ast target;
+  public NotAst(Token token, Ast target) {
+    super(token);
+    this.target = target;
+  }
+  public final Value evali(Context c) {
+    Value target = this.target.eval(c);
+    if (c.jump())
+      return target;
+
+    return asBoolValue(c, target, "argument to not").value ? fal : tru;
+  }
+}
+
 public static final class SetItemAst extends Ast {
   public final Ast owner;
   public final Ast index;
@@ -1055,6 +1070,11 @@ public static final class Parser {
       Ast node = parsePrefixExpression();
       return new OperationAst(token, node, "__neg__");
     }
+    if (at("not")) {
+      Token token = next();
+      Ast node = parsePrefixExpression();
+      return new NotAst(token, node);
+    }
     return parsePostfixExpression();
   }
   public Ast parsePostfixExpression() {
@@ -1168,7 +1188,7 @@ static {
 /// Lexer and Token
 
 public static final class Lexer {
-  public static final ArrayList<String> KEYWORDS = toArrayList("def");
+  public static final ArrayList<String> KEYWORDS = toArrayList("def", "not");
   public static final ArrayList<String> SYMBOLS;
 
   // My syntax highlighter does funny things if it sees "{", "}" in the
