@@ -158,6 +158,12 @@ public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
         expectArgLen(c, args, 0);
         return asNumberValue(c, owner, "self").value != 0 ? tru : fal;
       }
+    })
+    .put(new Method("__neg__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        return new NumberValue(-asNumberValue(c, owner, "self").value);
+      }
     });
 public static final TypeValue typeString = new TypeValue("String", typeValue)
     .put(new Method("__str__") {
@@ -698,8 +704,42 @@ public static final class CallAst extends Ast {
     Trace oldTrace = c.trace;
     try {
       c.trace = new AstTrace(c.trace, this);
-
       return invoke(c, owner, args);
+    } finally {
+      c.trace = oldTrace;
+    }
+  }
+}
+
+public static final class OperationAst extends Ast {
+  public final Ast owner;
+  public final String name;
+  public final ArrayList<Ast> args;
+  public OperationAst(Token token, Ast owner, String name, Ast... args) {
+    super(token);
+    this.owner = owner;
+    this.name = name;
+    this.args = toArrayList(args);
+  }
+  public final Value evali(Context c) {
+    Value owner = this.owner.eval(c);
+    if (c.jump())
+      return owner;
+
+    ArrayList<Value> args = new ArrayList<Value>();
+    for (int i = 0; i < this.args.size(); i++) {
+
+      Value arg = this.args.get(i).eval(c);
+      if (c.jump())
+        return arg;
+
+      args.add(arg);
+    }
+
+    Trace oldTrace = c.trace;
+    try {
+      c.trace = new AstTrace(c.trace, this);
+      return owner.call(c, name, args);
     } finally {
       c.trace = oldTrace;
     }
@@ -911,6 +951,19 @@ public static final class Parser {
     return new ModuleAst(token, name, new BlockAst(token, exprs));
   }
   public Ast parseExpression() {
+    return parsePrefixExpression();
+  }
+  public Ast parsePrefixExpression() {
+    if (at("+")) {
+      Token token = next();
+      Ast node = parsePrefixExpression();
+      return new OperationAst(token, node, "__pos__");
+    }
+    if (at("-")) {
+      Token token = next();
+      Ast node = parsePrefixExpression();
+      return new OperationAst(token, node, "__neg__");
+    }
     return parsePostfixExpression();
   }
   public Ast parsePostfixExpression() {
@@ -1316,6 +1369,12 @@ public static final class Err extends RuntimeException {
 /// utils
 public static ArrayList<Value> toArrayList(Value... args) {
   ArrayList<Value> al = new ArrayList<Value>();
+  for (int i = 0; i < args.length; i++)
+    al.add(args[i]);
+  return al;
+}
+public static ArrayList<Ast> toArrayList(Ast... args) {
+  ArrayList<Ast> al = new ArrayList<Ast>();
   for (int i = 0; i < args.length; i++)
     al.add(args[i]);
   return al;
