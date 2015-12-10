@@ -17,7 +17,7 @@ public static final HashMap<String, ModuleAst> MODULE_REGISTRY =
 // Tests are run in static blocks so we don't need to load them here.
 public static void main(String[] args) {
   if (TEST)
-    System.out.println("All tests pass!");
+    System.out.println("/// First set of tests pass! ///");
 
   if (args.length > 0) {
     ModuleAst mainModule = readModule(args[0]);
@@ -908,7 +908,7 @@ static {
     expect(value instanceof NumberValue);
     expect(((NumberValue) value).value.equals(6.2));
 
-    System.out.println("Ast tests pass");
+    // System.out.println("Ast tests pass");
   }
 }
 
@@ -1161,7 +1161,7 @@ static {
     expect(node instanceof NameAst);
     expect(((NameAst) node).name.equals("hi"));
 
-    System.out.println("Parser tests pass");
+    // System.out.println("Parser tests pass");
   }
 }
 
@@ -1418,7 +1418,7 @@ static {
     expect(lexer.tokens.get(1).type.equals("ID"));
     expect(lexer.tokens.get(2).type.equals("EOF"));
 
-    System.out.println("Lexer tests pass");
+    // System.out.println("Lexer tests pass");
   }
 }
 

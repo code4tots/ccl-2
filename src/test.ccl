@@ -1,15 +1,8 @@
-bower = 3
-print[bower]
-print['hello world!']
-# print.__call__[print]
-print[print]
-print[print.__str__[]]
-print[-5]
+# comments!
 x = 4
 assert[-x == -4]
 assert[1 != 2]
 assert[1 + 1 == 2]
-print[-x]
 assert[true]
 assert[1]
 print['*** All tests pass! ***']
