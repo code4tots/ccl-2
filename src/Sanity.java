@@ -785,7 +785,45 @@ public static final class NotAst extends Ast {
     if (c.jump())
       return target;
 
-    return asBoolValue(c, target, "argument to not").value ? fal : tru;
+    return asBoolValue(c, target, "argument to 'not'").value ? fal : tru;
+  }
+}
+
+public static final class AndAst extends Ast {
+  public final Ast left, right;
+  public AndAst(Token token, Ast left, Ast right) {
+    super(token);
+    this.left = left;
+    this.right = right;
+  }
+  public final Value evali(Context c) {
+    Value left = this.left.eval(c);
+    if (c.jump())
+      return left;
+
+    if (!asBoolValue(c, left, "left argument to 'and'").value)
+      return left;
+
+    return this.right.eval(c);
+  }
+}
+
+public static final class OrAst extends Ast {
+  public final Ast left, right;
+  public OrAst(Token token, Ast left, Ast right) {
+    super(token);
+    this.left = left;
+    this.right = right;
+  }
+  public final Value evali(Context c) {
+    Value left = this.left.eval(c);
+    if (c.jump())
+      return left;
+
+    if (asBoolValue(c, left, "left argument to 'or'").value)
+      return left;
+
+    return this.right.eval(c);
   }
 }
 
@@ -994,7 +1032,33 @@ public static final class Parser {
     return new ModuleAst(token, name, new BlockAst(token, exprs));
   }
   public Ast parseExpression() {
-    return parseCompareExpression();
+    return parseOrExpression();
+  }
+  public Ast parseOrExpression() {
+    Ast node = parseAndExpression();
+    while (true) {
+      if (at("or")) {
+        Token token = next();
+        Ast right = parseAndExpression();
+        node = new OrAst(token, node, right);
+        continue;
+      }
+      break;
+    }
+    return node;
+  }
+  public Ast parseAndExpression() {
+    Ast node = parseCompareExpression();
+    while (true) {
+      if (at("and")) {
+        Token token = next();
+        Ast right = parseCompareExpression();
+        node = new AndAst(token, node, right);
+        continue;
+      }
+      break;
+    }
+    return node;
   }
   public Ast parseCompareExpression() {
     Ast node = parseAdditiveExpression();
@@ -1188,7 +1252,9 @@ static {
 /// Lexer and Token
 
 public static final class Lexer {
-  public static final ArrayList<String> KEYWORDS = toArrayList("def", "not");
+  public static final ArrayList<String> KEYWORDS = toArrayList(
+      "and", "or", "xor",
+      "def", "not");
   public static final ArrayList<String> SYMBOLS;
 
   // My syntax highlighter does funny things if it sees "{", "}" in the
