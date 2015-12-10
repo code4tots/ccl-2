@@ -6,6 +6,8 @@ print[print]
 print[print.__str__[]]
 print[-5]
 x = 4
+assert[-x == -4]
+assert[1 != 2]
 print[-x]
 assert[true]
 assert[1]

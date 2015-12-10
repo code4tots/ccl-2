@@ -117,6 +117,18 @@ public static final TypeValue typeValue = new TypeValue(true, "Value")
         expectArgLen(c, args, 0);
         return tru;
       }
+    })
+    .put(new Method("__eq__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        return owner == args.get(0) ? tru : fal;
+      }
+    })
+    .put(new Method("__ne__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        return asBoolValue(c, owner.call(c, "__eq__", args), "result of __eq__").value ? fal : tru;
+      }
     });
 public static final TypeValue typeType = new TypeValue("Type", typeValue);
 public static final TypeValue typeNil = new TypeValue("Nil", typeValue)
@@ -163,6 +175,14 @@ public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
         return new NumberValue(-asNumberValue(c, owner, "self").value);
+      }
+    })
+    .put(new Method("__eq__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        double left = asNumberValue(c, owner, "self").value;
+        double right = asNumberValue(c, args.get(0), "argument 0").value;
+        return left == right ? tru : fal;
       }
     });
 public static final TypeValue typeString = new TypeValue("String", typeValue)
@@ -951,7 +971,26 @@ public static final class Parser {
     return new ModuleAst(token, name, new BlockAst(token, exprs));
   }
   public Ast parseExpression() {
-    return parsePrefixExpression();
+    return parseCompareExpression();
+  }
+  public Ast parseCompareExpression() {
+    Ast node = parsePrefixExpression();
+    while (true) {
+      if (at("==")) {
+        Token token = next();
+        Ast right = parsePrefixExpression();
+        node = new OperationAst(token, node, "__eq__", right);
+        continue;
+      }
+      if (at("!=")) {
+        Token token = next();
+        Ast right = parsePrefixExpression();
+        node = new OperationAst(token, node, "__ne__", right);
+        continue;
+      }
+      break;
+    }
+    return node;
   }
   public Ast parsePrefixExpression() {
     if (at("+")) {
