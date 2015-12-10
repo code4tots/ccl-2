@@ -58,7 +58,7 @@ public static String readFile(String path) {
 public static HashMap<String, Value> run(Context c, ModuleAst node, String name) {
   Scope oldScope = c.scope;
   c.scope = new Scope(BUILTIN_SCOPE);
-  c.put("__name__", new StringValue(name));
+  c.put("__name__", toStringValue(name));
   c.checkStart();
   c.checkEndCall(node.eval(c));
   Scope newScope = c.scope;
@@ -135,7 +135,7 @@ public static final TypeValue typeNil = new TypeValue("Nil", typeValue)
     .put(new Method("__repr__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
-        return new StringValue("nil");
+        return toStringValue("nil");
       }
     })
     .put(new Method("__bool__") {
@@ -162,7 +162,7 @@ public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
           sv = Integer.toString((int) value);
         else
           sv = Double.toString(value);
-        return new StringValue(sv);
+        return toStringValue(sv);
       }
     })
     .put(new Method("__bool__") {
@@ -223,7 +223,7 @@ public static final TypeValue typeCallable = new TypeValue("Callable", typeValue
     .put(new Method("__repr__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
-        return new StringValue(asCallableValue(c, owner, "self").name);
+        return toStringValue(asCallableValue(c, owner, "self").name);
       }
     });
 public static final TypeValue typeModule = new TypeValue("Module", typeValue);
@@ -644,7 +644,7 @@ public static final class StringAst extends Ast {
   public final StringValue value;
   public StringAst(Token token, String value) {
     super(token);
-    this.value = new StringValue(value);
+    this.value = toStringValue(value);
   }
   public final Value evali(Context c) {
     return value;
@@ -1578,6 +1578,10 @@ public static CallableValue asCallableValue(Context c, Value value, String name)
 
 public static NumberValue toNumberValue(double d) {
   return new NumberValue(d);
+}
+
+public static StringValue toStringValue(String s) {
+  return new StringValue(s);
 }
 
 }
