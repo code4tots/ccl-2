@@ -191,6 +191,8 @@ public static final TypeValue typeNumber = new TypeValue(false, "Number", null, 
     .put(new Method("__add__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
+        if (!(args.get(0) instanceof NumberValue))
+          return fal;
         double left = asNumberValue(c, owner, "self").value;
         double right = asNumberValue(c, args.get(0), "argument 0").value;
         return toNumberValue(left + right);
@@ -208,12 +210,44 @@ public static final TypeValue typeString = new TypeValue(false, "String", null, 
         expectArgLen(c, args, 0);
         return asStringValue(c, owner, "self").value.length() != 0 ? tru : fal;
       }
+    })
+    .put(new Method("__eq__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        if (!(args.get(0) instanceof StringValue))
+          return fal;
+        String left = asStringValue(c, owner, "self").value;
+        String right = asStringValue(c, args.get(0), "argument 0").value;
+        return left.equals(right) ? tru : fal;
+      }
     });
-public static final TypeValue typeList = new TypeValue(false, "List", null, typeValue)
+public static final TypeValue typeList = new TypeValue(
+    false, "List",
+    new Constructor() {
+      public final Value call(Context c, TypeValue ownerType, ArrayList<Value> args) {
+        return toListValue(args);
+      }
+    },
+    typeValue)
     .put(new Method("__bool__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
         return asListValue(c, owner, "self").value.size() != 0 ? tru : fal;
+      }
+    })
+    .put(new Method("__repr__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        StringBuilder sb = new StringBuilder("List[");
+        ArrayList<Value> al = asListValue(c, owner, "self").value;
+        for (int i = 0; i < al.size(); i++) {
+          if (i != 0)
+            sb.append(", ");
+          sb.append(asStringValue(
+              c, al.get(i), "argument " + Integer.toString(i)).value);
+        }
+        sb.append("]");
+        return toStringValue(sb.toString());
       }
     });
 public static final TypeValue typeMap = new TypeValue(false, "Map", null, typeValue);
@@ -373,6 +407,22 @@ public abstract static class Method {
   }
 }
 
+public abstract static class Constructor {
+  private TypeValue type;
+  public abstract Value call(Context c, TypeValue actualType, ArrayList<Value> args);
+  public Constructor setType(TypeValue type) {
+    if (this.type != null)
+      throw new Fubar("This constructor is already associated with type " + type.name);
+    this.type = type;
+    return this;
+  }
+  public TypeValue getType() {
+    if (type == null)
+      throw new Fubar("This constructor has not yet been associated with a type yet");
+    return type;
+  }
+}
+
 public abstract static class Value {
   public abstract TypeValue getType();
   public final Value call(Context c, String name, Value... args) {
@@ -436,10 +486,13 @@ public static final class TypeValue extends Value {
   public final ArrayList<TypeValue> mro = new ArrayList<TypeValue>();
   public final HashMap<String, Method> methods = new HashMap<String, Method>();
   public final TypeValue getType() { return typeType; }
-  public final FunctionValue constructor;
-  public TypeValue(boolean userType, String n, FunctionValue cons, ArrayList<Value> bs) {
+  public final Constructor constructor;
+  public TypeValue(boolean userType, String n, Constructor cons, ArrayList<Value> bs) {
     if (n == null)
       throw new Fubar("TypeValue needs a name");
+
+    if (cons != null)
+      cons.setType(this);
 
     this.constructor = cons;
     this.userType = userType;
@@ -472,7 +525,7 @@ public static final class TypeValue extends Value {
     mro.add(this);
     Collections.reverse(mro);
   }
-  public TypeValue(boolean userType, String n,FunctionValue cons, Value... args) {
+  public TypeValue(boolean userType, String n, Constructor cons, Value... args) {
     this(userType, n, cons, toArrayList(args));
   }
   public TypeValue put(Method method) {
@@ -1731,8 +1784,12 @@ public static Value invoke(Context c, Value owner, ArrayList<Value> args) {
   // It's just that this gives nicer looking stack trace.
   if (owner instanceof CallableValue)
     return ((CallableValue) owner).call(c, args);
-  else if (owner instanceof TypeValue)
-    return ((TypeValue) owner).constructor.call(c, args);
+  else if (owner instanceof TypeValue) {
+    Constructor constructor = ((TypeValue) owner).constructor;
+    if (constructor == null)
+      throw err(c, "Type " + ((TypeValue) owner).name + " has no constructor");
+    return constructor.call(c, (TypeValue) owner, args);
+  }
   else
     return owner.call(c, "__call__", args);
 }
