@@ -11,13 +11,16 @@ public class Sanity {
 // Flag indicating whether we should perform tests on startup.
 public static final boolean TEST = true;
 
+// Flag indicating whether test should be verbose
+public static final boolean VERBOSE_TEST = true;
+
 public static final HashMap<String, ModuleAst> MODULE_REGISTRY =
     new HashMap<String, ModuleAst>();
 
 // Tests are run in static blocks so we don't need to load them here.
 public static void main(String[] args) {
-  if (TEST)
-    System.out.println("/// First set of tests pass! ///");
+  if (TEST && VERBOSE_TEST)
+    System.out.println("/// Builtin set of tests pass! ///");
 
   if (args.length > 0) {
     ModuleAst mainModule = readModule(args[0]);
