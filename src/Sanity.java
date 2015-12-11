@@ -106,7 +106,7 @@ public static Value importModule(Context c, String name) {
 public static final NilValue nil = new NilValue();
 public static final BoolValue tru = new BoolValue(true);
 public static final BoolValue fal = new BoolValue(false);
-public static final TypeValue typeValue = new TypeValue(true, "Value")
+public static final TypeValue typeValue = new TypeValue(true, "Value", null)
     .put(new Method("__str__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         return owner.call(c, "__repr__", args);
@@ -130,8 +130,8 @@ public static final TypeValue typeValue = new TypeValue(true, "Value")
         return asBoolValue(c, owner.call(c, "__eq__", args), "result of __eq__").value ? fal : tru;
       }
     });
-public static final TypeValue typeType = new TypeValue("Type", typeValue);
-public static final TypeValue typeNil = new TypeValue("Nil", typeValue)
+public static final TypeValue typeType = new TypeValue(false, "Type", null, typeValue);
+public static final TypeValue typeNil = new TypeValue(false, "Nil", null, typeValue)
     .put(new Method("__repr__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
@@ -144,14 +144,14 @@ public static final TypeValue typeNil = new TypeValue("Nil", typeValue)
         return fal;
       }
     });
-public static final TypeValue typeBool = new TypeValue("Bool", typeValue)
+public static final TypeValue typeBool = new TypeValue(false, "Bool", null, typeValue)
     .put(new Method("__bool__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
         return owner;
       }
     });
-public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
+public static final TypeValue typeNumber = new TypeValue(false, "Number", null, typeValue)
     .put(new Method("__repr__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
@@ -193,7 +193,7 @@ public static final TypeValue typeNumber = new TypeValue("Number", typeValue)
         return toNumberValue(left + right);
       }
     });
-public static final TypeValue typeString = new TypeValue("String", typeValue)
+public static final TypeValue typeString = new TypeValue(false, "String", null, typeValue)
     .put(new Method("__str__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
@@ -206,15 +206,15 @@ public static final TypeValue typeString = new TypeValue("String", typeValue)
         return asStringValue(c, owner, "self").value.length() != 0 ? tru : fal;
       }
     });
-public static final TypeValue typeList = new TypeValue("List", typeValue)
+public static final TypeValue typeList = new TypeValue(false, "List", null, typeValue)
     .put(new Method("__bool__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
         return asListValue(c, owner, "self").value.size() != 0 ? tru : fal;
       }
     });
-public static final TypeValue typeMap = new TypeValue("Map", typeValue);
-public static final TypeValue typeCallable = new TypeValue("Callable", typeValue)
+public static final TypeValue typeMap = new TypeValue(false, "Map", null, typeValue);
+public static final TypeValue typeCallable = new TypeValue(false, "Callable", null, typeValue)
     .put(new Method("__call__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         return asCallableValue(c, owner, "self").call(c, args);
@@ -226,7 +226,7 @@ public static final TypeValue typeCallable = new TypeValue("Callable", typeValue
         return toStringValue(asCallableValue(c, owner, "self").name);
       }
     });
-public static final TypeValue typeModule = new TypeValue("Module", typeValue);
+public static final TypeValue typeModule = new TypeValue(false, "Module", null, typeValue);
 
 public static final Scope BUILTIN_SCOPE = new Scope(null)
     .put("nil", nil)
@@ -427,24 +427,31 @@ public abstract static class Value {
 }
 
 public static final class TypeValue extends Value {
-  public final boolean userCreatable;
+  public final boolean userType;
   public final String name;
   public final ArrayList<TypeValue> bases = new ArrayList<TypeValue>();
   public final ArrayList<TypeValue> mro = new ArrayList<TypeValue>();
   public final HashMap<String, Method> methods = new HashMap<String, Method>();
   public final TypeValue getType() { return typeType; }
-  public TypeValue(String n, ArrayList<Value> bs) {
-    this(false, n, bs);
-  }
-  public TypeValue(boolean userCreatable, String n, ArrayList<Value> bs) {
+  public final FunctionValue constructor;
+  public TypeValue(boolean userType, String n, FunctionValue cons, ArrayList<Value> bs) {
     if (n == null)
       throw new Fubar("TypeValue needs a name");
 
-    this.userCreatable = userCreatable;
+    this.constructor = cons;
+    this.userType = userType;
 
     name = n;
     for (int i = bs.size()-1; i >= 0; i--) {
       TypeValue base = (TypeValue) bs.get(i);
+      // TODO: Better error message,
+      // TODO: Possibly pass in the Context so that this error can die
+      // with a proper stack trace.
+      if (userType && !base.userType)
+        throw new Fubar(
+            "When trying to create type '" + name + "'' tried to use class '" +
+            base.name + "' as a base, but user types cannot subclass from " +
+            "non-user types.");
       bases.add(base);
       for (int j = base.mro.size()-1; j >=0 ; j--) {
         TypeValue ancestor = base.mro.get(j);
@@ -462,11 +469,8 @@ public static final class TypeValue extends Value {
     mro.add(this);
     Collections.reverse(mro);
   }
-  public TypeValue(String n, Value... args) {
-    this(n, toArrayList(args));
-  }
-  public TypeValue(boolean userCreatable, String n, Value... args) {
-    this(userCreatable, n, toArrayList(args));
+  public TypeValue(boolean userType, String n,FunctionValue cons, Value... args) {
+    this(userType, n, cons, toArrayList(args));
   }
   public TypeValue put(Method method) {
     method.setType(this);
@@ -485,8 +489,8 @@ public static final class UserValue extends Value {
 
     TypeValue type = (TypeValue) typeValue;
 
-    if (!type.userCreatable)
-      throw err(c, "Type " + type.name + " cannot be instantiated");
+    if (!type.userType)
+      throw err(c, "Type " + type.name + " is not a user type");
 
     this.type = type;
   }
@@ -1724,6 +1728,8 @@ public static Value invoke(Context c, Value owner, ArrayList<Value> args) {
   // It's just that this gives nicer looking stack trace.
   if (owner instanceof CallableValue)
     return ((CallableValue) owner).call(c, args);
+  else if (owner instanceof TypeValue)
+    return ((TypeValue) owner).constructor.call(c, args);
   else
     return owner.call(c, "__call__", args);
 }
