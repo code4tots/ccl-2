@@ -147,7 +147,14 @@ public static final TypeValue typeNil = new TypeValue(false, "Nil", null, typeVa
         return fal;
       }
     });
-public static final TypeValue typeBool = new TypeValue(false, "Bool", null, typeValue)
+public static final TypeValue typeBool = new TypeValue(
+    false, "Bool",
+    new Constructor() {
+      public final Value call(Context c, TypeValue ownerType, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        return asBoolValue(c, args.get(0), "argument 0");
+      }
+    }, typeValue)
     .put(new Method("__bool__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);
@@ -896,6 +903,18 @@ public static final class CallAst extends Ast {
   }
 }
 
+public static final class IsAst extends Ast {
+  public final Ast left, right;
+  public IsAst(Token token, Ast left, Ast right) {
+    super(token);
+    this.left = left;
+    this.right = right;
+  }
+  public final Value evali(Context c) {
+    return left.eval(c) == right.eval(c) ? tru : fal;
+  }
+}
+
 public static final class OperationAst extends Ast {
   public final Ast owner;
   public final String name;
@@ -1232,6 +1251,12 @@ public static final class Parser {
         node = new OperationAst(token, node, "__ne__", right);
         continue;
       }
+      if (at("is")) {
+        Token token = next();
+        Ast right = parseAdditiveExpression();
+        node = new IsAst(token, node, right);
+        continue;
+      }
       break;
     }
     return node;
@@ -1443,7 +1468,7 @@ static {
 
 public static final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
-      "and", "or", "xor", "return",
+      "and", "or", "xor", "return", "is",
       "def", "not");
   public static final ArrayList<String> SYMBOLS;
 

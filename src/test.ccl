@@ -24,4 +24,7 @@ assert[List[1,2,3].__str__[] == 'List[1, 2, 3]']
 
 assert[String[List[1,2,3]] == 'List[1, 2, 3]']
 
+assert[Bool[1] is true]
+assert[Bool[0] is false]
+
 print['*** All tests pass! ***']
