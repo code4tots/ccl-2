@@ -198,7 +198,15 @@ public static final TypeValue typeNumber = new TypeValue(false, "Number", null, 
         return toNumberValue(left + right);
       }
     });
-public static final TypeValue typeString = new TypeValue(false, "String", null, typeValue)
+public static final TypeValue typeString = new TypeValue(
+    false, "String",
+    new Constructor() {
+      public final Value call(Context c, TypeValue ownerType, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        return asStringValue(c, args.get(0), "argument 0");
+      }
+    },
+    typeValue)
     .put(new Method("__str__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 0);

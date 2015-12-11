@@ -22,4 +22,6 @@ assert[f[4] == 6]
 
 assert[List[1,2,3].__str__[] == 'List[1, 2, 3]']
 
+assert[String[List[1,2,3]] == 'List[1, 2, 3]']
+
 print['*** All tests pass! ***']
