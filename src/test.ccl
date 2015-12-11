@@ -26,5 +26,6 @@ assert[String[List[1,2,3]] == 'List[1, 2, 3]']
 
 assert[Bool[1] is true]
 assert[Bool[0] is false]
+assert[true is not false]
 
 print['*** All tests pass! ***']

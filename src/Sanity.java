@@ -915,6 +915,18 @@ public static final class IsAst extends Ast {
   }
 }
 
+public static final class IsNotAst extends Ast {
+  public final Ast left, right;
+  public IsNotAst(Token token, Ast left, Ast right) {
+    super(token);
+    this.left = left;
+    this.right = right;
+  }
+  public final Value evali(Context c) {
+    return left.eval(c) != right.eval(c) ? tru : fal;
+  }
+}
+
 public static final class OperationAst extends Ast {
   public final Ast owner;
   public final String name;
@@ -1253,8 +1265,13 @@ public static final class Parser {
       }
       if (at("is")) {
         Token token = next();
-        Ast right = parseAdditiveExpression();
-        node = new IsAst(token, node, right);
+        if (consume("not")) {
+          Ast right = parseAdditiveExpression();
+          node = new IsNotAst(token, node, right);
+        } else {
+          Ast right = parseAdditiveExpression();
+          node = new IsAst(token, node, right);
+        }
         continue;
       }
       break;
