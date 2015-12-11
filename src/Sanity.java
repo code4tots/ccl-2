@@ -190,6 +190,8 @@ public static final TypeValue typeNumber = new TypeValue(false, "Number", null, 
     .put(new Method("__eq__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
+        if (!(args.get(0) instanceof NumberValue))
+          return fal;
         double left = asNumberValue(c, owner, "self").value;
         double right = asNumberValue(c, args.get(0), "argument 0").value;
         return left == right ? tru : fal;
@@ -198,8 +200,6 @@ public static final TypeValue typeNumber = new TypeValue(false, "Number", null, 
     .put(new Method("__add__") {
       public final Value call(Context c, Value owner, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
-        if (!(args.get(0) instanceof NumberValue))
-          return fal;
         double left = asNumberValue(c, owner, "self").value;
         double right = asNumberValue(c, args.get(0), "argument 0").value;
         return toNumberValue(left + right);

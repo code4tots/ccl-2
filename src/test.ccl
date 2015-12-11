@@ -28,4 +28,6 @@ assert[Bool[1] is true]
 assert[Bool[0] is false]
 assert[true is not false]
 
+assert[1 != '1']
+
 print['*** All tests pass! ***']
