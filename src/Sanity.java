@@ -278,7 +278,7 @@ public static final TypeValue typeCallable = new TypeValue(false, "Callable", nu
         return toStringValue(asCallableValue(c, owner, "self").name);
       }
     });
-public static final TypeValue typeModule = new TypeValue(false, "Module", null, typeValue);
+public static final TypeValue typeModule = new TypeValue(true, "Module", null, typeValue);
 
 public static final Scope BUILTIN_SCOPE = new Scope(null)
     .put("nil", nil)
@@ -902,6 +902,17 @@ public static final class AssignAst extends Ast {
     } finally {
       c.trace = oldTrace;
     }
+  }
+}
+
+public static final class ImportAst extends Ast {
+  public final String name;
+  public ImportAst(Token token, String name) {
+    super(token);
+    this.name = name;
+  }
+  public final Value evali(Context c) {
+    return importModule(c, name);
   }
 }
 
@@ -1533,6 +1544,12 @@ public static final class Parser {
       return new ClassAst(token, name, args, methods);
     }
 
+    if (at("import")) {
+      Token token = next();
+      String name = (String) expect("ID").value;
+      return new ImportAst(token, name);
+    }
+
     throw new SyntaxError(peek(), "Expected expression");
   }
   public UserMethodTemplate parseUserMethodTemplate() {
@@ -1605,7 +1622,7 @@ static {
 
 public static final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
-      "and", "or", "xor", "return", "is",
+      "and", "or", "xor", "return", "is", "import",
       "def", "class", "not");
   public static final ArrayList<String> SYMBOLS;
 

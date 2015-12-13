@@ -68,4 +68,8 @@ class D[B, C] {}
 # Tests that mro is not simple dfs
 assert[new[D].method[] == 'method in C']
 
+import import_test
+
+assert[import_test.f[] == 'inside import_test']
+
 print['*** All tests pass! ***']
