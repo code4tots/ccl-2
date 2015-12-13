@@ -456,6 +456,46 @@ public static final class UserMethod extends Method {
   }
 }
 
+public static final class Arguments {
+  public final ArrayList<Ast> args;
+  public final Ast vararg;
+  public Arguments(ArrayList<Ast> args, Ast vararg) {
+    this.args = args;
+    this.vararg = vararg;
+  }
+  public ArrayList<Value> eval(Context c) {
+
+    ArrayList<Value> args = new ArrayList<Value>();
+    for (int i = 0; i < this.args.size(); i++) {
+
+      Value arg = this.args.get(i).eval(c);
+      if (c.jump())
+        throw err(c, "Tried to jump while evaluating an argument");
+
+      args.add(arg);
+    }
+
+    if (this.vararg != null) {
+      Value value = this.vararg.eval(c);
+      if (c.jump())
+        throw err(c, "Tried to jump while evaluating an argument");
+
+      if (!(value instanceof ListValue))
+        throw err(
+            c,
+            "Splat argument must evaluate to a List but found " +
+            value.getTypeDescription());
+
+      ArrayList<Value> va = ((ListValue) value).value;
+
+      for (int i = 0; i < va.size(); i++)
+        args.add(va.get(i));
+    }
+
+    return args;
+  }
+}
+
 public static final class Signature {
   public final ArrayList<String> args;
   public final String vararg;
@@ -886,13 +926,11 @@ public static final class ReturnAst extends Ast {
 
 public static final class CallAst extends Ast {
   public final Ast owner;
-  public final ArrayList<Ast> args;
-  public final Ast vararg;
-  public CallAst(Token token, Ast owner, ArrayList<Ast> args, Ast vararg) {
+  public final Arguments args;
+  public CallAst(Token token, Ast owner, Arguments args) {
     super(token);
     this.owner = owner;
     this.args = args;
-    this.vararg = vararg;
   }
   public final Value evali(Context c) {
 
@@ -900,32 +938,7 @@ public static final class CallAst extends Ast {
     if (c.jump())
       return owner;
 
-    ArrayList<Value> args = new ArrayList<Value>();
-    for (int i = 0; i < this.args.size(); i++) {
-
-      Value arg = this.args.get(i).eval(c);
-      if (c.jump())
-        return arg;
-
-      args.add(arg);
-    }
-
-    if (this.vararg != null) {
-      Value value = this.vararg.eval(c);
-      if (c.jump())
-        return value;
-
-      if (!(value instanceof ListValue))
-        throw err(
-            c,
-            "Splat argument must evaluate to a List but found " +
-            value.getTypeDescription());
-
-      ArrayList<Value> va = ((ListValue) value).value;
-
-      for (int i = 0; i < va.size(); i++)
-        args.add(va.get(i));
-    }
+    ArrayList<Value> args = this.args.eval(c);
 
     Trace oldTrace = c.trace;
     try {
@@ -1378,24 +1391,18 @@ public static final class Parser {
     Ast node = parsePrimaryExpression();
     while (true) {
       if (at("[")) {
-        Token token = next();
-        ArrayList<Ast> args = new ArrayList<Ast>();
-        while (!at("]") && !at("*")) {
-          args.add(parseExpression());
-          consume(",");
-        }
-        Ast vararg = null;
-        if (consume("*"))
-          vararg = parseExpression();
-        expect("]");
+        Token token = peek();
+        Arguments args = parseArguments();
+
         if (at("=")) {
           token = next();
-          if (vararg != null || args.size() != 1)
+          if (args.vararg != null || args.args.size() != 1)
             throw new SyntaxError(
                 token, "For setitem syntax, must have exactly one argument");
-          node = new SetItemAst(token, node, args.get(0), parseExpression());
+          node = new SetItemAst(
+                token, node, args.args.get(0), parseExpression());
         } else {
-          node = new CallAst(token, node, args, vararg);
+          node = new CallAst(token, node, args);
         }
         continue;
       }
@@ -1508,6 +1515,19 @@ public static final class Parser {
     }
     expect("]");
     return new Signature(args, vararg);
+  }
+  public Arguments parseArguments() {
+    expect("[");
+    ArrayList<Ast> args = new ArrayList<Ast>();
+    while (!at("]") && !at("*")) {
+      args.add(parseExpression());
+      consume(",");
+    }
+    Ast vararg = null;
+    if (consume("*"))
+      vararg = parseExpression();
+    expect("]");
+    return new Arguments(args, vararg);
   }
 }
 
