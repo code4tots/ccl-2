@@ -52,7 +52,7 @@ class A {
 class B {
   def method[] { return 'method in B' }
 }
-class C [A, B] {}
+class C[A, B] {}
 
 assert[new[C].method[] == 'method in A']
 
@@ -60,7 +60,7 @@ class A {
   def method[] { return 'method in A' }
 }
 class B[A] {}
-class C [A] {
+class C[A] {
   def method[] { return 'method in C'}
 }
 class D[B, C] {}
