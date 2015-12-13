@@ -72,4 +72,16 @@ import import_test
 
 assert[import_test.f[] == 'inside import_test']
 
+# Test the self actually works
+
+class A {
+  def method1[] { return 'inside method 1' }
+  def method2[] {
+    assert[self.method1[] == 'inside method 1']
+    return 'inside method 2'
+  }
+}
+
+assert[new[A].method2[] == 'inside method 2']
+
 print['*** All tests pass! ***']
