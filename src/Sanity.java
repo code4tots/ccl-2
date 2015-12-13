@@ -456,6 +456,20 @@ public static final class UserMethod extends Method {
   }
 }
 
+public static final class UserMethodTemplate {
+  public final String name;
+  public final Signature args;
+  public final Ast body;
+  public UserMethodTemplate(String name, Signature args, Ast body) {
+    this.name = name;
+    this.args = args;
+    this.body = body;
+  }
+  public final UserMethod toMethod(Context c) {
+    return new UserMethod(name, c.scope, args, body);
+  }
+}
+
 public static final class Arguments {
   public final ArrayList<Ast> args;
   public final Ast vararg;
@@ -888,6 +902,32 @@ public static final class AssignAst extends Ast {
     } finally {
       c.trace = oldTrace;
     }
+  }
+}
+
+public static final class ClassAst extends Ast {
+  public final String name;
+  public final Arguments bases;
+  public final ArrayList<UserMethodTemplate> methods;
+  public ClassAst(
+      Token token, String name, Arguments bases,
+      ArrayList<UserMethodTemplate> methods) {
+    super(token);
+    this.name = name;
+    this.bases = bases;
+    this.methods = methods;
+  }
+  public final Value evali(Context c) {
+    ArrayList<Value> bases = null;
+    if (this.bases == null)
+      bases = toArrayList(typeValue);
+    else
+      bases = this.bases.eval(c);
+    TypeValue type = new TypeValue(true, name, null, bases);
+    for (int i = 0; i < methods.size(); i++)
+      type.put(methods.get(i).toMethod(c));
+    c.put(name, type);
+    return type;
   }
 }
 
@@ -1478,30 +1518,30 @@ public static final class Parser {
       return new FunctionAst(token, name, args, body);
     }
 
-    // if (at("class")) {
-    //   Token token = next();
-    //   String name = (String) expect("ID").value;
-    //   ArrayList<Ast> exprs = null;
-    //   if (at("["))
-    //     exprs = parseExpressionList();
-    //   expect("{");
-    //   ArrayList<UserMethodTemplate> methods =
-    //       new ArrayList<UserMethodTemplate>();
-    //   while (!consume("}")) {
-    //     methods.add(parseUserMethodTemplate());
-    //   }
-    //   return new ClassAst(token, name, exprs, )
-    // }
+    if (at("class")) {
+      Token token = next();
+      String name = (String) expect("ID").value;
+      Arguments args = null;
+      if (at("["))
+        args = parseArguments();
+      expect("{");
+      ArrayList<UserMethodTemplate> methods =
+          new ArrayList<UserMethodTemplate>();
+      while (!consume("}")) {
+        methods.add(parseUserMethodTemplate());
+      }
+      return new ClassAst(token, name, args, methods);
+    }
 
     throw new SyntaxError(peek(), "Expected expression");
   }
-  // public UserMethodTemplate parseUserMethodTemplate() {
-  //   expect("def");
-  //   String name = (String) expect("ID").value;
-  //   Signature args = parseSignature();
-  //   Ast body = parseExpression();
-  //   return new UserMethodTemplate(name, args, body);
-  // }
+  public UserMethodTemplate parseUserMethodTemplate() {
+    expect("def");
+    String name = (String) expect("ID").value;
+    Signature args = parseSignature();
+    Ast body = parseExpression();
+    return new UserMethodTemplate(name, args, body);
+  }
   public Signature parseSignature() {
     expect("[");
     ArrayList<String> args = new ArrayList<String>();

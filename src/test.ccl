@@ -33,4 +33,17 @@ assert['1' != 1]
 
 assert[new[Value] != new[Value]]
 
+class MyClass {
+
+  def my_method[arg] {
+    return arg + 6
+  }
+
+  def no_return[] {}
+}
+
+instance = new[MyClass]
+assert[instance.my_method[5] == 11]
+assert[instance.no_return[] == nil]
+
 print['*** All tests pass! ***']
