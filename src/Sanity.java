@@ -425,9 +425,9 @@ public abstract static class Method {
 
 public static final class UserMethod extends Method {
   public final Scope scope;
-  public final Arguments args;
+  public final Signature args;
   public final Ast body;
-  public UserMethod(String name, Scope scope, Arguments args, Ast body) {
+  public UserMethod(String name, Scope scope, Signature args, Ast body) {
     super(name);
     this.scope = scope;
     this.args = args;
@@ -456,10 +456,10 @@ public static final class UserMethod extends Method {
   }
 }
 
-public static final class Arguments {
+public static final class Signature {
   public final ArrayList<String> args;
   public final String vararg;
-  public Arguments(ArrayList<String> args, String vararg) {
+  public Signature(ArrayList<String> args, String vararg) {
     this.args = args;
     this.vararg = vararg;
   }
@@ -653,11 +653,11 @@ public abstract static class FunctionValue extends CallableValue {
 }
 
 public final static class UserFunctionValue extends FunctionValue {
-  public final Arguments args;
+  public final Signature args;
   public final Ast body;
   public final Scope scope;
   public UserFunctionValue(
-      String name, Arguments args, Ast body, Scope scope) {
+      String name, Signature args, Ast body, Scope scope) {
     super(name);
     this.args = args;
     this.body = body;
@@ -853,9 +853,9 @@ public static final class AssignAst extends Ast {
 
 public static final class FunctionAst extends Ast {
   public final String name;
-  public final Arguments args;
+  public final Signature args;
   public final Ast body;
-  public FunctionAst(Token token, String name, Arguments args, Ast body) {
+  public FunctionAst(Token token, String name, Signature args, Ast body) {
     super(token);
     this.name = name;
     this.args = args;
@@ -1466,7 +1466,7 @@ public static final class Parser {
     if (at("def")) {
       Token token = next();
       String name = (String) expect("ID").value;
-      Arguments args = parseArgumentSignature();
+      Signature args = parseSignature();
       Ast body = parseExpression();
       return new FunctionAst(token, name, args, body);
     }
@@ -1491,11 +1491,11 @@ public static final class Parser {
   // public UserMethodTemplate parseUserMethodTemplate() {
   //   expect("def");
   //   String name = (String) expect("ID").value;
-  //   Arguments args = parseArgumentSignature();
+  //   Signature args = parseSignature();
   //   Ast body = parseExpression();
   //   return new UserMethodTemplate(name, args, body);
   // }
-  public Arguments parseArgumentSignature() {
+  public Signature parseSignature() {
     expect("[");
     ArrayList<String> args = new ArrayList<String>();
     while (at("ID")) {
@@ -1507,7 +1507,7 @@ public static final class Parser {
       vararg = (String) expect("ID").value;
     }
     expect("]");
-    return new Arguments(args, vararg);
+    return new Signature(args, vararg);
   }
 }
 
