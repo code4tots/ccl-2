@@ -8,6 +8,11 @@ Features under consideration
 * Anonymous classes (like in Java).
 * User definable constructors (like '__new__' in Python).
 * Calling super methods.
+* Anonymous functions.
+
+
+Done features
+-------------
+
 * Separate syntax for calling methods as opposed to retrieving attributes.
   * I'm considering leaving '.' for methods and using '@' for attributes.
-* Anonymous functions.

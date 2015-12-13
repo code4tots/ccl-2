@@ -70,7 +70,7 @@ assert[new[D].method[] == 'method in C']
 
 import import_test
 
-assert[import_test.f[] == 'inside import_test']
+assert[import_test@f[] == 'inside import_test']
 
 # Test the self actually works
 

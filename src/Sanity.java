@@ -1007,6 +1007,33 @@ public static final class CallAst extends Ast {
   }
 }
 
+public static final class CallMethodAst extends Ast {
+  public final Ast owner;
+  public final String name;
+  public final Arguments args;
+  public CallMethodAst(Token token, Ast owner, String name, Arguments args) {
+    super(token);
+    this.owner = owner;
+    this.name = name;
+    this.args = args;
+  }
+  public final Value evali(Context c) {
+    Value owner = this.owner.eval(c);
+    if (c.jump())
+      return owner;
+
+    ArrayList<Value> args = this.args.eval(c);
+
+    Trace oldTrace = c.trace;
+    try {
+      c.trace = new AstTrace(c.trace, this);
+      return owner.call(c, name, args);
+    } finally {
+      c.trace = oldTrace;
+    }
+  }
+}
+
 public static final class IsAst extends Ast {
   public final Ast left, right;
   public IsAst(Token token, Ast left, Ast right) {
@@ -1249,7 +1276,7 @@ static {
     expect(value instanceof NumberValue);
     expect(((NumberValue) value).value.equals(5.0));
 
-    value = xeval("x = new[Value] x.a = 6.2 x.a");
+    value = xeval("x = new[Value] x@a = 6.2 x@a");
     expect(value instanceof NumberValue);
     expect(((NumberValue) value).value.equals(6.2));
 
@@ -1464,10 +1491,9 @@ public static final class Parser {
         continue;
       }
 
-      if (at(".")) {
+      if (at("@")) {
         Token token = next();
         String name = (String) expect("ID").value;
-
         if (at("=")) {
           token = next();
           Ast value = parseExpression();
@@ -1475,6 +1501,14 @@ public static final class Parser {
         } else {
           node = new GetAttributeAst(token, node, name);
         }
+        continue;
+      }
+
+      if (at(".")) {
+        Token token = next();
+        String name = (String) expect("ID").value;
+        Arguments args = parseArguments();
+        node = new CallMethodAst(token, node, name, args);
         continue;
       }
       break;
@@ -1636,7 +1670,7 @@ public static final class Lexer {
   // surrounding scope.
   static {
     SYMBOLS = toArrayList(
-        "(", ")", "[", "]", "{", "}", ".", ":", ",",
+        "(", ")", "[", "]", "{", "}", ".", ":", ",", "@",
         "=", "==", "!=", "<", "<=", ">", ">=",
         "+", "-", "*", "/", "%");
   }
