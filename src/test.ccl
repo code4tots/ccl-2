@@ -46,4 +46,26 @@ instance = new[MyClass]
 assert[instance.my_method[5] == 11]
 assert[instance.no_return[] == nil]
 
+class A {
+  def method[] { return 'method in A' }
+}
+class B {
+  def method[] { return 'method in B' }
+}
+class C [A, B] {}
+
+assert[new[C].method[] == 'method in A']
+
+class A {
+  def method[] { return 'method in A' }
+}
+class B[A] {}
+class C [A] {
+  def method[] { return 'method in C'}
+}
+class D[B, C] {}
+
+# Tests that mro is not simple dfs
+assert[new[D].method[] == 'method in C']
+
 print['*** All tests pass! ***']
