@@ -423,6 +423,67 @@ public abstract static class Method {
   }
 }
 
+public static final class UserMethod extends Method {
+  public final Scope scope;
+  public final Arguments args;
+  public final Ast body;
+  public UserMethod(String name, Scope scope, Arguments args, Ast body) {
+    super(name);
+    this.scope = scope;
+    this.args = args;
+    this.body = body;
+  }
+  public final Value call(Context c, Value owner, ArrayList<Value> args) {
+    Scope oldScope = c.scope;
+    try {
+      c.scope = new Scope(scope);
+      c.scope.put("self", owner);
+      this.args.bind(c, args);
+      Value result = body.eval(c);
+
+      if (!c.return_)
+        result = nil;
+
+      c.return_ = false;
+
+      c.checkStart();
+
+      return result;
+
+    } finally {
+      c.scope = oldScope;
+    }
+  }
+}
+
+public static final class Arguments {
+  public final ArrayList<String> args;
+  public final String vararg;
+  public Arguments(ArrayList<String> args, String vararg) {
+    this.args = args;
+    this.vararg = vararg;
+  }
+
+  public void bind(Context c, ArrayList<Value> args) {
+    if (vararg == null)
+      expectArgLen(c, args, this.args.size());
+    else
+      expectMinArgLen(c, args, this.args.size());
+
+    for (int i = 0; i < this.args.size(); i++) {
+      c.put(this.args.get(i), args.get(i));
+    }
+
+    if (vararg != null) {
+      ArrayList<Value> va = new ArrayList<Value>();
+      for (int i = this.args.size(); i < args.size(); i++) {
+        va.add(args.get(i));
+      }
+      c.put(vararg, toListValue(va));
+    }
+  }
+}
+
 public abstract static class Constructor {
   private TypeValue type;
   public abstract Value call(Context c, TypeValue actualType, ArrayList<Value> args);
@@ -592,40 +653,21 @@ public abstract static class FunctionValue extends CallableValue {
 }
 
 public final static class UserFunctionValue extends FunctionValue {
-  public final ArrayList<String> args;
-  public final String vararg;
+  public final Arguments args;
   public final Ast body;
   public final Scope scope;
   public UserFunctionValue(
-      String name, ArrayList<String> args, String vararg, Ast body,
-      Scope scope) {
+      String name, Arguments args, Ast body, Scope scope) {
     super(name);
     this.args = args;
-    this.vararg = vararg;
     this.body = body;
     this.scope = scope;
   }
   public final Value calli(Context c, ArrayList<Value> args) {
-    if (vararg == null)
-      expectArgLen(c, args, this.args.size());
-    else
-      expectMinArgLen(c, args, this.args.size());
-
     Scope oldScope = c.scope;
     try {
       c.scope = new Scope(scope);
-      for (int i = 0; i < this.args.size(); i++) {
-        c.put(this.args.get(i), args.get(i));
-      }
-
-      if (vararg != null) {
-        ArrayList<Value> va = new ArrayList<Value>();
-        for (int i = this.args.size(); i < args.size(); i++) {
-          va.add(args.get(i));
-        }
-        c.put(vararg, toListValue(va));
-      }
-
+      this.args.bind(c, args);
       Value result = body.eval(c);
 
       if (!c.return_)
@@ -811,20 +853,16 @@ public static final class AssignAst extends Ast {
 
 public static final class FunctionAst extends Ast {
   public final String name;
-  public final ArrayList<String> args;
-  public final String vararg;
+  public final Arguments args;
   public final Ast body;
-  public FunctionAst(
-      Token token, String name, ArrayList<String> args, String vararg,
-      Ast body) {
+  public FunctionAst(Token token, String name, Arguments args, Ast body) {
     super(token);
     this.name = name;
     this.args = args;
-    this.vararg = vararg;
     this.body = body;
   }
   public final Value evali(Context c) {
-    FunctionValue f = new UserFunctionValue(name, args, vararg, body, c.scope);
+    FunctionValue f = new UserFunctionValue(name, args, body, c.scope);
     c.put(name, f);
     return f;
   }
@@ -1428,22 +1466,48 @@ public static final class Parser {
     if (at("def")) {
       Token token = next();
       String name = (String) expect("ID").value;
-      expect("[");
-      ArrayList<String> args = new ArrayList<String>();
-      while (at("ID")) {
-        args.add((String) expect("ID").value);
-        consume(",");
-      }
-      String vararg = null;
-      if (consume("*")) {
-        vararg = (String) expect("ID").value;
-      }
-      expect("]");
+      Arguments args = parseArgumentSignature();
       Ast body = parseExpression();
-      return new FunctionAst(token, name, args, vararg, body);
+      return new FunctionAst(token, name, args, body);
     }
 
+    // if (at("class")) {
+    //   Token token = next();
+    //   String name = (String) expect("ID").value;
+    //   ArrayList<Ast> exprs = null;
+    //   if (at("["))
+    //     exprs = parseExpressionList();
+    //   expect("{");
+    //   ArrayList<UserMethodTemplate> methods =
+    //       new ArrayList<UserMethodTemplate>();
+    //   while (!consume("}")) {
+    //     methods.add(parseUserMethodTemplate());
+    //   }
+    //   return new ClassAst(token, name, exprs, )
+    // }
+
     throw new SyntaxError(peek(), "Expected expression");
+  }
+  // public UserMethodTemplate parseUserMethodTemplate() {
+  //   expect("def");
+  //   String name = (String) expect("ID").value;
+  //   Arguments args = parseArgumentSignature();
+  //   Ast body = parseExpression();
+  //   return new UserMethodTemplate(name, args, body);
+  // }
+  public Arguments parseArgumentSignature() {
+    expect("[");
+    ArrayList<String> args = new ArrayList<String>();
+    while (at("ID")) {
+      args.add((String) expect("ID").value);
+      consume(",");
+    }
+    String vararg = null;
+    if (consume("*")) {
+      vararg = (String) expect("ID").value;
+    }
+    expect("]");
+    return new Arguments(args, vararg);
   }
 }
 
@@ -1482,7 +1546,7 @@ static {
 public static final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
       "and", "or", "xor", "return", "is",
-      "def", "not");
+      "def", "class", "not");
   public static final ArrayList<String> SYMBOLS;
 
   // My syntax highlighter does funny things if it sees "{", "}" in the
