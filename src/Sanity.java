@@ -295,7 +295,8 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
     .put(new FunctionValue("new") {
       public Value calli(Context c, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
-        return new UserValue(c, args.get(0));
+        return new UserValue(
+            c, asTypeValue(c, args.get(0), "argument to new"));
       }
     })
     .put(new FunctionValue("print") {
@@ -553,12 +554,7 @@ public static final class TypeValue extends Value {
 public static final class UserValue extends Value {
   public final TypeValue type;
   public final HashMap<String, Value> attrs = new HashMap<String, Value>();
-  public UserValue(Context c, Value typeValue) {
-
-    if (!(typeValue instanceof TypeValue))
-      throw err(c, "Expected type value but found " + typeValue.getType().name);
-
-    TypeValue type = (TypeValue) typeValue;
+  public UserValue(Context c, TypeValue type) {
 
     if (!type.userType)
       throw err(c, "Type " + type.name + " is not a user type");
@@ -1906,6 +1902,16 @@ public static CallableValue asCallableValue(Context c, Value value, String name)
         value.getTypeDescription());
 
   return (CallableValue) value;
+}
+
+public static TypeValue asTypeValue(Context c, Value value, String name) {
+  if (!(value instanceof TypeValue))
+    throw err(
+        c,
+        "Expected " + name + " to be a Type but found " +
+        value.getTypeDescription());
+
+  return (TypeValue) value;
 }
 
 public static NumberValue toNumberValue(double d) {

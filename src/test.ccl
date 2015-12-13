@@ -31,4 +31,6 @@ assert[true is not false]
 assert[1 != '1']
 assert['1' != 1]
 
+assert[new[Value] != new[Value]]
+
 print['*** All tests pass! ***']
