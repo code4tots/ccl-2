@@ -1,3 +1,5 @@
 def f[] {
   return 'inside import_test'
 }
+
+s

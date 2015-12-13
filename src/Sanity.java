@@ -912,7 +912,13 @@ public static final class ImportAst extends Ast {
     this.name = name;
   }
   public final Value evali(Context c) {
-    return importModule(c, name);
+    Trace oldTrace = c.trace;
+    try {
+      c.trace = new AstTrace(c.trace, this);
+      return importModule(c, name);
+    } finally {
+      c.trace = oldTrace;
+    }
   }
 }
 
@@ -1829,7 +1835,7 @@ public static final class Token {
     return
         "*** in file '" + lexer.filespec + "' on line " + Integer.toString(lc) +
         " ***\n" + lexer.string.substring(a, b) + "\n" +
-        spaces + "*\n";
+        spaces + "*";
   }
 }
 
@@ -1906,7 +1912,7 @@ public static final class Err extends RuntimeException {
   public final Trace trace;
   public final String message;
   public Err(Trace trace, String message) {
-    super(message + "\n" + trace.toString());
+    super(message + trace.toString());
     this.trace = trace;
     this.message = message;
   }
