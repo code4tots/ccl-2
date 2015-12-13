@@ -39,7 +39,7 @@ class MyClass {
     return arg + 6
   }
 
-  def no_return[] {}
+  def no_return[] { 5 }
 }
 
 instance = new[MyClass]
