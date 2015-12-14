@@ -314,6 +314,12 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
           throw err(c, "assertion failed");
         return nil;
       }
+    })
+    .put(new FunctionValue("trace") {
+      public Value calli(Context c, ArrayList<Value> args) {
+        expectArgLen(c, args, 0);
+        return toStringValue(c.trace.next.toString());
+      }
     });
 
 public static final class NilValue extends Value {
