@@ -10,6 +10,8 @@ Features under consideration
 * Calling super methods.
 * Anonymous functions.
 * Speed. CCL as currently implemented is ridiculously slow.
+* Trace object. Right now 'trace[]' returns a String.
+  Return a Trace object instead.
 
 Done features
 -------------
