@@ -678,7 +678,7 @@ public static final class UserValue extends Value {
   public UserValue(Context c, TypeValue type) {
 
     if (!type.userType)
-      throw err(c, "Type " + type.name + " is not a user type");
+      throw err(c, type.name + " is not a user type");
 
     this.type = type;
   }
