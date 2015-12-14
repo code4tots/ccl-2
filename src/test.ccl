@@ -84,4 +84,19 @@ class A {
 
 assert[new[A].method2[] == 'inside method 2']
 
+## 'super' test.
+class A {
+  def method[] { return 'method in A' }
+}
+class B {
+  def method[] { return 'method in B' }
+}
+class C[A, B] {
+  def method[] { return super.method[] }
+  def another_method[] { return super.method[] }
+}
+
+assert[new[C].method[] == 'method in A']
+assert[new[C].another_method[] == 'method in A']
+
 print['*** All tests pass! ***']

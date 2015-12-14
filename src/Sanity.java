@@ -756,8 +756,8 @@ public static final class BoundMethodValue extends CallableValue {
   public final Value call(Context c, ArrayList<Value> args) {
     Trace oldTrace = c.trace;
     try {
-      c.trace =
-          new MethodTrace(c.trace, owner.getType(), method.getType(), method);
+      c.trace = new MethodTrace( 
+          c.trace, owner, owner.getType(), method.getType(), method);
       c.checkStart();
       return c.checkEndCall(method.call(c, owner, args));
     } finally {
@@ -796,6 +796,9 @@ public static final class AstTrace extends Trace {
 }
 
 public static final class MethodTrace extends Trace {
+  // The object that we are calling the method on.
+  public final Value owner;
+
   // Type of the object we are calling the method on.
   public final TypeValue valueType;
 
@@ -808,8 +811,10 @@ public static final class MethodTrace extends Trace {
   public final Method method;
 
   public MethodTrace(
-      Trace next, TypeValue valueType, TypeValue methodType, Method method) {
+      Trace next, Value owner, TypeValue valueType,
+      TypeValue methodType, Method method) {
     super(next);
+    this.owner = owner;
     this.valueType = valueType;
     this.methodType = methodType;
     this.method = method;
@@ -984,6 +989,62 @@ public static final class ReturnAst extends Ast {
 
     c.return_ = true;
     return result;
+  }
+}
+
+public static final class SuperAst extends Ast {
+  public final String name; // method name
+  public final Arguments args;
+  public SuperAst(Token token, String name, Arguments args) {
+    super(token);
+    this.name = name;
+    this.args = args;
+  }
+  public final Value evali(Context c) {
+    ArrayList<Value> args = this.args.eval(c);
+
+    Trace oldTrace = c.trace;
+    try {
+      // TODO: Find a better way to figure this out other than
+      // walking up the stack trace.
+      // Or at least check that we are actually calling this from
+      // the body of a method.
+      Trace trace = c.trace;
+      while (!(trace instanceof MethodTrace)) {
+        trace = trace.next;
+        if (trace == null)
+          throw err(c, "Not inside any method call");
+      }
+      MethodTrace t = (MethodTrace) trace;
+
+      TypeValue valueType = t.valueType;
+      TypeValue methodType = t.methodType;
+
+      // TODO: Put this in a method/function somewhere.
+      int i = 0;
+      while (i < valueType.mro.size() && valueType.mro.get(i) != methodType)
+        i++;
+
+      i++;
+
+      while (
+          i < valueType.mro.size() &&
+          valueType.mro.get(i).methods.get(name) == null)
+        i++;
+
+      if (i == valueType.mro.size())
+        throw err(
+            c, "No method " + name + " super of " +
+            valueType.name + "->" + methodType.name);
+
+      Method method = valueType.mro.get(i).methods.get(name);
+
+      return method.call(c, t.owner, args);
+
+    } finally {
+      c.trace = oldTrace;
+    }
+
   }
 }
 
@@ -1596,6 +1657,14 @@ public static final class Parser {
       return new ImportAst(token, name);
     }
 
+    if (at("super")) {
+      Token token = next();
+      expect(".");
+      String name = (String) expect("ID").value;
+      Arguments args = parseArguments();
+      return new SuperAst(token, name, args);
+    }
+
     throw new SyntaxError(peek(), "Expected expression");
   }
   public UserMethodTemplate parseUserMethodTemplate() {
@@ -1668,7 +1737,7 @@ static {
 
 public static final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
-      "and", "or", "xor", "return", "is", "import",
+      "and", "or", "xor", "return", "is", "import", "super",
       "def", "class", "not");
   public static final ArrayList<String> SYMBOLS;
 
