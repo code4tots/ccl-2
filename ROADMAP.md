@@ -9,7 +9,7 @@ Features under consideration
 * User definable constructors (like '__new__' in Python).
 * Calling super methods.
 * Anonymous functions.
-
+* Speed. CCL as currently implemented is ridiculously slow.
 
 Done features
 -------------
