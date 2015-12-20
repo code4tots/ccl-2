@@ -103,4 +103,9 @@ c = new[C]
 c@x = 5
 assert[c@x == 2 + 3]
 
+f = \x. x * 3
+g = \x y. x * y
+assert[f[2] == 6]
+assert[g[3, 2] == 6]
+
 print['*** All tests pass! ***']

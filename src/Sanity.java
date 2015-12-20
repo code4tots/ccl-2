@@ -204,6 +204,14 @@ public static final TypeValue typeNumber = new TypeValue(false, "Number", null, 
         double right = asNumberValue(c, args.get(0), "argument 0").value;
         return toNumberValue(left + right);
       }
+    })
+    .put(new Method("__mul__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        double left = asNumberValue(c, owner, "self").value;
+        double right = asNumberValue(c, args.get(0), "argument 0").value;
+        return toNumberValue(left * right);
+      }
     });
 public static final TypeValue typeString = new TypeValue(
     false, "String",
@@ -976,6 +984,19 @@ public static final class FunctionAst extends Ast {
   }
 }
 
+public static final class AnonymousFunctionAst extends Ast {
+  public final Signature args;
+  public final Ast body;
+  public AnonymousFunctionAst(Token token, Signature args, Ast body) {
+    super(token);
+    this.args = args;
+    this.body = body;
+  }
+  public final Value evali(Context c) {
+    return new UserFunctionValue("<anonymous function>", args, body, c.scope);
+  }
+}
+
 public static final class ReturnAst extends Ast {
   public final Ast value;
   public ReturnAst(Token token, Ast value) {
@@ -1636,6 +1657,16 @@ public static final class Parser {
       return new FunctionAst(token, name, args, body);
     }
 
+    if (at("\\")) {
+      Token token = next();
+      Signature args = parseSignatureCore();
+      expect(".");
+      Ast body = parseExpression();
+      return new AnonymousFunctionAst(
+          token, args,
+          new ReturnAst(token, body));
+    }
+
     if (at("class")) {
       Token token = next();
       String name = (String) expect("ID").value;
@@ -1676,6 +1707,11 @@ public static final class Parser {
   }
   public Signature parseSignature() {
     expect("[");
+    Signature sig = parseSignatureCore();
+    expect("]");
+    return sig;
+  }
+  public Signature parseSignatureCore() {
     ArrayList<String> args = new ArrayList<String>();
     while (at("ID")) {
       args.add((String) expect("ID").value);
@@ -1685,7 +1721,6 @@ public static final class Parser {
     if (consume("*")) {
       vararg = (String) expect("ID").value;
     }
-    expect("]");
     return new Signature(args, vararg);
   }
   public Arguments parseArguments() {
@@ -1747,7 +1782,7 @@ public static final class Lexer {
     SYMBOLS = toArrayList(
         "(", ")", "[", "]", "{", "}", ".", ":", ",", "@",
         "=", "==", "!=", "<", "<=", ">", ">=",
-        "+", "-", "*", "/", "%");
+        "+", "-", "*", "/", "%", "\\");
   }
 
   public final String string;
