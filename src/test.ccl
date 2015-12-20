@@ -99,4 +99,8 @@ class C[A, B] {
 assert[new[C].method[] == 'method in A']
 assert[new[C].another_method[] == 'method in A']
 
+c = new[C]
+c@x = 5
+assert[c@x == 2 + 3]
+
 print['*** All tests pass! ***']
