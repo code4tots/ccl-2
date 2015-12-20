@@ -18,10 +18,7 @@ class ExpressionStatement(Statement):
 class NameExpression(Expression):
   attrs = [('name', str)]
 
-class IntExpression(Expression):
-  attrs = [('val', int)]
-
-class FloatExpression(Expression):
+class NumberExpression(Expression):
   attrs = [('val', float)]
 
 class StrExpression(Expression):
@@ -116,12 +113,8 @@ class Annotator(common.AstVisitor):
     node.type = t
     return t
 
-  def visitIntExpression(self, node):
-    node.type = 'int'
-    return node.type
-
-  def visitFloatExpression(self, node):
-    node.type = 'float'
+  def visitNumberExpression(self, node):
+    node.type = 'num'
     return node.type
 
   def visitStrExpression(self, node):
@@ -174,14 +167,10 @@ class Parser(common.Parser):
         return AssignExpression(token, name, value)
       else:
         return NameExpression(token, name)
-    elif self.at('INT'):
+    elif self.at('INT') or self.at('FLOAT'):
       token = self.next()
       value = token.value
-      return IntExpression(token, value)
-    elif self.at('FLOAT'):
-      token = self.next()
-      value = token.value
-      return FloatExpression(token, value)
+      return NumberExpression(token, float(value))
     elif self.at('STR'):
       token = self.next()
       value = token.value
@@ -191,10 +180,11 @@ class Parser(common.Parser):
 
 def newMethodTable():
   return {
-    ('float', 'addf'): ('float', ['float']),
-    ('float', 'addi'): ('float', ['float']),
-    ('int', 'addf'): ('float', ['float']),
-    ('int', 'addi'): ('float', ['int']),
+    ('num', 'add'): ('num', ['num']),
+    ('num', 'sub'): ('num', ['num']),
+    ('num', 'mul'): ('num', ['num']),
+    ('num', 'div'): ('num', ['num']),
+    ('num', 'mod'): ('num', ['num']),
   }
 
 ### Tests
@@ -210,9 +200,9 @@ assert expr.type == 'str', expr.type
 
 m = Parser(r"""
 x = 5
-y = x.addf[3.0]
+y = x.add[3.0]
 """, '<test>').parseModule()
 a = Annotator(newMethodTable())
 a.visit(m)
-assert a.lookupVariableType('x') == 'int', a.lookupVariableType('x')
-assert a.lookupVariableType('y') == 'float', a.lookupVariableType('y')
+assert a.lookupVariableType('x') == 'num', a.lookupVariableType('x')
+assert a.lookupVariableType('y') == 'num', a.lookupVariableType('y')
