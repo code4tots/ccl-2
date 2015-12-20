@@ -34,41 +34,24 @@ class Module(Ast):
   attrs = [('block', BlockStatement)]
 
 class Annotator(common.AstVisitor):
-  def __init__(self, methodsTable=None):
-    # In order to annotate expressions with their types, we need
-    #  1: Types of variables (local, members, and globals) and
-    #  2: Return types of methods.
-    # We store (1) in the following three instance members, and (2)
-    # in the next one.
-    self.globals = dict()
-    self.members = None # instance scope variables
-    self.locals = None # local scope variables
-    self.methods = methodsTable or dict()
+  def __init__(self):
+    self.globals = set()
+    self.locals = None
 
-  def lookupVariableType(self, name):
-    if self.locals and name in self.locals:
-      return self.locals[name]
-    elif self.members and name in self.members:
-      return self.members[name]
-    elif self.globals and name in self.globals:
-      return self.globals[name]
+  def contains(self, name):
+    return (
+        self.locals is not None and name in self.locals or
+        name in self.globals)
 
-  def lookupMethodType(self, ownerType, methodName):
-    return self.methods.get((ownerType, methodName)) or (None, None)
-
-  def declare(self, token, name, type_):
-    d = (
-        self.locals if self.locals is not None else
-        self.members if self.members is not None else
-        self.globals)
-    if name in d and d[name] != type_:
-      raise common.TranslationError(
-          token, 'Variable %s has type %s, '
-          'but tried to assign value of type %s' % (name, d[name], type_))
-    d[name] = type_
+  def assign(self, name):
+    if self.locals is not None:
+      self.locals.add(name)
+    else:
+      self.globals.add(name)
 
   def visitModule(self, node):
     self.visit(node.block)
+    node.vars = set(self.globals)
 
   def visitBlockStatement(self, node):
     for stmt in node.stmts:
@@ -78,40 +61,18 @@ class Annotator(common.AstVisitor):
     self.visit(node.expr)
 
   def visitNameExpression(self, node):
-    t = self.lookupVariableType(node.name)
-    if t is None:
+    if not self.contains(node.name):
       raise common.TranslationError(
           node.token, 'Variable used before assigned')
-    node.type = t
-    return t
 
   def visitAssignExpression(self, node):
-    t = self.visit(node.expr)
-    self.declare(node.token, node.name, t)
-    node.type = t
-    return t
+    self.assign(node.name)
+    self.visit(node.expr)
 
   def visitMethodCallExpression(self, node):
-    ownerType = self.visit(node.expr)
-    args = [self.visit(arg) for arg in node.args]
-    t, ts = self.lookupMethodType(ownerType, node.name)
-    if t is None:
-      raise common.TranslationError(
-          node.token, 'Type "%s" does not have method named "%s"' %
-          (ownerType, node.name))
-    if len(args) != len(ts):
-      raise common.TranslationError(
-          node.token, 'Method "%s.%s" expected %d arguments but found %d' %
-          (ownerType, node.name, len(ts), len(args)))
-    for i, (a, ta) in enumerate(zip(args, ts)):
-      if a != ta:
-        raise common.TranslationError(
-            node.args[i].token,
-            'Expected argument %d of method "%s.%s" to be '
-            '"%s" but found "%s"' %
-            (i, ownerType, node.name, ta, a))
-    node.type = t
-    return t
+    self.visit(node.expr)
+    for arg in node.args:
+      self.visit(arg)
 
   def visitNumberExpression(self, node):
     node.type = 'num'
@@ -178,15 +139,6 @@ class Parser(common.Parser):
 
     raise common.ParseError(self.peek(), "Expected expression")
 
-def newMethodTable():
-  return {
-    ('num', 'add'): ('num', ['num']),
-    ('num', 'sub'): ('num', ['num']),
-    ('num', 'mul'): ('num', ['num']),
-    ('num', 'div'): ('num', ['num']),
-    ('num', 'mod'): ('num', ['num']),
-  }
-
 ### Tests
 
 stmt = Parser('hi', '<test>').parseStatement()
@@ -202,7 +154,6 @@ m = Parser(r"""
 x = 5
 y = x.add[3.0]
 """, '<test>').parseModule()
-a = Annotator(newMethodTable())
+a = Annotator()
 a.visit(m)
-assert a.lookupVariableType('x') == 'num', a.lookupVariableType('x')
-assert a.lookupVariableType('y') == 'num', a.lookupVariableType('y')
+assert m.vars == set(['x', 'y']), m.vars
