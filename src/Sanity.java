@@ -272,6 +272,37 @@ public static final TypeValue typeList = new TypeValue(
         sb.append("]");
         return toStringValue(sb.toString());
       }
+    })
+    .put(new Method("__eq__") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        if (!(args.get(0) instanceof ListValue))
+          return fal;
+        ArrayList<Value> left = asListValue(c, owner, "self").value;
+        ArrayList<Value> right = asListValue(c, args.get(0), "argument 0").value;
+        if (left.size() != right.size())
+          return fal;
+
+        for (int i = 0; i < left.size(); i++)
+          if (!asBoolValue(
+              c, left.get(i).call(c, "__eq__", right.get(i)),
+              "result of __eq__ of list elements " +
+              Integer.toString(i)).value)
+            return fal;
+
+        return tru;
+      }
+    })
+    .put(new Method("map") {
+      public final Value call(Context c, Value owner, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        ArrayList<Value> al = asListValue(c, owner, "self").value;
+        Value f = args.get(0);
+        ArrayList<Value> r = new ArrayList<Value>();
+        for (int i = 0; i < al.size(); i++)
+          r.add(invoke(c, f, toArrayList(al.get(i))));
+        return toListValue(r);
+      }
     });
 public static final TypeValue typeMap = new TypeValue(false, "Map", null, typeValue);
 public static final TypeValue typeCallable = new TypeValue(false, "Callable", null, typeValue)

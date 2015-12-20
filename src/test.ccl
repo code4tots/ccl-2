@@ -103,9 +103,13 @@ c = new[C]
 c@x = 5
 assert[c@x == 2 + 3]
 
+assert[List[1, 2, 3] != List[2, 3, 4]]
+
 f = \x. x * 3
 g = \x y. x * y
 assert[f[2] == 6]
 assert[g[3, 2] == 6]
+
+assert[List[1, 2, 3].map[\x. x + 1] == List[2, 3, 4]]
 
 print['*** All tests pass! ***']
