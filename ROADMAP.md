@@ -9,6 +9,10 @@ Features under consideration
 * User definable constructors (like '__new__' in Python).
 * Anonymous functions.
 * Speed. CCL as currently implemented is ridiculously slow.
+  * Maybe address this by converting Ast within functions into bytecode,
+    kind of like the way Python does it.
+  * More importantly, figure out where the bottleneck in the processing is.
+    Don't fall into premature optimization.
 * Trace object. Right now 'trace[]' returns a String.
   Return a Trace object instead.
 
