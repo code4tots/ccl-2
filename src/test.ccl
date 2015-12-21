@@ -112,4 +112,7 @@ assert[g[3, 2] == 6]
 
 assert[List[1, 2, 3].map[\x. x + 1] == List[2, 3, 4]]
 
+f = \. err['An error happened!']
+f[]
+
 print['*** All tests pass! ***']

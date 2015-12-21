@@ -359,6 +359,13 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
         expectArgLen(c, args, 0);
         return toStringValue(c.trace.next.toString());
       }
+    })
+    .put(new FunctionValue("err") {
+      public Value calli(Context c, ArrayList<Value> args) {
+        expectArgLen(c, args, 1);
+        String message = asStringValue(c, args.get(0), "argument 0").value;
+        throw err(c, message);
+      }
     });
 
 public static final class NilValue extends Value {
@@ -1024,7 +1031,7 @@ public static final class AnonymousFunctionAst extends Ast {
     this.body = body;
   }
   public final Value evali(Context c) {
-    return new UserFunctionValue("<anonymous function>", args, body, c.scope);
+    return new UserFunctionValue("<anonymous>", args, body, c.scope);
   }
 }
 
