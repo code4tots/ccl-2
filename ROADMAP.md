@@ -15,6 +15,10 @@ Features under consideration
     Don't fall into premature optimization.
 * Trace object. Right now 'trace[]' returns a String.
   Return a Trace object instead.
+* Desktop GUI API
+* Desktop GUI API with OpenGL
+* Android API
+* iOS API (probably using some translation tool like Google's j2objc)
 
 Done features
 -------------
