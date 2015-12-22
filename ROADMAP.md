@@ -7,6 +7,11 @@ Features under consideration
 * Some form of context manager (like 'with' in Python).
 * Anonymous classes (like in Java).
 * User definable constructors (like '__new__' in Python).
+  * However, unlike '__new__' in Python, constructors should not be
+    inheritable.
+    Instead, '__init__' or some variant should be used for inheritance
+    initialization, the constructor is really just an arbitrary function
+    attached to a type for syntactic sugar.
 * Anonymous functions.
 * Speed. CCL as currently implemented is ridiculously slow.
   * Maybe address this by converting Ast within functions into bytecode,
