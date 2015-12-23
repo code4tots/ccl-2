@@ -338,14 +338,6 @@ public static final Scope BUILTIN_SCOPE = new Scope(null)
             c, asTypeValue(c, args.get(0), "argument to new"));
       }
     })
-    .put(new FunctionValue("print") {
-      public Value calli(Context c, ArrayList<Value> args) {
-        expectArgLen(c, args, 1);
-        StringValue sv = asStringValue(c, args.get(0), "argument 0");
-        System.out.println(sv.value);
-        return sv;
-      }
-    })
     .put(new FunctionValue("assert") {
       public Value calli(Context c, ArrayList<Value> args) {
         expectArgLen(c, args, 1);
