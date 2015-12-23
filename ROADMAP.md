@@ -24,6 +24,7 @@ Features under consideration
 * Desktop GUI API with OpenGL
 * Android API
 * iOS API (probably using some translation tool like Google's j2objc)
+* Add ability to easily add native modules.
 
 Done features
 -------------
