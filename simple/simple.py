@@ -1,6 +1,25 @@
+"""
+
+get[ls List[?], i Int] {
+  ...
+}
+
+f[a, b] {
+  return add[a, b]
+}
+
+Main[args List[String]] {
+  f[get[args, 0], get[args, 1]]
+}
+
+"""
+
 import common
 
 class Ast(common.Ast):
+  pass
+
+class Type(Ast):
   pass
 
 class Statement(Ast):
@@ -9,78 +28,32 @@ class Statement(Ast):
 class Expression(Ast):
   pass
 
-class BlockStatement(Statement):
-  attrs = [('stmts', [Statement])]
+class FunctionDefinition(Ast):
+  attrs = [
+      ('name', str),
+      ('args', [(str, Type)]),
+      ('body', [Statement]),
+  ]
+
+class Module(Ast):
+  attrs = [
+      ('funcs', [FunctionDefinition]),
+  ]
+
+class NamedType(Type):
+  attrs = [('name', str)]
+
+class BlankType(Type):
+  attrs = []
+
+class ParametricType(Type):
+  attrs = [('name', str), ('args', [Type])]
 
 class ExpressionStatement(Statement):
   attrs = [('expr', Expression)]
 
-class NameExpression(Expression):
-  attrs = [('name', str)]
-
-class NumberExpression(Expression):
-  attrs = [('val', float)]
-
-class StrExpression(Expression):
-  attrs = [('val', str)]
-
-class AssignExpression(Expression):
-  attrs = [('name', str), ('expr', Expression)]
-
-class MethodCallExpression(Expression):
-  attrs = [('expr', Expression), ('name', str), ('args', [Expression])]
-
-class Module(Ast):
-  attrs = [('block', BlockStatement)]
-
-class Annotator(common.AstVisitor):
-  def __init__(self):
-    self.globals = set()
-    self.locals = None
-
-  def contains(self, name):
-    return (
-        self.locals is not None and name in self.locals or
-        name in self.globals)
-
-  def assign(self, name):
-    if self.locals is not None:
-      self.locals.add(name)
-    else:
-      self.globals.add(name)
-
-  def visitModule(self, node):
-    self.visit(node.block)
-    node.vars = set(self.globals)
-
-  def visitBlockStatement(self, node):
-    for stmt in node.stmts:
-      self.visit(stmt)
-
-  def visitExpressionStatement(self, node):
-    self.visit(node.expr)
-
-  def visitNameExpression(self, node):
-    if not self.contains(node.name):
-      raise common.TranslationError(
-          node.token, 'Variable used before assigned')
-
-  def visitAssignExpression(self, node):
-    self.assign(node.name)
-    self.visit(node.expr)
-
-  def visitMethodCallExpression(self, node):
-    self.visit(node.expr)
-    for arg in node.args:
-      self.visit(arg)
-
-  def visitNumberExpression(self, node):
-    node.type = 'num'
-    return node.type
-
-  def visitStrExpression(self, node):
-    node.type = 'str'
-    return node.type
+class CallExpression(Expression):
+  attrs = [('f', str), ('args', [Expression])]
 
 class Parser(common.Parser):
 
