@@ -1,15 +1,53 @@
 """
 
-get[ls List[?], i Int] {
-  ...
+# Naming convention:
+# types and function names are CamelCase,
+# everything else is snake_case.
+
+struct List[T] {
+  len Int
+  cap Int
+  buf Array[T]
 }
 
-f[a, b] {
-  return add[a, b]
+Get[ls List[?T], i Int] {
+  return Get[ls.buf, i]
 }
 
-Main[args List[String]] {
-  f[get[args, 0], get[args, 1]]
+MakeList[a Array[?T]] {
+  let len = Size[a]
+  let cap = Add[Mul[2, len], 10]
+  let buf = MakeArray[cp]
+  let i = 0
+  while Lt[i, len] {
+    Set[buf, i, Get[a, i]]
+  }
+
+  # The type parameters to 'List' should be deducible from
+  # its constructor arguments (i.e. its members).
+  return List[len, cap, buf]
+
+  # # Or
+  # let list = new List[T]
+  # list.len = len
+  # list.cap = cap
+  # list.buf = buf
+  # return list
+  #
+  # # Values created using the 'new' keyword initializes to default values.
+  # # Builtin types have specified default values (e.g. Int -> 0),
+  # # and aggregate types (i.e. 'struct') default to setting all its members
+  # # to their corresponding default values.
+}
+
+F[a ?_, b ?_] {
+  return Add[a, b]
+}
+
+Main[args Array[String]] {
+  F[Get[args, 0], Get[args, 1]]
+  Print[ %[1, 2, 3] ]
+  Print[ MakeList[%[1, 2, 3]] ]
 }
 
 """
