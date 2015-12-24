@@ -60,29 +60,44 @@ class Ast(common.Ast):
 class Type(Ast):
   pass
 
+class TypePattern(Ast):
+  pass
+
 class Statement(Ast):
   pass
 
 class Expression(Ast):
   pass
 
+class StructDefinition(Ast):
+  attrs = [
+      ('name', str),
+      ('args', [str]),
+      ('attrs', [(str, Type)]),
+  ]
+
+class Declaration(Statement):
+  attrs = [('name', str), ('expr', Expression)]
+
 class FunctionDefinition(Ast):
   attrs = [
       ('name', str),
-      ('args', [(str, Type)]),
-      ('body', [Statement]),
+      ('args', [(str, TypePattern)]),
+      ('body', Statement),
   ]
 
 class Module(Ast):
   attrs = [
       ('funcs', [FunctionDefinition]),
+      ('struct', [StructDefinition]),
+      ('decls', [Declaration]),
   ]
 
-class NamedType(Type):
-  attrs = [('name', str)]
+class ParametricTypePattern(TypePattern):
+  attrs = [('name', str), ('args', [TypePattern])]
 
-class BlankType(Type):
-  attrs = []
+class VariableTypePattern(TypePattern):
+  attrs = [('name', str)]
 
 class ParametricType(Type):
   attrs = [('name', str), ('args', [Type])]
@@ -90,8 +105,32 @@ class ParametricType(Type):
 class ExpressionStatement(Statement):
   attrs = [('expr', Expression)]
 
+class IfStatement(Statement):
+  attrs = [('cond', Expression), ('body', Statement), ('other', Statement)]
+
+class WhileStatement(Statement):
+  attrs = [('cond', Expression), ('body', Statement)]
+
+class BlockStatement(Statement):
+  attrs = [('stmts', [Statement])]
+
+class AssignExpression(Expression):
+  attrs = [('name', str), ('expr', Expression)]
+
 class CallExpression(Expression):
   attrs = [('f', str), ('args', [Expression])]
+
+class NameExpression(Expression):
+  attrs = [('name', str)]
+
+class StrExpression(Expression):
+  attrs = [('val', str)]
+
+class IntExpression(Expression):
+  attrs = [('val', int)]
+
+class FloatExpression(Expression):
+  attrs = [('val', float)]
 
 class Parser(common.Parser):
 
@@ -102,24 +141,67 @@ class Parser(common.Parser):
       stmts.append(self.parseStatement())
     return Module(token, BlockStatement(token, stmts))
 
-  def parseStatement(self):
+  def parseType(self):
+    token = self.expect('ID')
+    name = token.value
+    args = []
+    if self.consume('['):
+      while not self.consume(']'):
+        args.append(self.parseType())
+        self.consume(',')
+    return ParametricType(token, name, args)
+
+  def parseTypePattern(self):
+    if self.at('?'):
+      token = self.expect('?')
+      name = self.expect('ID').value
+      return VariableTypePattern(token, name)
+    else:
+      token = self.expect('ID')
+      name = token.value
+      args = []
+      if self.consume('['):
+        while not self.consume(']'):
+          args.append(self.parseTypePattern())
+          self.consume(',')
+      return ParametricTypePattern(token, name, args)
+
+  def parseDeclaration(self):
+    token = self.expect('let')
+    name = self.expect('ID').value
+    self.expect('=')
     expr = self.parseExpression()
-    return ExpressionStatement(expr.token, expr)
+    return Declaration(token, name, expr)
+
+  def parseBlockStatement(self):
+    token = self.expect('{')
+    stmts = []
+    while not self.consume('}'):
+      stmts.append(self.parseStatement())
+    return BlockStatement(token, stmts)
+
+  def parseStatement(self):
+    if self.at('if'):
+      token = self.expect('if')
+      cond = self.parseExpression()
+      body = self.parseStatement()
+      other = BlockStatement(token, [])
+      if self.consume('else'):
+        other = self.parseStatement()
+      return IfStatement(cond, body, other)
+    elif self.at('while'):
+      token = self.expect('while')
+      cond = self.parseExpression()
+      body = self.parseStatement()
+      return WhileStatement(token, cond, body)
+    elif self.at('{'):
+      return self.parseBlockStatement()
+    else:
+      expr = self.parseExpression()
+      return ExpressionStatement(expr.token, expr)
 
   def parseExpression(self):
-    return self.parsePostfixExpression()
-
-  def parsePostfixExpression(self):
-    expr = self.parsePrimaryExpression()
-    while True:
-      if self.at('.'):
-        token = self.next()
-        name = self.expect('ID').value
-        args = self.parseArguments()
-        expr = MethodCallExpression(token, expr, name, args)
-      else:
-        break
-    return expr
+    return self.parsePrimaryExpression()
 
   def parseArguments(self):
     self.expect('[')
@@ -137,12 +219,17 @@ class Parser(common.Parser):
         token = self.next()
         value = self.parseExpression()
         return AssignExpression(token, name, value)
+      elif self.at('['):
+        args = self.parseArguments()
+        return CallExpression(token, name, args)
       else:
         return NameExpression(token, name)
-    elif self.at('INT') or self.at('FLOAT'):
+    elif self.at('INT'):
       token = self.next()
-      value = token.value
-      return NumberExpression(token, float(value))
+      return IntExpression(token, token.value)
+    elif self.at('FLOAT'):
+      token = self.next()
+      return FloatExpression(token, token.value)
     elif self.at('STR'):
       token = self.next()
       value = token.value
@@ -152,19 +239,34 @@ class Parser(common.Parser):
 
 ### Tests
 
+t = Parser('Int', '<test>').parseType()
+assert str(t) == "ParametricType('Int', [])", t
+
+t = Parser('List[Int]', '<test>').parseType()
+assert str(t) == "ParametricType('List', [ParametricType('Int', [])])", t
+
+t = Parser('Int', '<test>').parseTypePattern()
+assert str(t) == "ParametricTypePattern('Int', [])", t
+
+t = Parser('?T', '<test>').parseTypePattern()
+assert str(t) == "VariableTypePattern('T')", t
+
+t = Parser('List[Int]', '<test>').parseTypePattern()
+assert (
+    str(t) ==
+    "ParametricTypePattern('List', [ParametricTypePattern('Int', [])])"), t
+
 stmt = Parser('hi', '<test>').parseStatement()
 assert str(stmt) == "ExpressionStatement(NameExpression('hi'))", stmt
 
 expr = Parser('"hi"', '<test>').parseExpression()
 assert str(expr) == "StrExpression('hi')", expr
 
-Annotator().visit(expr)
-assert expr.type == 'str', expr.type
+expr = Parser('a = b', '<test>').parseExpression()
+assert str(expr) == "AssignExpression('a', NameExpression('b'))", expr
 
-m = Parser(r"""
-x = 5
-y = x.add[3.0]
-""", '<test>').parseModule()
-a = Annotator()
-a.visit(m)
-assert m.vars == set(['x', 'y']), m.vars
+expr = Parser('f[1, 2.1]', '<test>').parseExpression()
+assert (
+    str(expr) ==
+    "CallExpression('f', [IntExpression(1), FloatExpression(2.1)])"), expr
+

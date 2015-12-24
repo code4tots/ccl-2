@@ -90,7 +90,7 @@ class Token(object):
         '\n' + self.lexer.s[a:b] + '\n' + ' ' * nspce + '*')
 
 SYMBOLS = (
-    '(', ')', '[', ']', '{', '}', ',', '.', '@', '=', '<',
+    '(', ')', '[', ']', '{', '}', ',', '.', '@', '=', '<', '?',
 )
 KEYWORDS = (
     'class', 'if', 'else', 'while', 'break', 'continue', 'return',
