@@ -83,14 +83,15 @@ class FunctionDefinition(Ast):
   attrs = [
       ('name', str),
       ('args', [(str, TypePattern)]),
+      ('type', Type), # return type
       ('body', Statement),
   ]
 
 class Module(Ast):
   attrs = [
-      ('funcs', [FunctionDefinition]),
-      ('struct', [StructDefinition]),
       ('decls', [Declaration]),
+      ('structs', [StructDefinition]),
+      ('funcs', [FunctionDefinition]),
   ]
 
 class ParametricTypePattern(TypePattern):
@@ -138,8 +139,13 @@ class Parser(common.Parser):
     token = self.peek()
     stmts = []
     while not self.at('EOF'):
-      stmts.append(self.parseStatement())
-    return Module(token, BlockStatement(token, stmts))
+      if self.at('let'):
+        decls.append(self.parseDeclaration())
+      elif self.at('struct'):
+        structs.append(self.parseStructDefinition())
+      else:
+        funcs.append(self.parseFunctionDefinition())
+    return Module(token, decls, structs, funcs)
 
   def parseType(self):
     token = self.expect('ID')
