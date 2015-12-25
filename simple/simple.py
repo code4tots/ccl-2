@@ -140,7 +140,7 @@ class Parser(common.Parser):
 
   def parseModule(self):
     token = self.peek()
-    dcls = []
+    decls = []
     clss = []
     funcs = []
     while not self.at('EOF'):
@@ -348,3 +348,11 @@ assert (
     str(expr) ==
     "CallExpression('f', [IntExpression(1), FloatExpression(2.1)])"), expr
 
+m = Parser('Main[args ?_] Int { return 0 }', '<test>').parseModule()
+assert (
+    str(m) ==
+      "Module([], [], "
+      "[FunctionDefinition('args', [('args', VariableTypePattern('_'))], "
+        "ParametricType('Int', []), "
+        "BlockStatement([ReturnStatement(IntExpression(0))]))])"
+), m
