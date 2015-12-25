@@ -146,11 +146,27 @@ class Parser(common.Parser):
     while not self.at('EOF'):
       if self.at('let'):
         decls.append(self.parseDeclaration())
-      elif self.at('struct'):
+      elif self.at('class'):
         clss.append(self.parseClassDefinition())
       else:
         funcs.append(self.parseFunctionDefinition())
     return Module(token, decls, clss, funcs)
+
+  def parseClassDefinition(self):
+    token = self.expect('class')
+    name = self.expect('ID').value
+    args = []
+    if self.consume('['):
+      while not self.consume(']'):
+        args.append(self.expect('ID').value)
+        self.consume(',')
+    self.expect('{')
+    attrs = []
+    while not self.consume('}'):
+      name = self.expect('ID').value
+      t = self.parseType()
+      attrs.append((name, attrs))
+    return ClassDefinition(token, name, args, attrs)
 
   def parseType(self):
     token = self.expect('ID')
@@ -253,6 +269,9 @@ class Parser(common.Parser):
     raise common.ParseError(self.peek(), "Expected expression")
 
 ### Tests
+
+c = Parser('class C {}', '<test>').parseClassDefinition()
+assert str(c) == "ClassDefinition('C', [], [])", c
 
 t = Parser('Int', '<test>').parseType()
 assert str(t) == "ParametricType('Int', [])", t
