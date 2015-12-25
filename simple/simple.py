@@ -10,11 +10,11 @@ class List[T] {
   buf Array[T]
 }
 
-Get[ls List[?T], i Int] {
+Get[ls List[?T], i Int] T {
   return Get[ls.buf, i]
 }
 
-MakeList[a Array[?T]] {
+MakeList[a Array[?T]] List[T] {
   let len = Size[a]
   let cap = Add[Mul[2, len], 10]
   let buf = MakeArray[cp]
@@ -40,11 +40,11 @@ MakeList[a Array[?T]] {
   # # to their corresponding default values.
 }
 
-F[a ?_, b ?_] {
+F[a ?T, b ?T] T {
   return Add[a, b]
 }
 
-Main[args Array[String]] {
+Main[args Array[String]] Void {
   F[Get[args, 0], Get[args, 1]]
   Print[ %[1, 2, 3] ]
   Print[ MakeList[%[1, 2, 3]] ]
@@ -168,6 +168,20 @@ class Parser(common.Parser):
       attrs.append((name, attrs))
     return ClassDefinition(token, name, args, attrs)
 
+  def parseFunctionDefinition(self):
+    token = self.expect('ID')
+    name = token.value
+    args = []
+    self.expect('[')
+    while not self.consume(']'):
+      name = self.expect('ID').value
+      p = self.parseTypePattern()
+      self.consume(',')
+      args.append((name, p))
+    ret = self.parseType()
+    body = self.parseBlockStatement()
+    return FunctionDefinition(token, name, args, ret, body)
+
   def parseType(self):
     token = self.expect('ID')
     name = token.value
@@ -269,6 +283,28 @@ class Parser(common.Parser):
     raise common.ParseError(self.peek(), "Expected expression")
 
 ### Tests
+
+c = Parser('Main[] Void {}', '<test>').parseFunctionDefinition()
+assert (
+    str(c) ==
+    "FunctionDefinition("
+        "'Main', [], ParametricType('Void', []), BlockStatement([]))"), c
+
+c = Parser(
+    'Main[args List[String]] Int {'
+      'return 0'
+    '}', '<test>').parseFunctionDefinition()
+assert (
+    str(c) ==
+    "FunctionDefinition("
+        "'args', "
+        "[("
+            "'args', "
+            "ParametricTypePattern("
+                "'List', "
+                "[ParametricTypePattern('String', [])]))], "
+        "ParametricType('Int', []), "
+        "BlockStatement([ReturnStatement(IntExpression(0))]))"), c
 
 c = Parser('class C {}', '<test>').parseClassDefinition()
 assert str(c) == "ClassDefinition('C', [], [])", c
