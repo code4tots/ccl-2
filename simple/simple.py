@@ -106,6 +106,9 @@ class ParametricType(Type):
 class ExpressionStatement(Statement):
   attrs = [('expr', Expression)]
 
+class ReturnStatement(Statement):
+  attrs = [('expr', Expression)]
+
 class IfStatement(Statement):
   attrs = [('cond', Expression), ('body', Statement), ('other', Statement)]
 
@@ -202,6 +205,10 @@ class Parser(common.Parser):
       cond = self.parseExpression()
       body = self.parseStatement()
       return WhileStatement(token, cond, body)
+    elif self.at('return'):
+      token = self.expect('return')
+      expr = self.parseExpression()
+      return ReturnStatement(token, expr)
     elif self.at('{'):
       return self.parseBlockStatement()
     else:
