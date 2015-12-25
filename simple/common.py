@@ -29,8 +29,8 @@ class Ast(object):
     if len(attrs) != len(args):
       raise ParseError(
           token,
-          'Expected %d arguments but found %d' % (
-              len(attrs), len(args)))
+          'Expected %d attribute arguments to "%s" but found %d' % (
+              len(attrs), type(self).__name__, len(args)))
 
     for i, ((name, t), arg) in enumerate(zip(attrs, args)):
       if not check_type(token, arg, t):
