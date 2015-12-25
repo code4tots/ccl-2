@@ -165,7 +165,7 @@ class Parser(common.Parser):
     while not self.consume('}'):
       name = self.expect('ID').value
       t = self.parseType()
-      attrs.append((name, attrs))
+      attrs.append((name, t))
     return ClassDefinition(token, name, args, attrs)
 
   def parseFunctionDefinition(self):
@@ -308,6 +308,11 @@ assert (
 
 c = Parser('class C {}', '<test>').parseClassDefinition()
 assert str(c) == "ClassDefinition('C', [], [])", c
+
+c = Parser('class C[D] { a Int }', '<test>').parseClassDefinition()
+assert (
+    str(c) ==
+    "ClassDefinition('a', ['D'], [('a', ParametricType('Int', []))])"), c
 
 t = Parser('Int', '<test>').parseType()
 assert str(t) == "ParametricType('Int', [])", t
