@@ -4,7 +4,7 @@
 # types and function names are CamelCase,
 # everything else is snake_case.
 
-struct List[T] {
+class List[T] {
   len Int
   cap Int
   buf Array[T]
@@ -36,7 +36,7 @@ MakeList[a Array[?T]] {
   #
   # # Values created using the 'new' keyword initializes to default values.
   # # Builtin types have specified default values (e.g. Int -> 0),
-  # # and aggregate types (i.e. 'struct') default to setting all its members
+  # # and aggregate types (i.e. 'class') default to setting all its members
   # # to their corresponding default values.
 }
 
@@ -69,7 +69,7 @@ class Statement(Ast):
 class Expression(Ast):
   pass
 
-class StructDefinition(Ast):
+class ClassDefinition(Ast):
   attrs = [
       ('name', str),
       ('args', [str]),
@@ -90,7 +90,7 @@ class FunctionDefinition(Ast):
 class Module(Ast):
   attrs = [
       ('decls', [Declaration]),
-      ('structs', [StructDefinition]),
+      ('clss', [ClassDefinition]),
       ('funcs', [FunctionDefinition]),
   ]
 
@@ -137,15 +137,17 @@ class Parser(common.Parser):
 
   def parseModule(self):
     token = self.peek()
-    stmts = []
+    dcls = []
+    clss = []
+    funcs = []
     while not self.at('EOF'):
       if self.at('let'):
         decls.append(self.parseDeclaration())
       elif self.at('struct'):
-        structs.append(self.parseStructDefinition())
+        clss.append(self.parseClassDefinition())
       else:
         funcs.append(self.parseFunctionDefinition())
-    return Module(token, decls, structs, funcs)
+    return Module(token, decls, clss, funcs)
 
   def parseType(self):
     token = self.expect('ID')
