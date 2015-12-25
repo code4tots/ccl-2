@@ -274,6 +274,9 @@ assert (
 stmt = Parser('hi', '<test>').parseStatement()
 assert str(stmt) == "ExpressionStatement(NameExpression('hi'))", stmt
 
+stmt = Parser('return hi', '<test>').parseStatement()
+assert str(stmt) == "ReturnStatement(NameExpression('hi'))", stmt
+
 expr = Parser('"hi"', '<test>').parseExpression()
 assert str(expr) == "StrExpression('hi')", expr
 
