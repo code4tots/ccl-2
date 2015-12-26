@@ -480,6 +480,7 @@ class Instantiator(object):
     self.funcs = dict() # (str, [Type]) -> FunctionDefinition
     self.clsstodo = dict() # (str, [Type]) -> {Token}
     self.funcstodo = dict() # (str, [Type]) -> {Token}
+    self.clsslimbo = set() # (str, [Type])
 
   def instantiateModule(self):
     """Instantiate 'Main[] Void', the classes used in global declarations,
@@ -523,10 +524,21 @@ class Instantiator(object):
         self.clsstodo[key] = set()
       self.clsstodo[key].add(token)
 
-  def instantiateFunction(self, name, argtypes):
+  def instantiateAnyFunction(self):
+    (name, argtypes), tokens = self.funcstodo.popitem()
+
+
+  def instantiateFunction(self, token, name, argtypes):
     """Find a matching FunctionTemplate of given name and argument types,
     and return a FunctionDefinition.
     """
-    pass # TODO
+    for f in self.funcs:
+      typebnds = dict()
+      argpats = [arg.type for arg in f.args]
+      if f.name == name and self.matchTypePatterns(
+          argpats, argtypes, typebnds):
+        break
+    else:
+      raise 
 
 
