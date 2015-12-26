@@ -94,6 +94,41 @@ class Module(Ast):
       ('funcs', [FunctionDefinition]),
   ]
 
+  # TODO: Figure out a cleaner way to do the expansion.
+
+  # TODO: Do something about messy attribute adding here.
+  def expandAll(self):
+    self.xfuncs = []
+    self.xclss = []
+    self.expanded = set()
+
+    self.expandFunc('Main', [])
+
+  # DRY up expandFunc and expandClass.
+  def expandFunc(self, name, argtypes):
+    if ('func', name, argtypes) not in self.expanded:
+
+      # Note: This comes before recursing into expanding the func
+      # so that if this function is requested to be expanded again
+      # while we are expanding it, we don't end up recursing indefinitely.
+      self.expanded.add(('func', name, argtypes))
+
+      for f in self.funcs:
+        if f.match(name, argtypes):
+          self.xfuncs.append(f.expand(argtypes))
+
+  def expandClass(self, name, argtypes):
+    if ('class', name, argtypes) not in self.expanded:
+      # Note: this comes before recursing into expanding cls
+      # so that if this class has a reference to itself in its body,
+      # we don't recursie into this indefinitely.
+      self.expanded.add(('class', name, argtypes))
+
+      for c in self.clss:
+        if c.match(name, argtypes):
+          self.xclss.append(c.expand(argtypes))
+
+
 class ParametricTypePattern(TypePattern):
   attrs = [('name', str), ('args', [TypePattern])]
 
@@ -117,24 +152,6 @@ class WhileStatement(Statement):
 
 class BlockStatement(Statement):
   attrs = [('stmts', [Statement])]
-
-class AssignExpression(Expression):
-  attrs = [('name', str), ('expr', Expression)]
-
-class CallExpression(Expression):
-  attrs = [('f', str), ('args', [Expression])]
-
-class NameExpression(Expression):
-  attrs = [('name', str)]
-
-class StrExpression(Expression):
-  attrs = [('val', str)]
-
-class IntExpression(Expression):
-  attrs = [('val', int)]
-
-class FloatExpression(Expression):
-  attrs = [('val', float)]
 
 class Parser(common.Parser):
 

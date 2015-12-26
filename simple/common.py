@@ -62,7 +62,7 @@ class TranslationError(Exception):
             self.token.location_message()
         ))
 
-class AstVisitor(object):
+class Visitor(object):
   def visit(self, node):
     return getattr(self, 'visit' + type(node).__name__)(node)
 
