@@ -60,6 +60,41 @@ Main -> Function  -> Type
            ^      |
            \-------
 
+=================
+
+
+Template
+(FunctionTemplate, ClassTemplate)
+
+   |
+   | instantiate templates
+   |
+   v
+
+Definition
+(FunctionDefinition, ClassDefinition)
+
+At this point, each line of code should basically have a
+1-1 correspondence with outputs of the next phase.
+
+   |
+   |  name mangling based on type arguments.
+   |
+   v
+
+Flattened
+(FlattenedFunctionDefinition, FlattenedClassDefinition).
+
+All types are plain names and not 'ParametricType'.
+All functions are uniquely determined by their name.
+
+-----
+
+Depending on which features I'm ok with, and what platforms
+I'm targeting, I could skip the name mangling part.
+
+E.g. with operator overloading and templates/generics.
+
 """
 
 import common
@@ -79,22 +114,57 @@ class Statement(Ast):
 class Expression(Ast):
   pass
 
+class ClassTemplate(Ast):
+  attrs = [
+      ('name', str),
+      # I've thought about having pattern matching in ClassTemplate
+      # arguments the way I let FunctionTemplate argument types to be
+      # patterns.
+      # It seems like this feature would be nice, orthogonal and
+      # consistent with the existing features.
+      # However, it seems like it would be more work than doing it
+      # the dumb substitution way I'm doing now, and I'm not
+      # 100% confident I'm going to finish this as it is, so
+      # I'm going to leave this as is for now.
+      # TODO: Come back to this.
+      ('args', [str]),
+      ('attrs', [(str, Type)]),
+  ]
+
 class ClassDefinition(Ast):
   attrs = [
       ('name', str),
-      ('args', [str]),
+      # 'args' here really isn't all that important for
+      # the content of the class definition, except that
+      # the name no longer uniquely identifies the class.
+      ('args', [Type]),
       ('attrs', [(str, Type)]),
   ]
 
 class Declaration(Statement):
   attrs = [('name', str), ('expr', Expression)]
 
-class FunctionDefinition(Ast):
+class FunctionTemplate(Ast):
   attrs = [
       ('name', str),
       ('args', [(str, TypePattern)]),
       ('type', Type), # return type
       ('body', Statement),
+  ]
+
+class FunctionDefinition(Ast):
+  attrs = [
+      ('name', str),
+      ('args', [(str, Type)]),
+      ('type', Type),
+      ('body', Statement),
+  ]
+
+class ModuleTemplate(Ast):
+  attrs = [
+      ('decls', [Declaration]),
+      ('clss', [ClassTemplate]),
+      ('funcs', [FunctionTemplate]),
   ]
 
 class Module(Ast):
@@ -134,6 +204,12 @@ class AssignExpression(Expression):
 class CallExpression(Expression):
   attrs = [('f', str), ('args', [Expression])]
 
+class SetAttributeExpression(Expression):
+  attrs = [('expr', Expression), ('name', str), ('val', Expression)]
+
+class GetAttributeExpression(Expression):
+  attrs = [('expr', Expression), ('name', str)]
+
 class NameExpression(Expression):
   attrs = [('name', str)]
 
@@ -148,7 +224,7 @@ class FloatExpression(Expression):
 
 class Parser(common.Parser):
 
-  def parseModule(self):
+  def parseModuleTemplate(self):
     token = self.peek()
     decls = []
     clss = []
@@ -157,12 +233,12 @@ class Parser(common.Parser):
       if self.at('let'):
         decls.append(self.parseDeclaration())
       elif self.at('class'):
-        clss.append(self.parseClassDefinition())
+        clss.append(self.parseClassTemplate())
       else:
-        funcs.append(self.parseFunctionDefinition())
-    return Module(token, decls, clss, funcs)
+        funcs.append(self.parseFunctionTemplate())
+    return ModuleTemplate(token, decls, clss, funcs)
 
-  def parseClassDefinition(self):
+  def parseClassTemplate(self):
     token = self.expect('class')
     name = self.expect('ID').value
     args = []
@@ -176,9 +252,9 @@ class Parser(common.Parser):
       name = self.expect('ID').value
       t = self.parseType()
       attrs.append((name, t))
-    return ClassDefinition(token, name, args, attrs)
+    return ClassTemplate(token, name, args, attrs)
 
-  def parseFunctionDefinition(self):
+  def parseFunctionTemplate(self):
     token = self.expect('ID')
     name = token.value
     args = []
@@ -190,7 +266,7 @@ class Parser(common.Parser):
       args.append((name, p))
     ret = self.parseType()
     body = self.parseBlockStatement()
-    return FunctionDefinition(token, name, args, ret, body)
+    return FunctionTemplate(token, name, args, ret, body)
 
   def parseType(self):
     token = self.expect('ID')
@@ -256,7 +332,7 @@ class Parser(common.Parser):
       return ExpressionStatement(expr.token, expr)
 
   def parseExpression(self):
-    return self.parsePrimaryExpression()
+    return self.parsePostfixExpression()
 
   def parseArguments(self):
     self.expect('[')
@@ -265,6 +341,18 @@ class Parser(common.Parser):
       args.append(self.parseExpression())
       self.consume(',')
     return args
+
+  def parsePostfixExpression(self):
+    expr = self.parsePrimaryExpression()
+    while self.at('.'):
+      token = self.next()
+      name = self.expect('ID').value
+      if self.consume('='):
+        val = self.parseExpression()
+        expr = SetAttributeExpression(token, expr, name, val)
+      else:
+        expr = GetAttributeExpression(token, expr, name)
+    return expr
 
   def parsePrimaryExpression(self):
     if self.at('ID'):
@@ -294,19 +382,19 @@ class Parser(common.Parser):
 
 ### Tests
 
-c = Parser('Main[] Void {}', '<test>').parseFunctionDefinition()
+c = Parser('Main[] Void {}', '<test>').parseFunctionTemplate()
 assert (
     str(c) ==
-    "FunctionDefinition("
+    "FunctionTemplate("
         "'Main', [], ParametricType('Void', []), BlockStatement([]))"), c
 
 c = Parser(
     'Main[args List[String]] Int {'
       'return 0'
-    '}', '<test>').parseFunctionDefinition()
+    '}', '<test>').parseFunctionTemplate()
 assert (
     str(c) ==
-    "FunctionDefinition("
+    "FunctionTemplate("
         "'args', "
         "[("
             "'args', "
@@ -316,13 +404,13 @@ assert (
         "ParametricType('Int', []), "
         "BlockStatement([ReturnStatement(IntExpression(0))]))"), c
 
-c = Parser('class C {}', '<test>').parseClassDefinition()
-assert str(c) == "ClassDefinition('C', [], [])", c
+c = Parser('class C {}', '<test>').parseClassTemplate()
+assert str(c) == "ClassTemplate('C', [], [])", c
 
-c = Parser('class C[D] { a Int }', '<test>').parseClassDefinition()
+c = Parser('class C[D] { a Int }', '<test>').parseClassTemplate()
 assert (
     str(c) ==
-    "ClassDefinition('a', ['D'], [('a', ParametricType('Int', []))])"), c
+    "ClassTemplate('a', ['D'], [('a', ParametricType('Int', []))])"), c
 
 t = Parser('Int', '<test>').parseType()
 assert str(t) == "ParametricType('Int', [])", t
@@ -358,34 +446,87 @@ assert (
     str(expr) ==
     "CallExpression('f', [IntExpression(1), FloatExpression(2.1)])"), expr
 
-m = Parser('Main[args ?_] Int { return 0 }', '<test>').parseModule()
+expr = Parser('a.b', '<test>').parseExpression()
+assert (
+    str(expr) ==
+    "GetAttributeExpression(NameExpression('a'), 'b')"), expr
+
+expr = Parser('a.b = c', '<test>').parseExpression()
+assert (
+    str(expr) ==
+    "SetAttributeExpression(NameExpression('a'), 'b', NameExpression('c'))"
+), expr
+
+m = Parser('Main[args ?_] Int { return 0 }', '<test>').parseModuleTemplate()
 assert (
     str(m) ==
-      "Module([], [], "
-      "[FunctionDefinition('args', [('args', VariableTypePattern('_'))], "
+      "ModuleTemplate([], [], "
+      "[FunctionTemplate('args', [('args', VariableTypePattern('_'))], "
         "ParametricType('Int', []), "
         "BlockStatement([ReturnStatement(IntExpression(0))]))])"
 ), m
 
+class InstantiationError(common.TranslationError):
+  pass
 
-class Expander(object):
+# TODO: This is a hack. Think about what you've done.
+MAIN_INSTANTIATION_TOKEN = common.Lexer('StartAtMain', '<builtin>').next()
 
-  def __init__(self):
-    self.seenTypes = set()
+class Instantiator(object):
 
-  def ExpandType(self, t, typebnds):
-    assert type(t) == ParametricType, type(t)
+  def __init__(self, module):
+    self.module = module
+    self.clss = dict() # (str, [Type]) -> ClassDefinition
+    self.funcs = dict() # (str, [Type]) -> FunctionDefinition
+    self.clsstodo = dict() # (str, [Type]) -> {Token}
+    self.funcstodo = dict() # (str, [Type]) -> {Token}
 
-    if t.name in typebnds:
-      assert len(t.args) == 0, t
-      type_ = typebnds[t.name]
-    else:
-      type_ = ParametricType(
-          t.token, t.name,
-          [self.ExpandType(tt, typebnds) for tt in t.args])
+  def instantiateModule(self):
+    """Instantiate 'Main[] Void', the classes used in global declarations,
+    and all other things that must be instantiated because of them.
+    """
+    self.registerFunctionToInstantiate(MAIN_INSTANTIATION_TOKEN, 'main', [])
 
-    self.seenTypes.add(type_)
-    return type_
+    # TODO: Global decls
+    if self.module.decls:
+      raise Exception('Global declarations not yet supported')
 
-expander = Expander()
+    while True:
+      if self.clsstodo:
+        self.instantiateAnyClass()
+      elif self.funcstodo:
+        self.instantiateAnyFunction()
+      else:
+        break
+
+    return Module(
+        self.module.token, [],
+        list(self.clss.values()),
+        list(self.funcs.values()))
+
+  def registerFunctionToInstantiate(self, token, name, argtypes):
+    """Mark a function with given argument types as something to instantiate.
+    The token argument should point to the location where this instantiation
+    takes place, used for error messages.
+    """
+    key = (name, argtypes)
+    if key not in self.funcs:
+      if key not in self.funcstodo:
+        self.funcstodo[key] = set()
+      self.funcstodo[key].add(token)
+
+  def registerClassToInstantiate(self, token, name, argtypes):
+    "Like registerFunctionToInstantiate, but for classes instead of functions."
+    key = (name, argtypes)
+    if key not in self.clss:
+      if key not in self.clsstodo:
+        self.clsstodo[key] = set()
+      self.clsstodo[key].add(token)
+
+  def instantiateFunction(self, name, argtypes):
+    """Find a matching FunctionTemplate of given name and argument types,
+    and return a FunctionDefinition.
+    """
+    pass # TODO
+
 
