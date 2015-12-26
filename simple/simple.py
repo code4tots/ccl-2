@@ -50,6 +50,16 @@ Main[args Array[String]] Void {
   Print[ MakeList[%[1, 2, 3]] ]
 }
 
+=================
+
+'Main' function is always instantiated.
+All other functions are instantiated only if their type version is used.
+Types are only instantiated if they are used in a function.
+
+Main -> Function  -> Type
+           ^      |
+           \-------
+
 """
 
 import common
@@ -94,41 +104,6 @@ class Module(Ast):
       ('funcs', [FunctionDefinition]),
   ]
 
-  # TODO: Figure out a cleaner way to do the expansion.
-
-  # TODO: Do something about messy attribute adding here.
-  def expandAll(self):
-    self.xfuncs = []
-    self.xclss = []
-    self.expanded = set()
-
-    self.expandFunc('Main', [])
-
-  # DRY up expandFunc and expandClass.
-  def expandFunc(self, name, argtypes):
-    if ('func', name, argtypes) not in self.expanded:
-
-      # Note: This comes before recursing into expanding the func
-      # so that if this function is requested to be expanded again
-      # while we are expanding it, we don't end up recursing indefinitely.
-      self.expanded.add(('func', name, argtypes))
-
-      for f in self.funcs:
-        if f.match(name, argtypes):
-          self.xfuncs.append(f.expand(argtypes))
-
-  def expandClass(self, name, argtypes):
-    if ('class', name, argtypes) not in self.expanded:
-      # Note: this comes before recursing into expanding cls
-      # so that if this class has a reference to itself in its body,
-      # we don't recursie into this indefinitely.
-      self.expanded.add(('class', name, argtypes))
-
-      for c in self.clss:
-        if c.match(name, argtypes):
-          self.xclss.append(c.expand(argtypes))
-
-
 class ParametricTypePattern(TypePattern):
   attrs = [('name', str), ('args', [TypePattern])]
 
@@ -152,6 +127,24 @@ class WhileStatement(Statement):
 
 class BlockStatement(Statement):
   attrs = [('stmts', [Statement])]
+
+class AssignExpression(Expression):
+  attrs = [('name', str), ('expr', Expression)]
+
+class CallExpression(Expression):
+  attrs = [('f', str), ('args', [Expression])]
+
+class NameExpression(Expression):
+  attrs = [('name', str)]
+
+class StrExpression(Expression):
+  attrs = [('val', str)]
+
+class IntExpression(Expression):
+  attrs = [('val', int)]
+
+class FloatExpression(Expression):
+  attrs = [('val', float)]
 
 class Parser(common.Parser):
 
@@ -373,3 +366,26 @@ assert (
         "ParametricType('Int', []), "
         "BlockStatement([ReturnStatement(IntExpression(0))]))])"
 ), m
+
+
+class Expander(object):
+
+  def __init__(self):
+    self.seenTypes = set()
+
+  def ExpandType(self, t, typebnds):
+    assert type(t) == ParametricType, type(t)
+
+    if t.name in typebnds:
+      assert len(t.args) == 0, t
+      type_ = typebnds[t.name]
+    else:
+      type_ = ParametricType(
+          t.token, t.name,
+          [self.ExpandType(tt, typebnds) for tt in t.args])
+
+    self.seenTypes.add(type_)
+    return type_
+
+expander = Expander()
+
