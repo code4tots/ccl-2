@@ -52,30 +52,34 @@ Module
 *** Level 2 - parametric types              ***
 ***********************************************
 
-ModuleWithParametricTypes
-  clss: [ParametricClassDefinition]
-  funcs: [FunctionDefinitionWithParametricTypes]
+ParametricType
+  name: str
+  args: [ParametricType]
 
 ParametricClassDefinition
   name: str
   args: [ParametricType]
   attrs: [(str, ParametricType)]
 
-ParametricType
-  name: str
-  args: [ParametricType]
+ExpressionWithParametricTypes
+  ...
+  typeval: ParametricType?
+  exprs: [ExpressionWithParametricTypes]
+
+StatementWithParametricTypes
+  type: ...
+  exprs: [ExpressionWithParametricTypes]
+  stmts [StatementWithParametricTypes]
 
 FunctionDefinitionWithParametricTypes
   name: str
   args: [(str, ParametricType)]
   rettype: ParametricType
-  body: StatementWithParametricType
+  body: StatementWithParametricTypes
 
-StatementWithParametricType
-  ...
-
-ExpressionWithParametricType
-  ...
+ModuleWithParametricTypes
+  clss: [ParametricClassDefinition]
+  funcs: [FunctionDefinitionWithParametricTypes]
 
 ***********************************************
 *** Level 3 - function templates            ***
@@ -89,7 +93,7 @@ FunctionTemplate
   name: str
   args: [(str, TypePattern)]
   rettype: ParametricType
-  body: StatementWithParametricType
+  body: StatementWithParametricTypes
 
 TypePattern
   type: VARIABLE|LITERAL

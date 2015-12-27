@@ -1,4 +1,3 @@
-
 import common
 
 class Ast(common.Ast):
@@ -43,6 +42,9 @@ def NameExpr(token, name):
 
 def CallExpr(token, f, args):
   return Expr(token, 'CALL', [], [], [f], [], list(args))
+
+def NewExpr(token, type_):
+  return Expr(token, 'NEW', [], [], [], [type_], [])
 
 class Statement(Ast):
   pass
@@ -101,7 +103,7 @@ def AstToJava(ast):
 
   elif isinstance(ast, FunctionDefinition):
     assert ast.body.type == 'BLOCK', ast.body.type
-    return '\npublic static %s F_%s(%s)%s' % (
+    return '\npublic static %s f_%s(%s)%s' % (
         AstToJava(ast.type),
         ast.name,
         ', '.join('%s v_%s' % (AstToJava(type_), name)
@@ -125,9 +127,11 @@ def AstToJava(ast):
     elif ast.type == 'NAME':
       return 'v_' + ast.strval[0]
     elif ast.type == 'CALL':
-      return 'F_%s(%s)' % (
+      return 'f_%s(%s)' % (
           ast.strval[0],
           ', '.join(map(AstToJava, ast.exprs)))
+    elif ast.type == 'NEW':
+      return 'new %s()' % AstToJava(ast.typeval[0])
     else:
       raise ValueError(ast.type)
 
@@ -186,9 +190,9 @@ s = AstToJava(m)
 assert s == r"""
 public class M_MyModule extends CclCore
 {
-  public static Integer F_MyFunc(Integer v_x)
+  public static Integer f_MyFunc(Integer v_x)
   {
-    return F_Add(v_x, Integer.valueOf(1));
+    return f_Add(v_x, Integer.valueOf(1));
   }
 }""", s
 
@@ -198,4 +202,17 @@ assert (
     s ==
     'Float.valueOf(4.200000)'
 ), s
+
+m = NewExpr(None, Type(None, 'MyClass'))
+s = AstToJava(m)
+assert (
+    s ==
+    'new C_MyClass()'
+), s
+
+
+###############
+### Level 2 ###
+###############
+
 
