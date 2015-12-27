@@ -74,10 +74,11 @@ StatementWithParametricTypes
 FunctionDefinitionWithParametricTypes
   name: str
   args: [(str, ParametricType)]
-  rettype: ParametricType
+  type: ParametricType
   body: StatementWithParametricTypes
 
 ModuleWithParametricTypes
+  name: str
   clss: [ParametricClassDefinition]
   funcs: [FunctionDefinitionWithParametricTypes]
 

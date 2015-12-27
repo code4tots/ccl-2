@@ -219,4 +219,56 @@ assert (
 ### Level 2 ###
 ###############
 
+class ParametricType(Ast):
+  pass
+
+# Same here as with 'Expr' and 'Stmt' above.
+class ParaType(ParametricType):
+  attrs = [
+      ('name', str),
+      ('args', [ParametricType]),
+  ]
+
+class ParametricClassDefinition(Ast):
+  attrs = [
+      ('name', str),
+      ('args', [ParametricType]),
+      ('attrs', [(str, ParametricType)]),
+  ]
+
+class ExpressionWithParametricTypes(Ast):
+  pass
+
+class Expr2(ExpressionWithParametricTypes):
+  attrs = [
+      ('typeval', [ParametricType]) if name == 'typeval' else
+      ('exprs', [ExpressionWithParametricTypes]) if name == 'exprs' else
+      (name, type_) for name, type_ in Expr.attrs
+  ]
+
+class StatementWithParametricTypes(Ast):
+  pass
+
+class Stmt2(StatementWithParametricTypes):
+  attrs = [
+      ('exprs', [ExpressionWithParametricTypes]) if name == 'exprs' else
+      ('stmts', [StatementWithParametricTypes]) if name == 'stmts' else
+      (name, type_) for name, type_ in Stmt.attrs
+  ]
+
+class FunctionDefinitionWithParametricTypes(Ast):
+  attrs = [
+      ('name', str),
+      ('args', [(str, ParametricType)]),
+      ('type', ParametricType),
+      ('body', StatementWithParametricTypes),
+  ]
+
+class ModuleWithParametricTypes(Ast):
+  attrs = [
+      ('name', str),
+      ('clss', [ParametricClassDefinition]),
+      ('funcs', [FunctionDefinitionWithParametricTypes]),
+  ]
+
 
