@@ -17,36 +17,8 @@ import java.io.BufferedReader;
 
 public class Simple {
 
-public static void main(String[] args) {
-  new Simple().xmain(args);
-}
-
-public void xmain(String[] args) {
-  ModuleAst mainModule = readModule(args[0]);
-  run(mainModule, "__main__");
-}
-
-public ModuleAst readModule(String path) {
-  return new Parser(readFile(path), path).parse();
-}
-
-public static String readFile(String path) {
-  try {
-    BufferedReader reader = new BufferedReader(new FileReader(path));
-    String line = null;
-    StringBuilder sb = new StringBuilder();
-    String separator = System.getProperty("line.separator");
-
-    while((line = reader.readLine()) != null) {
-      sb.append(line);
-      sb.append(separator);
-    }
-
-    return sb.toString();
-  } catch (IOException e) {
-    throw new RuntimeException(
-        "Exception while reading " + path + ": " + e.toString());
-  }
+public ModuleAst readModule(String content, String path) {
+  return new Parser(content, path).parse();
 }
 
 public void run(ModuleAst node, String name) {
@@ -67,6 +39,11 @@ public final Scope GLOBALS = new Scope(null)
       public Val calli(Val self, ArrayList<Val> args) {
         System.out.println(args.get(0));
         return args.get(0);
+      }
+    })
+    .put(new BuiltinFunc("L") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        return new List(args);
       }
     });
 
@@ -241,6 +218,7 @@ public final class Str extends WrapperVal<String> {
 public final class List extends WrapperVal<ArrayList<Val>> {
   public List(ArrayList<Val> val) { super(val); }
   public final Map getMetaMap() { return MM_LIST; }
+  public String toString() { return "L" + super.toString(); }
 }
 public final class Map extends WrapperVal<HashMap<Val, Val>> {
   public Map() { super(new HashMap<Val, Val>()); }
@@ -752,6 +730,7 @@ public final class Parser {
             break;
           } else {
             args.add(parseExpression());
+            consume(",");
           }
         }
 

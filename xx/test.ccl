@@ -2,3 +2,4 @@ f = \ x. x + 1
 f[5]
 
 Print[f[5]]
+Print[L[1, 2, 3]]
