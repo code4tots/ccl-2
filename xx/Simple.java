@@ -15,6 +15,43 @@ import java.io.BufferedReader;
 
 public class Simple {
 
+//// Language core library.
+// The stuff that gets included before anything is imported.
+
+// Metamaps for builtin types.
+public final Nil nil = new Nil();
+public final Bool tru = new Bool(true);
+public final Bool fal = new Bool(false);
+public final Map MM_NIL = new Map();
+public final Map MM_BOOL = new Map();
+public final Map MM_NUM = new Map()
+    .put(new BuiltinFunc("__add__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        return new Num(((Num) self).getVal() + ((Num) args.get(0)).getVal());
+      }
+    });
+public final Map MM_STR = new Map();
+public final Map MM_LIST = new Map();
+public final Map MM_MAP = new Map();
+public final Map MM_FUNC = new Map();
+
+// Builtins
+public final Scope GLOBALS = new Scope(null)
+    .put("nil", nil)
+    .put("true", tru)
+    .put("false", fal)
+    .put(new BuiltinFunc("Print") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        System.out.println(args.get(0));
+        return args.get(0);
+      }
+    })
+    .put(new BuiltinFunc("L") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        return new List(args);
+      }
+    });
+
 public ModuleAst readModule(String content, String path) {
   return new Parser(content, path).parse();
 }
@@ -30,20 +67,7 @@ public void run(ModuleAst node, String name) {
 
 }
 
-//// Runtime globals
-
-public final Scope GLOBALS = new Scope(null)
-    .put(new BuiltinFunc("Print") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        System.out.println(args.get(0));
-        return args.get(0);
-      }
-    })
-    .put(new BuiltinFunc("L") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        return new List(args);
-      }
-    });
+//// Runtime information (stack trace, etc.)
 
 public final int MAX_RECURSION_DEPTH = 2000;
 private final Frame[] STACK = new Frame[MAX_RECURSION_DEPTH];
@@ -144,22 +168,6 @@ public final class BuiltinFuncFrame extends Frame {
 
 //// Val
 
-// Metamaps for builtin types.
-public final Nil nil = new Nil();
-public final Bool tru = new Bool(true);
-public final Bool fal = new Bool(false);
-public final Map MM_NIL = new Map();
-public final Map MM_BOOL = new Map();
-public final Map MM_NUM = new Map()
-    .put(new BuiltinFunc("__add__") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        return new Num(((Num) self).getVal() + ((Num) args.get(0)).getVal());
-      }
-    });
-public final Map MM_STR = new Map();
-public final Map MM_LIST = new Map();
-public final Map MM_MAP = new Map();
-public final Map MM_FUNC = new Map();
 public abstract class Val {
   public abstract Map getMetaMap();
   public abstract boolean equals(Val other);
@@ -939,7 +947,12 @@ public final class CallAst extends Ast {
       for (int i = 0; i < vl.size(); i++)
         va.add(vl.get(i));
     }
-    return ((Func) vf).call(null, va);
+    Simple.this.push(new AstFrame(token));
+    try {
+      return ((Func) vf).call(null, va);
+    } finally {
+      Simple.this.pop();
+    }
   }
 }
 public final class GetMethodAst extends Ast {
