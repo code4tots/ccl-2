@@ -157,6 +157,10 @@ public class M_MyModule extends CclCore
   }
 }""", s
 
+# TODO: I'm not yet sure what the correct behavior should be when
+# member attributes are of a user defined type (should it be like
+# it is in Java, or like it is in C/C++? Or something else?).
+# Figure it out and adjust accordingly.
 m = Module(None, 'MyModule', [
     ClassDefinition(None, 'MyClass', [
         ('myAttr', Type(None, 'MyClass')),
