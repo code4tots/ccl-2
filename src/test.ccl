@@ -1,6 +1,18 @@
 f = \ x. x + 1
-f[5]
 
-Print[f[5]]
-Print[L[1, 2, 3]]
-Print[M[1, 2, 3, 4]]
+Assert[f[5] == 6]
+Assert[S[f[5]] == '6', S[f[5]]]
+Assert[S[2.45] == '2.45', S[2.45]]
+Assert[R[L[1,2,3]] == "L[1, 2, 3]", R[L[1,2,3]]]
+Assert[R[M[1,2]] == "M[1, 2]", R[M[1,2]]]
+
+Assert[true]
+Assert[not false]
+Assert[true or false]
+Assert[false or true]
+Assert[not (false or false)]
+Assert[not (true and false)]
+Assert[true and true]
+
+Print["*** All tests pass! ***"]
+

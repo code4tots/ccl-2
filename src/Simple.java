@@ -19,12 +19,25 @@ public class Simple {
 // The stuff that gets included before anything is imported.
 
 // Metamaps for builtin types.
+
+public final BuiltinFunc eqf = new BuiltinFunc("__eq__") {
+  public Val calli(Val self, ArrayList<Val> args) {
+    expectExactArgumentLength(args, 1);
+    return self.equals(args.get(0)) ? tru : fal;
+  }
+};
 public final Nil nil = new Nil();
 public final Bool tru = new Bool(true);
 public final Bool fal = new Bool(false);
-public final Map MM_NIL = new Map();
-public final Map MM_BOOL = new Map();
+public final Map MM_NIL = new Map()
+    .put("__name__", toStr("Nil"))
+    .put(eqf);
+public final Map MM_BOOL = new Map()
+    .put("__name__", toStr("Bool"))
+    .put(eqf);
 public final Map MM_NUM = new Map()
+    .put("__name__", toStr("Num"))
+    .put(eqf)
     .put(new BuiltinFunc("__add__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -33,10 +46,18 @@ public final Map MM_NUM = new Map()
         return toNum(left.getVal() + right.getVal());
       }
     });
-public final Map MM_STR = new Map();
-public final Map MM_LIST = new Map();
-public final Map MM_MAP = new Map();
-public final Map MM_FUNC = new Map();
+public final Map MM_STR = new Map()
+    .put("__name__", toStr("Str"))
+    .put(eqf);
+public final Map MM_LIST = new Map()
+    .put("__name__", toStr("List"))
+    .put(eqf);
+public final Map MM_MAP = new Map()
+    .put("__name__", toStr("Map"))
+    .put(eqf);
+public final Map MM_FUNC = new Map()
+    .put("__name__", toStr("Func"))
+    .put(eqf);
 
 // Builtins
 public final Scope GLOBALS = new Scope(null)
@@ -48,6 +69,22 @@ public final Scope GLOBALS = new Scope(null)
         expectExactArgumentLength(args, 1);
         System.out.println(args.get(0));
         return args.get(0);
+      }
+    })
+    .put(new BuiltinFunc("Assert") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        if (args.size() != 1 && args.size() != 2)
+          throw err(
+              "Expected 1 or 2 arguments but found " +
+              Integer.toString(args.size()));
+
+        if (!args.get(0).truthy()) {
+          String message = "Assertion error";
+          if (args.size() == 2)
+            message += ": " + asStr(args.get(1), "argument 1").getVal();
+          throw err(message);
+        }
+        return nil;
       }
     })
     .put(new BuiltinFunc("L") {
@@ -63,6 +100,18 @@ public final Scope GLOBALS = new Scope(null)
         for (int i = 0; i < args.size(); i += 2)
           map.put(args.get(i), args.get(i+1));
         return new Map(map);
+      }
+    })
+    .put(new BuiltinFunc("S") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        return toStr(args.get(0).toString());
+      }
+    })
+    .put(new BuiltinFunc("R") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        return toStr(args.get(0).toString());
       }
     });
 
@@ -128,13 +177,13 @@ public String getLocationString() {
   return sb.toString();
 }
 
-public static abstract class Frame {
+public abstract class Frame {
   public final Scope scope;
   public Frame(Scope scope) { this.scope = scope; }
   public abstract String getLocationString();
 }
 
-public static final class ModuleFrame extends Frame {
+public final class ModuleFrame extends Frame {
   public final ModuleAst module;
   public final String moduleName;
   public ModuleFrame(Scope scope, ModuleAst module, String moduleName) {
@@ -143,11 +192,11 @@ public static final class ModuleFrame extends Frame {
     this.moduleName = moduleName;
   }
   public final String getLocationString() {
-    return "\nin module " + module.name + " (" + moduleName + ")";
+    return "\nin module '" + module.name + "' (" + moduleName + ")";
   }
 }
 
-public static final class UserFuncFrame extends Frame {
+public final class UserFuncFrame extends Frame {
   public final Token token;
   public UserFuncFrame(Scope scope, Token token) {
     super(new Scope(scope));
@@ -191,8 +240,15 @@ public abstract class Val {
   }
   public final Val callMethod(Str name, ArrayList<Val> args) {
     Val f = getMetaMap().getVal().get(name);
-    if (f == null || !(f instanceof Func))
-      throw err("No method named " + name.getVal());
+    if (f == null || !(f instanceof Func)) {
+      String message = "No method '" + name.getVal() + "' found for type ";
+      Val mn = getMetaMap().getVal().get(toStr("__name__"));
+      if (mn != null && (mn instanceof Str))
+        message += ((Str) mn).getVal();
+      else
+        message += "<unknown>";
+      throw err(message);
+    }
     return ((Func) f).call(this, args);
   }
   public String toString() { return repr(); }
@@ -231,7 +287,11 @@ public final class Bool extends WrapperVal<Boolean> {
 public final class Num extends WrapperVal<Double> {
   public Num(Double val) { super(val); }
   public final Map getMetaMap() { return MM_NUM; }
-  public final String repr() { return Double.toString(getVal()); }
+  public final String repr() {
+    double v = getVal();
+    return v == Math.floor(v) ?
+        Integer.toString((int) v) : Double.toString(v);
+  }
 }
 public final class Str extends WrapperVal<String> {
   public Str(String val) { super(val); }
@@ -276,6 +336,10 @@ public final class Map extends WrapperVal<HashMap<Val, Val>> {
   public final Map getMetaMap() { return MM_MAP; }
   public Map put(BuiltinFunc bf) {
     getVal().put(toStr(bf.name), bf);
+    return this;
+  }
+  public Map put(String key, Val val) {
+    getVal().put(toStr(key), val);
     return this;
   }
   public String repr() {
@@ -1225,6 +1289,14 @@ public Num asNum(Val v, String name) {
   return (Num) v;
 }
 
+public Str asStr(Val v, String name) {
+  if (!(v instanceof Str))
+    throw err(
+        "Expected " + name + " to be Str but found " +
+        v.getClass().getName());
+  return (Str) v;
+}
+
 public Num toNum(Double value) {
   return new Num(value);
 }
@@ -1233,7 +1305,7 @@ public Str toStr(String value) {
   return new Str(value);
 }
 
-public static final class Scope {
+public final class Scope {
   public final HashMap<String, Val> table;
   public final Scope parent;
   public Scope(Scope parent) {
@@ -1252,6 +1324,10 @@ public static final class Scope {
   }
   public Scope put(BuiltinFunc bf) {
     return put(bf.name, bf);
+  }
+  public Scope put(Map m) {
+    String n = asStr(m.getVal().get(toStr("__name__")), "FUBAR").getVal();
+    return put(n, m);
   }
 }
 
