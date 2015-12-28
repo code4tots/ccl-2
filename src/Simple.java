@@ -63,7 +63,18 @@ public final Map MM_STR = new Map()
     .put(eqf).put(reprf).put(strf);
 public final Map MM_LIST = new Map()
     .put("__name__", toStr("List"))
-    .put(eqf).put(reprf).put(strf);
+    .put(eqf).put(reprf).put(strf)
+    .put(new BuiltinFunc("map") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        Func f = asFunc(args.get(0), "argument 0");
+        ArrayList<Val> al = asList(self, "self").getVal();
+        ArrayList<Val> nal = new ArrayList<Val>();
+        for (int i = 0; i < al.size(); i++)
+          nal.add(f.call(nil, toArrayList(al.get(i))));
+        return toList(nal);
+      }
+    });
 public final Map MM_MAP = new Map()
     .put("__name__", toStr("Map"))
     .put(eqf).put(reprf).put(strf);
@@ -1309,12 +1320,32 @@ public Str asStr(Val v, String name) {
   return (Str) v;
 }
 
+public List asList(Val v, String name) {
+  if (!(v instanceof List))
+    throw err(
+        "Expected " + name + " to be List but found " +
+        v.getClass().getName());
+  return (List) v;
+}
+
+public Func asFunc(Val v, String name) {
+  if (!(v instanceof Func))
+    throw err(
+        "Expected " + name + " to be Func but found " +
+        v.getClass().getName());
+  return (Func) v;
+}
+
 public Num toNum(Double value) {
   return new Num(value);
 }
 
 public Str toStr(String value) {
   return new Str(value);
+}
+
+public List toList(ArrayList<Val> value) {
+  return new List(value);
 }
 
 public final class Scope {

@@ -16,5 +16,7 @@ Assert[not (false or false)]
 Assert[not (true and false)]
 Assert[true and true]
 
+Assert[L[1, 2, 3].map[\x. x + 1] == L[2, 3, 4]]
+
 Print["*** All tests pass! ***"]
 
