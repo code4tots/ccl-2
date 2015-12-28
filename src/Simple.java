@@ -42,6 +42,7 @@ public final Scope GLOBALS = new Scope(null)
     .put("false", fal)
     .put(new BuiltinFunc("Print") {
       public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
         System.out.println(args.get(0));
         return args.get(0);
       }
@@ -49,6 +50,16 @@ public final Scope GLOBALS = new Scope(null)
     .put(new BuiltinFunc("L") {
       public Val calli(Val self, ArrayList<Val> args) {
         return new List(args);
+      }
+    })
+    .put(new BuiltinFunc("M") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        if (args.size() % 2 != 0)
+          throw err("'M' requires an even number of arguments");
+        HashMap<Val, Val> map = new HashMap<Val, Val>();
+        for (int i = 0; i < args.size(); i += 2)
+          map.put(args.get(i), args.get(i+1));
+        return new Map(map);
       }
     });
 
@@ -95,7 +106,7 @@ public void pop() {
 public Val get(String name) {
   Val val = getFrame().scope.getOrNull(name);
   if (val == null)
-    throw new Err("No variabled named '" + name + "'");
+    throw err("No variabled named '" + name + "'");
   return val;
 }
 
@@ -177,7 +188,7 @@ public abstract class Val {
   public final Val callMethod(Str name, ArrayList<Val> args) {
     Val f = getMetaMap().getVal().get(name);
     if (f == null || !(f instanceof Func))
-      throw new Err("No method named " + name.getVal());
+      throw err("No method named " + name.getVal());
     return ((Func) f).call(this, args);
   }
   public boolean truthy() {
@@ -195,7 +206,7 @@ private abstract class WrapperVal<T> extends Val {
   // NOTE: I'm pretty confident here.
   // The check should be done at the one and only constructor.
   // If it doesn't, it means that whoever is using this class is using
-  // generics is messing up on their end.
+  // generics and messing up on their end.
   // You can probably still mess this up with reflection.
   // But if you can, you can also probably do it even if this class didn't
   // use generics.
@@ -281,17 +292,9 @@ public final class UserFunc extends Func {
     try {
       Simple.this.put("self", self);
       if (vararg == null) {
-        if (args.size() != this.args.size()) {
-          throw new Err(
-              "Expected " + Integer.toString(this.args.size()) +
-              " arguments but got " + Integer.toString(args.size()));
-        }
+        expectExactArgumentLength(args, this.args.size());
       } else {
-        if (args.size() < this.args.size()) {
-          throw new Err(
-              "Expected at least " + Integer.toString(this.args.size()) +
-              " arguments but got " + Integer.toString(args.size()));
-        }
+        expectAtleastArgumentLength(args, this.args.size());
       }
       for (int i = 0; i < this.args.size(); i++)
         Simple.this.put(this.args.get(i), args.get(i));
@@ -347,6 +350,10 @@ public final class Err extends RuntimeException {
     super(message + Simple.this.getLocationString());
     this.message = message;
   }
+}
+
+public Err err(String message) {
+  return new Err(message);
 }
 
 //// Lexer
@@ -929,7 +936,7 @@ public final class CallAst extends Ast {
     if (jmp())
       return vf;
     if (!(vf instanceof Func))
-      throw new Err(
+      throw err(
           "Expected Func but found " + vf.getClass().getName());
     ArrayList<Val> va = new ArrayList<Val>();
     for (int i = 0; i < args.size(); i++) {
@@ -941,7 +948,7 @@ public final class CallAst extends Ast {
     if (vararg != null) {
       Val v = vararg.eval();
       if (!(v instanceof List))
-        throw new Err(
+        throw err(
             "Expected List for vararg but found " + v.getClass().getName());
       ArrayList<Val> vl = ((List) v).getVal();
       for (int i = 0; i < vl.size(); i++)
@@ -971,7 +978,7 @@ public final class GetMethodAst extends Ast {
       return v;
     Val f = v.getMetaMap().getVal().get(nameStr);
     if (f == null || !(f instanceof Func))
-      throw new Err("No method named " + name);
+      throw err("No method named " + name);
     return new BoundFunc((Func) f, v);
   }
 }
@@ -1130,6 +1137,20 @@ public static String filespecToName(String filespec) {
   if (filespec.endsWith(".ccl"))
     end -= ".ccl".length();
   return filespec.substring(start, end);
+}
+
+public void expectExactArgumentLength(ArrayList<Val> args, int len) {
+  if (args.size() != len)
+    throw err(
+        "Expected " + Integer.toString(len) + " arguments but found " +
+        Integer.toString(args.size()));
+}
+
+public void expectAtleastArgumentLength(ArrayList<Val> args, int len) {
+  if (args.size() < len)
+    throw err(
+        "Expected at least " + Integer.toString(len) +
+        " arguments but found " + Integer.toString(args.size()));
 }
 
 public static final class Scope {
