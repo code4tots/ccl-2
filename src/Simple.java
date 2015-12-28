@@ -26,18 +26,30 @@ public final BuiltinFunc eqf = new BuiltinFunc("__eq__") {
     return self.equals(args.get(0)) ? tru : fal;
   }
 };
+public final BuiltinFunc strf = new BuiltinFunc("str") {
+  public Val calli(Val self, ArrayList<Val> args) {
+    expectExactArgumentLength(args, 0);
+    return toStr(self.toString());
+  }
+};
+public final BuiltinFunc reprf = new BuiltinFunc("repr") {
+  public Val calli(Val self, ArrayList<Val> args) {
+    expectExactArgumentLength(args, 0);
+    return toStr(self.repr());
+  }
+};
 public final Nil nil = new Nil();
 public final Bool tru = new Bool(true);
 public final Bool fal = new Bool(false);
 public final Map MM_NIL = new Map()
     .put("__name__", toStr("Nil"))
-    .put(eqf);
+    .put(eqf).put(reprf).put(strf);
 public final Map MM_BOOL = new Map()
     .put("__name__", toStr("Bool"))
-    .put(eqf);
+    .put(eqf).put(reprf).put(strf);
 public final Map MM_NUM = new Map()
     .put("__name__", toStr("Num"))
-    .put(eqf)
+    .put(eqf).put(reprf).put(strf)
     .put(new BuiltinFunc("__add__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -48,16 +60,16 @@ public final Map MM_NUM = new Map()
     });
 public final Map MM_STR = new Map()
     .put("__name__", toStr("Str"))
-    .put(eqf);
+    .put(eqf).put(reprf).put(strf);
 public final Map MM_LIST = new Map()
     .put("__name__", toStr("List"))
-    .put(eqf);
+    .put(eqf).put(reprf).put(strf);
 public final Map MM_MAP = new Map()
     .put("__name__", toStr("Map"))
-    .put(eqf);
+    .put(eqf).put(reprf).put(strf);
 public final Map MM_FUNC = new Map()
     .put("__name__", toStr("Func"))
-    .put(eqf);
+    .put(eqf).put(reprf).put(strf);
 
 // Builtins
 public final Scope GLOBALS = new Scope(null)

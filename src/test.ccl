@@ -1,10 +1,12 @@
 f = \ x. x + 1
 
 Assert[f[5] == 6]
-Assert[S[f[5]] == '6', S[f[5]]]
-Assert[S[2.45] == '2.45', S[2.45]]
-Assert[R[L[1,2,3]] == "L[1, 2, 3]", R[L[1,2,3]]]
-Assert[R[M[1,2]] == "M[1, 2]", R[M[1,2]]]
+Assert[f[5].repr[] == '6', f[5].repr[]]
+Assert[(2.45).repr[] == '2.45', (2.45).repr[]]
+Assert[R[2.45] == '2.45', R[2.45]]
+Assert[L[1,2,3].repr[] == "L[1, 2, 3]", L[1,2,3].repr[]]
+Assert[M[1,2].repr[] == "M[1, 2]", M[1,2].repr[]]
+Assert[M[1,2].str[] == "M[1, 2]", M[1,2].str[]]
 
 Assert[true]
 Assert[not false]
