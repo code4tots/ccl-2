@@ -20,9 +20,11 @@ Sample code:
       let i = 0
       while i < Size[list] {
         Append[newList, Get[list, i]]
+        i = Add[i, 1]
       }
       while i < Size[list] {
         Append[newList, Get[list, i]]
+        i = Add[i, 1]
       }
       return newList
     }
@@ -62,8 +64,10 @@ Sample code:
     Map[f ?_, list List[?T]] List[T] {
       let newList = init[new List[T]]
       let i = 0
-      while i < Size[list]
+      while i < Size[list] {
         Append[newList, Apply[f, Get[list, i]]]
+        i = Add[i, 1]
+      }
       return newList
     }
 
