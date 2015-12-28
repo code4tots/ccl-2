@@ -27,7 +27,10 @@ public final Map MM_BOOL = new Map();
 public final Map MM_NUM = new Map()
     .put(new BuiltinFunc("__add__") {
       public Val calli(Val self, ArrayList<Val> args) {
-        return new Num(((Num) self).getVal() + ((Num) args.get(0)).getVal());
+        expectExactArgumentLength(args, 1);
+        Num left = asNum(self, "self");
+        Num right = asNum(args.get(0), "argument 0");
+        return toNum(left.getVal() + right.getVal());
       }
     });
 public final Map MM_STR = new Map();
@@ -70,7 +73,7 @@ public ModuleAst readModule(String content, String path) {
 public void run(ModuleAst node, String name) {
   push(new ModuleFrame(new Scope(GLOBALS), node, name));
   try {
-    put("__name__", new Str(name));
+    put("__name__", toStr(name));
     node.eval();
   } finally {
     pop();
@@ -272,7 +275,7 @@ public final class Map extends WrapperVal<HashMap<Val, Val>> {
   public Map(HashMap<Val, Val> val) { super(val); }
   public final Map getMetaMap() { return MM_MAP; }
   public Map put(BuiltinFunc bf) {
-    getVal().put(new Str(bf.name), bf);
+    getVal().put(toStr(bf.name), bf);
     return this;
   }
   public String repr() {
@@ -919,7 +922,7 @@ public final class NumAst extends Ast {
   public final Num val;
   public NumAst(Token token, Double val) {
     super(token);
-    this.val = new Num(val);
+    this.val = toNum(val);
   }
   public final Val eval() { return val; }
 }
@@ -927,7 +930,7 @@ public final class StringAst extends Ast {
   public final Str val;
   public StringAst(Token token, String val) {
     super(token);
-    this.val = new Str(val);
+    this.val = toStr(val);
   }
   public final Val eval() { return val; }
 }
@@ -1031,7 +1034,7 @@ public final class GetMethodAst extends Ast {
     super(token);
     this.owner = owner;
     this.name = name;
-    nameStr = new Str(name);
+    nameStr = toStr(name);
   }
   public final Val eval() {
     Val v = owner.eval();
@@ -1083,7 +1086,7 @@ public final class OperationAst extends Ast {
     this.owner = owner;
     this.name = name;
     this.args = toArrayList(args);
-    nameStr = new Str(name);
+    nameStr = toStr(name);
   }
   public final Val eval() {
     Val v = owner.eval();
@@ -1212,6 +1215,22 @@ public void expectAtleastArgumentLength(ArrayList<Val> args, int len) {
     throw err(
         "Expected at least " + Integer.toString(len) +
         " arguments but found " + Integer.toString(args.size()));
+}
+
+public Num asNum(Val v, String name) {
+  if (!(v instanceof Num))
+    throw err(
+        "Expected " + name + " to be Num but found " +
+        v.getClass().getName());
+  return (Num) v;
+}
+
+public Num toNum(Double value) {
+  return new Num(value);
+}
+
+public Str toStr(String value) {
+  return new Str(value);
 }
 
 public static final class Scope {
