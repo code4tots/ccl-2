@@ -3,3 +3,4 @@ f[5]
 
 Print[f[5]]
 Print[L[1, 2, 3]]
+Print[M[1, 2, 3, 4]]

@@ -182,6 +182,7 @@ public final class BuiltinFuncFrame extends Frame {
 public abstract class Val {
   public abstract Map getMetaMap();
   public abstract boolean equals(Val other);
+  public abstract String repr();
   public final boolean equals(Object other) {
     return (other instanceof Val) && equals((Val) other);
   }
@@ -191,14 +192,14 @@ public abstract class Val {
       throw err("No method named " + name.getVal());
     return ((Func) f).call(this, args);
   }
-  public boolean truthy() {
-    return true;
-  }
+  public String toString() { return repr(); }
+  public boolean truthy() { return true; }
 }
 public final class Nil extends Val {
   public final Map getMetaMap() { return MM_NIL; }
   public final boolean equals(Val other) { return this == other; }
   public final boolean truthy() { return false; }
+  public final String repr() { return "nil"; }
 }
 private abstract class WrapperVal<T> extends Val {
   private final Object val;
@@ -217,25 +218,54 @@ private abstract class WrapperVal<T> extends Val {
         ((WrapperVal<?>) other).val.equals(val);
   }
   public final int hashCode() { return val.hashCode(); }
-  public String toString() { return val.toString(); }
 }
 public final class Bool extends WrapperVal<Boolean> {
   public Bool(Boolean val) { super(val); }
   public final Map getMetaMap() { return MM_BOOL; }
   public final boolean truthy() { return getVal(); }
+  public final String repr() { return getVal() ? "true" : "false"; }
 }
 public final class Num extends WrapperVal<Double> {
   public Num(Double val) { super(val); }
   public final Map getMetaMap() { return MM_NUM; }
+  public final String repr() { return Double.toString(getVal()); }
 }
 public final class Str extends WrapperVal<String> {
   public Str(String val) { super(val); }
   public final Map getMetaMap() { return MM_STR; }
+  public final String repr() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("\""); // TODO: Be more thorough
+    for (int i = 0; i < getVal().length(); i++) {
+      char c = getVal().charAt(i);
+      switch (c) {
+      case '\"': sb.append("\\\""); break;
+      case '\\': sb.append("\\\\"); break;
+      default: sb.append(c);
+      }
+    }
+    sb.append("\"");
+    return sb.toString();
+  }
+  public final String toString() { return getVal(); }
 }
 public final class List extends WrapperVal<ArrayList<Val>> {
   public List(ArrayList<Val> val) { super(val); }
   public final Map getMetaMap() { return MM_LIST; }
-  public String toString() { return "L" + super.toString(); }
+  public String repr() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("L[");
+    boolean first = true;
+    for (int i = 0; i < getVal().size(); i++) {
+      if (first)
+        first = false;
+      else
+        sb.append(", ");
+      sb.append(getVal().get(i).repr());
+    }
+    sb.append("]");
+    return sb.toString();
+  }
 }
 public final class Map extends WrapperVal<HashMap<Val, Val>> {
   public Map() { super(new HashMap<Val, Val>()); }
@@ -244,6 +274,22 @@ public final class Map extends WrapperVal<HashMap<Val, Val>> {
   public Map put(BuiltinFunc bf) {
     getVal().put(new Str(bf.name), bf);
     return this;
+  }
+  public String repr() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("M[");
+    Iterator<HashMap.Entry<Val, Val>> it = getVal().entrySet().iterator();
+    boolean first = true;
+    while (it.hasNext()) {
+      if (first)
+        first = false;
+      else
+        sb.append(", ");
+      HashMap.Entry<Val, Val> pair = it.next();
+      sb.append(pair.getKey().repr() + ", " + pair.getValue().repr());
+    }
+    sb.append("]");
+    return sb.toString();
   }
 }
 public abstract class Func extends Val {
@@ -258,6 +304,7 @@ public final class BoundFunc extends Func {
   public final Val call(Val self, ArrayList<Val> args) {
     return f.call(this.self, args);
   }
+  public final String repr() { return "<bound func " + f.repr() + ">"; }
 }
 public abstract class BuiltinFunc extends Func {
   public final String name;
@@ -271,6 +318,7 @@ public abstract class BuiltinFunc extends Func {
     }
   }
   public abstract Val calli(Val self, ArrayList<Val> args);
+  public final String repr() { return "<builtin func " + name + ">"; }
 }
 public final class UserFunc extends Func {
   public final Token token;
@@ -310,6 +358,11 @@ public final class UserFunc extends Func {
       Simple.this.pop();
     }
   }
+  public final String repr() {
+    return
+        "<func defined in " + token.lexer.filespec + " line " +
+        Integer.toString(token.getLineNumber()) + ">";
+  }
 }
 public final class UserVal extends Val {
   private final Map metaMap;
@@ -324,6 +377,10 @@ public final class UserVal extends Val {
   public final boolean equals(Val other) { return this == other; }
   // TODO: Make 'hashCode' overridable by user.
   public final int hashCode() { return super.hashCode(); }
+  // TODO: Make 'repr' overridable by user.
+  public final String repr() { return "UserVal"; }
+  // TODO: Make 'toString' overridable by user.
+  public final String toString() { return super.toString(); }
 }
 
 //// Exceptions
@@ -550,15 +607,19 @@ public static final class Token {
     this.type = type;
     this.value = value;
   }
+  public int getLineNumber() {
+    int lc = 1;
+    for (int j = 0; j < i; j++)
+      if (lexer.string.charAt(j) == '\n')
+        lc++;
+    return lc;
+  }
   public String getLocationString() {
-    int a = i, b = i, c = i, lc = 1;
+    int a = i, b = i, c = i, lc = getLineNumber();
     while (a > 0 && lexer.string.charAt(a-1) != '\n')
       a--;
     while (b < lexer.string.length() && lexer.string.charAt(b) != '\n')
       b++;
-    for (int j = 0; j < i; j++)
-      if (lexer.string.charAt(j) == '\n')
-        lc++;
 
     String spaces = "";
     for (int j = 0; j < i-a; j++)
