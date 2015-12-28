@@ -57,6 +57,14 @@ public final Map MM_NUM = new Map()
         Num right = asNum(args.get(0), "argument 0");
         return toNum(left.getVal() + right.getVal());
       }
+    })
+    .put(new BuiltinFunc("__sub__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        Num left = asNum(self, "self");
+        Num right = asNum(args.get(0), "argument 0");
+        return toNum(left.getVal() - right.getVal());
+      }
     });
 public final Map MM_STR = new Map()
     .put("__name__", toStr("Str"))
@@ -589,8 +597,6 @@ public static final class Lexer {
 
     // NUM
     boolean seenDot = false;
-    if (startsWith("+", "-"))
-      pos++;
     if (startsWith(".")) {
       seenDot = true;
       pos++;
@@ -863,15 +869,25 @@ public final class Parser {
     return node;
   }
   public Ast parsePrefixExpression() {
+    // Negative/positive numeric signs for constants must be
+    // handled here because otherwise, we wouldn't be able to
+    // distinguish between 'x-1' meaning 'x', '-', '1' or
+    // 'x', '-1'.
     if (at("+")) {
       Token token = next();
       Ast node = parsePrefixExpression();
-      return new OperationAst(token, node, "__pos__");
+      if (node instanceof NumAst)
+        return new NumAst(token, ((NumAst) node).val.getVal());
+      else
+        return new OperationAst(token, node, "__pos__");
     }
     if (at("-")) {
       Token token = next();
       Ast node = parsePrefixExpression();
-      return new OperationAst(token, node, "__neg__");
+      if (node instanceof NumAst)
+        return new NumAst(token, -((NumAst) node).val.getVal());
+      else
+        return new OperationAst(token, node, "__neg__");
     }
     if (at("not")) {
       Token token = next();
