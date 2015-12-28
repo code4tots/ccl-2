@@ -1,0 +1,1 @@
+print(''.join('\n' + line for line in open('src/Simple.java').read().splitlines() if line.startswith(('public', 'private'))))
