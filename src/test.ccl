@@ -19,7 +19,7 @@ Assert[true and true]
 Assert[L[1, 2, 3].map[\x. x + 1] == L[2, 3, 4]]
 
 # There was a lexer bug with 'x+1' where 'x+1'
-# would be interpreted as the tokens 'x' and '1' instead of
+# would be interpreted as the tokens 'x' and '+1' instead of
 # 'x', '+', and '1'.
 Assert[L[1, 2, 3].map[\x. x+1] == L[2, 3, 4]]
 Assert[+1 == 1]
