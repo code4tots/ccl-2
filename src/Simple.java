@@ -212,12 +212,13 @@ public void run(final ModuleAst node, final String name) {
 
 //// Runtime information (stack trace, etc.)
 
-public Simple() {
+public Simple(String corelib) {
   push(new Trace() {
     public String getLocationString() {
       return "";
     }
   }, GLOBALS);
+  run(new Parser(corelib, "<corelib>").parse(), "__corelib__");
 }
 
 public static interface Trace {

@@ -1,0 +1,5 @@
+# corelib.ccl
+#
+# A lot of the basic utilities can be implemented in the language itself.
+# This should make porting easier if I choose to do so in the future.
+#
