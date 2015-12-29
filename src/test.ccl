@@ -74,4 +74,7 @@ x = new[MyClass]
 x@x = 534
 assert[x@x == 534]
 
+f = \x{x+2}
+assert[f[2] == 4]
+
 print["*** All tests pass! ***"]

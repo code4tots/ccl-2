@@ -1112,7 +1112,7 @@ public final class Parser {
         args.add((String) expect("ID").value);
       if (consume("*"))
         vararg = (String) expect("ID").value;
-      expect(".");
+      consume(".");
       Ast body = parseExpression();
       return new FunctionAst(token, args, vararg, body);
     }
