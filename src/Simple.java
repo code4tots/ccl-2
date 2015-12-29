@@ -88,17 +88,6 @@ public final Blob MB_LIST = new Blob(META_BLOB_META)
         return toNum(asList(self, "self").getVal().size());
       }
     })
-    .put(new BuiltinFunc("map") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        expectExactArgumentLength(args, 1);
-        Func f = asFunc(args.get(0), "argument 0");
-        ArrayList<Val> al = asList(self, "self").getVal();
-        ArrayList<Val> nal = new ArrayList<Val>();
-        for (int i = 0; i < al.size(); i++)
-          nal.add(f.call(nil, toArrayList(al.get(i))));
-        return toList(nal);
-      }
-    })
     .put(new BuiltinFunc("add") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);

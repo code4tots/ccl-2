@@ -3,3 +3,13 @@
 # A lot of the basic utilities can be implemented in the language itself.
 # This should make porting easier if I choose to do so in the future.
 #
+
+List@map = \f {
+  i = 0
+  xs = L[]
+  while i < self.len[] {
+    xs.add[f[self[i]]]
+    i = i + 1
+  }
+  return xs
+}
