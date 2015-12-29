@@ -295,19 +295,16 @@ public abstract class Val {
   }
   public final Val callMethod(String name, ArrayList<Val> args) {
     Val f = searchMetaBlob(name);
-    if (f == null || !(f instanceof Func)) {
-      String message = "No method '" + name + "' found for type ";
-      Val mn = searchMetaBlob("__name__");
-      if (mn != null && (mn instanceof Str))
-        message += ((Str) mn).getVal();
-      else
-        message += "<unknown>";
-      throw err(message);
-    }
-    return ((Func) f).call(this, args);
+    if (f == null)
+      throw noSuchMethodErr(this, name);
+    return f.call(this, args);
   }
+  public Val bind(Val self) { return this; }
   public String toString() { return repr(); }
   public boolean truthy() { return true; }
+  public Val call(Val self, ArrayList<Val> args) {
+    return bind(self).call(args);
+  }
   public Val call(ArrayList<Val> args) {
     throw err(getClass().getName() + " is not callable");
   }
@@ -429,6 +426,7 @@ public abstract class Func extends Val {
   public final Val searchMetaBlob(String key) { return MB_FUNC.get(key); }
   public final Val call(ArrayList<Val> args) { return call(nil, args); }
   public final boolean equals(Val other) { return this == other; }
+  public Func bind(Val self) { return new BoundFunc(this, self); }
 }
 public final class BoundFunc extends Func {
   public final Func f;
@@ -438,6 +436,8 @@ public final class BoundFunc extends Func {
     return f.call(this.self, args);
   }
   public final String repr() { return "<bound func " + f.repr() + ">"; }
+  // Binding an already bound function shouldn't change anything.
+  public final Func bind(Val self) { return this; }
 }
 public abstract class BuiltinFunc extends Func {
   public final String name;
@@ -1192,9 +1192,9 @@ public final class GetMethodAst extends Ast {
     if (jmp())
       return v;
     Val f = v.searchMetaBlob(name);
-    if (f == null || !(f instanceof Func))
-      throw err("No method named " + name);
-    return new BoundFunc((Func) f, v);
+    if (f == null)
+      throw noSuchMethodErr(v, name);
+    return f.bind(v);
   }
 }
 public final class IsAst extends Ast {
@@ -1364,6 +1364,16 @@ public void expectAtleastArgumentLength(ArrayList<Val> args, int len) {
     throw err(
         "Expected at least " + Integer.toString(len) +
         " arguments but found " + Integer.toString(args.size()));
+}
+
+public Err noSuchMethodErr(Val self, String name) {
+  String message = "No method '" + name + "' found for type ";
+  Val mn = self.searchMetaBlob("__name__");
+  if (mn != null && (mn instanceof Str))
+    message += ((Str) mn).getVal();
+  else
+    message += "<unknown>";
+  return err(message);
 }
 
 public Num asNum(Val v, String name) {
