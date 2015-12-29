@@ -1,10 +1,3 @@
-// Simple implementation of CCL.
-// Original 'Sanity' design was mean to be something that could
-// be reimplemented as something that could run fast.
-// But for starting out, it's very clunky and more code than I would like to
-// implement.
-// Also, for a performant language, I think 'simple/simple.py' language
-// seems like a much more cool and performant idea.
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Collections;
