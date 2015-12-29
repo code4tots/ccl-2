@@ -487,11 +487,11 @@ public final class UserFunc extends Func {
         Integer.toString(token.getLineNumber()) + ">";
   }
 }
-public final class UserVal extends Val {
+public final class Blob extends Val {
   private final Map metaMap;
   private final HashMap<String, Val> attrs;
-  public UserVal(Map metaMap) { this(metaMap, new HashMap<String, Val>()); }
-  public UserVal(Map metaMap, HashMap<String, Val> attrs) {
+  public Blob(Map metaMap) { this(metaMap, new HashMap<String, Val>()); }
+  public Blob(Map metaMap, HashMap<String, Val> attrs) {
     this.metaMap = metaMap;
     this.attrs = attrs;
   }
@@ -501,7 +501,7 @@ public final class UserVal extends Val {
   // TODO: Make 'hashCode' overridable by user.
   public final int hashCode() { return super.hashCode(); }
   // TODO: Make 'repr' overridable by user.
-  public final String repr() { return "UserVal"; }
+  public final String repr() { return "Blob"; }
   // TODO: Make 'toString' overridable by user.
   public final String toString() { return super.toString(); }
 }
