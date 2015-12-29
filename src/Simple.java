@@ -310,6 +310,9 @@ public abstract class Val {
   public Val getattr(String name) {
     throw err(getClass().getName() + " does not support attribute access");
   }
+  public void setitem(Val index, Val val) {
+    throw err(getClass().getName() + " does not support item assignment");
+  }
 }
 public final class Nil extends Val {
   public final Val searchMetaBlob(String key) { return MB_NIL.get(key); }
@@ -395,6 +398,9 @@ public final class List extends WrapperVal<ArrayList<Val>> {
   public final Val call(ArrayList<Val> args) {
     expectExactArgumentLength(args, 1);
     return get(asNum(args.get(0), "index").getVal().intValue());
+  }
+  public final void setitem(Val index, Val val) {
+    put(asNum(index, "index").getVal().intValue(), val);
   }
 }
 public final class Map extends WrapperVal<HashMap<Val, Val>> {
@@ -1010,8 +1016,7 @@ public final class Parser {
           if (vararg != null || args.size() != 1)
             throw new SyntaxError(
                 token, "For setitem syntax, must have exactly one argument");
-          node = new OperationAst(
-                token, node, "__setitem__", parseExpression());
+          node = new SetItemAst(token, node, args.get(0), parseExpression());
         } else {
           node = new CallAst(token, node, args, vararg);
         }
@@ -1311,6 +1316,33 @@ public final class GetMethodAst extends Ast {
       }
     }
     return f.bind(v);
+  }
+}
+public final class SetItemAst extends Ast {
+  public final Ast owner, index, value;
+  public SetItemAst(Token token, Ast owner, Ast index, Ast value) {
+    super(token);
+    this.owner = owner;
+    this.index = index;
+    this.value = value;
+  }
+  public final Val eval() {
+    Val self = owner.eval();
+    if (jmp()) return self;
+
+    Val ind = index.eval();
+    if (jmp()) return ind;
+
+    Val val = value.eval();
+    if (jmp()) return val;
+
+    push(this);
+    try {
+      self.setitem(ind, val);
+      return val;
+    } finally {
+      pop();
+    }
   }
 }
 public final class GetAttributeAst extends Ast {
