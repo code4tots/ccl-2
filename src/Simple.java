@@ -95,6 +95,12 @@ public final Scope GLOBALS = new Scope(null)
     .put("nil", nil)
     .put("true", tru)
     .put("false", fal)
+    .put("Nil", MM_NIL)
+    .put("Bool", MM_BOOL)
+    .put("Num", MM_NUM)
+    .put("Str", MM_STR)
+    .put("List", MM_LIST)
+    .put("Map", MM_MAP)
     .put(new BuiltinFunc("Print") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
