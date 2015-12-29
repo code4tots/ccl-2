@@ -14,6 +14,8 @@ Features under consideration
       3. ???
     Switching on integer opcodes is probably faster than calling
     virtual methods.
+  * It might be easier to write a profiler if the interpreter just naively
+    runs over the AST.
   * More importantly, figure out where the bottleneck in the processing is.
     Don't fall into premature optimization.
 * Desktop GUI API
