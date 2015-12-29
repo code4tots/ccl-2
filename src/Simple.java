@@ -18,7 +18,7 @@ public class Simple {
 //// Language core library.
 // The stuff that gets included before anything is imported.
 
-// Metamaps for builtin types.
+// Meta blobs for builtin types.
 
 public final BuiltinFunc eqf = new BuiltinFunc("__eq__") {
   public Val calli(Val self, ArrayList<Val> args) {
@@ -41,13 +41,13 @@ public final BuiltinFunc reprf = new BuiltinFunc("repr") {
 public final Nil nil = new Nil();
 public final Bool tru = new Bool(true);
 public final Bool fal = new Bool(false);
-public final Map MM_NIL = new Map()
+public final Blob MB_NIL = new Blob()
     .put("__name__", toStr("Nil"))
     .put(eqf).put(reprf).put(strf);
-public final Map MM_BOOL = new Map()
+public final Blob MB_BOOL = new Blob()
     .put("__name__", toStr("Bool"))
     .put(eqf).put(reprf).put(strf);
-public final Map MM_NUM = new Map()
+public final Blob MB_NUM = new Blob()
     .put("__name__", toStr("Num"))
     .put(eqf).put(reprf).put(strf)
     .put(new BuiltinFunc("__add__") {
@@ -66,10 +66,10 @@ public final Map MM_NUM = new Map()
         return toNum(left.getVal() - right.getVal());
       }
     });
-public final Map MM_STR = new Map()
+public final Blob MB_STR = new Blob()
     .put("__name__", toStr("Str"))
     .put(eqf).put(reprf).put(strf);
-public final Map MM_LIST = new Map()
+public final Blob MB_LIST = new Blob()
     .put("__name__", toStr("List"))
     .put(eqf).put(reprf).put(strf)
     .put(new BuiltinFunc("map") {
@@ -83,10 +83,10 @@ public final Map MM_LIST = new Map()
         return toList(nal);
       }
     });
-public final Map MM_MAP = new Map()
+public final Blob MB_MAP = new Blob()
     .put("__name__", toStr("Map"))
     .put(eqf).put(reprf).put(strf);
-public final Map MM_FUNC = new Map()
+public final Blob MB_FUNC = new Blob()
     .put("__name__", toStr("Func"))
     .put(eqf).put(reprf).put(strf);
 
@@ -95,12 +95,12 @@ public final Scope GLOBALS = new Scope(null)
     .put("nil", nil)
     .put("true", tru)
     .put("false", fal)
-    .put("Nil", MM_NIL)
-    .put("Bool", MM_BOOL)
-    .put("Num", MM_NUM)
-    .put("Str", MM_STR)
-    .put("List", MM_LIST)
-    .put("Map", MM_MAP)
+    .put("Nil", MB_NIL)
+    .put("Bool", MB_BOOL)
+    .put("Num", MB_NUM)
+    .put("Str", MB_STR)
+    .put("List", MB_LIST)
+    .put("Map", MB_MAP)
     .put(new BuiltinFunc("Print") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -269,17 +269,17 @@ public final class BuiltinFuncFrame extends Frame {
 //// Val
 
 public abstract class Val {
-  public abstract Map getMetaMap();
+  public abstract Val searchMetaBlob(String key);
   public abstract boolean equals(Val other);
   public abstract String repr();
   public final boolean equals(Object other) {
     return (other instanceof Val) && equals((Val) other);
   }
-  public final Val callMethod(Str name, ArrayList<Val> args) {
-    Val f = getMetaMap().getVal().get(name);
+  public final Val callMethod(String name, ArrayList<Val> args) {
+    Val f = searchMetaBlob(name);
     if (f == null || !(f instanceof Func)) {
-      String message = "No method '" + name.getVal() + "' found for type ";
-      Val mn = getMetaMap().getVal().get(toStr("__name__"));
+      String message = "No method '" + name + "' found for type ";
+      Val mn = searchMetaBlob("__name__");
       if (mn != null && (mn instanceof Str))
         message += ((Str) mn).getVal();
       else
@@ -295,7 +295,7 @@ public abstract class Val {
   }
 }
 public final class Nil extends Val {
-  public final Map getMetaMap() { return MM_NIL; }
+  public final Val searchMetaBlob(String key) { return MB_NIL.get(key); }
   public final boolean equals(Val other) { return this == other; }
   public final boolean truthy() { return false; }
   public final String repr() { return "nil"; }
@@ -320,13 +320,13 @@ private abstract class WrapperVal<T> extends Val {
 }
 public final class Bool extends WrapperVal<Boolean> {
   public Bool(Boolean val) { super(val); }
-  public final Map getMetaMap() { return MM_BOOL; }
+  public final Val searchMetaBlob(String key) { return MB_BOOL.get(key); }
   public final boolean truthy() { return getVal(); }
   public final String repr() { return getVal() ? "true" : "false"; }
 }
 public final class Num extends WrapperVal<Double> {
   public Num(Double val) { super(val); }
-  public final Map getMetaMap() { return MM_NUM; }
+  public final Val searchMetaBlob(String key) { return MB_NUM.get(key); }
   public final String repr() {
     double v = getVal();
     return v == Math.floor(v) ?
@@ -335,7 +335,7 @@ public final class Num extends WrapperVal<Double> {
 }
 public final class Str extends WrapperVal<String> {
   public Str(String val) { super(val); }
-  public final Map getMetaMap() { return MM_STR; }
+  public final Val searchMetaBlob(String key) { return MB_STR.get(key); }
   public final String repr() {
     StringBuilder sb = new StringBuilder();
     sb.append("\""); // TODO: Be more thorough
@@ -354,7 +354,7 @@ public final class Str extends WrapperVal<String> {
 }
 public final class List extends WrapperVal<ArrayList<Val>> {
   public List(ArrayList<Val> val) { super(val); }
-  public final Map getMetaMap() { return MM_LIST; }
+  public final Val searchMetaBlob(String key) { return MB_LIST.get(key); }
   public String repr() {
     StringBuilder sb = new StringBuilder();
     sb.append("L[");
@@ -383,15 +383,7 @@ public final class List extends WrapperVal<ArrayList<Val>> {
 public final class Map extends WrapperVal<HashMap<Val, Val>> {
   public Map() { super(new HashMap<Val, Val>()); }
   public Map(HashMap<Val, Val> val) { super(val); }
-  public final Map getMetaMap() { return MM_MAP; }
-  public Map put(BuiltinFunc bf) {
-    getVal().put(toStr(bf.name), bf);
-    return this;
-  }
-  public Map put(String key, Val val) {
-    getVal().put(toStr(key), val);
-    return this;
-  }
+  public final Val searchMetaBlob(String key) { return MB_MAP.get(key); }
   public Val get(Val key) { return getVal().get(key); }
   public Val call(ArrayList<Val> args) {
     expectExactArgumentLength(args, 1);
@@ -416,7 +408,7 @@ public final class Map extends WrapperVal<HashMap<Val, Val>> {
 }
 public abstract class Func extends Val {
   public abstract Val call(Val self, ArrayList<Val> args);
-  public final Map getMetaMap() { return MM_FUNC; }
+  public final Val searchMetaBlob(String key) { return MB_FUNC.get(key); }
   public final Val call(ArrayList<Val> args) { return call(nil, args); }
   public final boolean equals(Val other) { return this == other; }
 }
@@ -488,14 +480,29 @@ public final class UserFunc extends Func {
   }
 }
 public final class Blob extends Val {
-  private final Map metaMap;
+  private final HashMap<String, Val> metaBlob;
   private final HashMap<String, Val> attrs;
-  public Blob(Map metaMap) { this(metaMap, new HashMap<String, Val>()); }
-  public Blob(Map metaMap, HashMap<String, Val> attrs) {
-    this.metaMap = metaMap;
+  public Blob() {
+    this(new HashMap<String, Val>(), new HashMap<String, Val>());
+  }
+  public Blob(Blob metaBlob) {
+    this(metaBlob.attrs, new HashMap<String, Val>());
+  }
+  public Blob(HashMap<String, Val> blob, HashMap<String, Val> attrs) {
+    metaBlob = blob;
     this.attrs = attrs;
   }
-  public final Map getMetaMap() { return metaMap; }
+  public final Val get(String key) {
+    return attrs.get(key);
+  }
+  public final Blob put(String key, Val val) {
+    attrs.put(key, val);
+    return this;
+  }
+  public Blob put(BuiltinFunc bf) {
+    return put(bf.name, bf);
+  }
+  public final Val searchMetaBlob(String key) { return metaBlob.get(key); }
   // TODO: Make 'equals' overridable by user.
   public final boolean equals(Val other) { return this == other; }
   // TODO: Make 'hashCode' overridable by user.
@@ -1154,18 +1161,16 @@ public final class CallAst extends Ast {
 public final class GetMethodAst extends Ast {
   public final Ast owner;
   public final String name;
-  public final Str nameStr;
   public GetMethodAst(Token token, Ast owner, String name) {
     super(token);
     this.owner = owner;
     this.name = name;
-    nameStr = toStr(name);
   }
   public final Val eval() {
     Val v = owner.eval();
     if (jmp())
       return v;
-    Val f = v.getMetaMap().getVal().get(nameStr);
+    Val f = v.searchMetaBlob(name);
     if (f == null || !(f instanceof Func))
       throw err("No method named " + name);
     return new BoundFunc((Func) f, v);
@@ -1205,13 +1210,11 @@ public final class OperationAst extends Ast {
   public final Ast owner;
   public final String name;
   public final ArrayList<Ast> args;
-  public final Str nameStr;
   public OperationAst(Token token, Ast owner, String name, Ast... args) {
     super(token);
     this.owner = owner;
     this.name = name;
     this.args = toArrayList(args);
-    nameStr = toStr(name);
   }
   public final Val eval() {
     Val v = owner.eval();
@@ -1224,7 +1227,7 @@ public final class OperationAst extends Ast {
     }
     Simple.this.push(new AstFrame(token));
     try {
-      return v.callMethod(nameStr, al);
+      return v.callMethod(name, al);
     } finally {
       Simple.this.pop();
     }
