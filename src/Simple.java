@@ -82,6 +82,12 @@ public final Blob MB_STR = new Blob(META_BLOB_META)
 public final Blob MB_LIST = new Blob(META_BLOB_META)
     .put("__name__", toStr("List"))
     .put(eqf).put(reprf).put(strf)
+    .put(new BuiltinFunc("len") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 0);
+        return toNum(asList(self, "self").getVal().size());
+      }
+    })
     .put(new BuiltinFunc("map") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -1619,6 +1625,10 @@ public Blob asBlob(Val v, String name) {
 
 public Num toNum(Double value) {
   return new Num(value);
+}
+
+public Num toNum(Integer value) {
+  return new Num(value.doubleValue());
 }
 
 public Str toStr(String value) {
