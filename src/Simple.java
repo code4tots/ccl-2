@@ -84,6 +84,13 @@ public final Blob MB_LIST = new Blob(META_BLOB_META)
           nal.add(f.call(nil, toArrayList(al.get(i))));
         return toList(nal);
       }
+    })
+    .put(new BuiltinFunc("add") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        asList(self, "self").getVal().add(args.get(0));
+        return self;
+      }
     });
 public final Blob MB_MAP = new Blob(META_BLOB_META)
     .put("__name__", toStr("Map"))

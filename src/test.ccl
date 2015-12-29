@@ -32,5 +32,9 @@ IndexableTest = C["__name__", "IndexableTest", "__call__", \index. index + 3]
 indexable = new[IndexableTest]
 assert[indexable[5] == 8]
 
-print["*** All tests pass! ***"]
+xs = L[]
+assert[xs.str[] == 'L[]']
+xs.add[1]
+assert[xs.str[] == 'L[1]']
 
+print["*** All tests pass! ***"]
