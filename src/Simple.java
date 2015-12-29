@@ -203,11 +203,11 @@ public final Scope GLOBALS = new Scope(null)
       }
     });
 
-public ModuleAst readModule(String content, String path) {
+public Module readModule(String content, String path) {
   return new Parser(content, path).parse();
 }
 
-public void run(final ModuleAst node, final String name) {
+public void run(final Module node, final String name) {
   push(new Trace() {
     public String getLocationString() {
       return "\nin module " + node.name + " (" + name + ")";
@@ -215,7 +215,7 @@ public void run(final ModuleAst node, final String name) {
   }, new Scope(GLOBALS));
   try {
     put("__name__", toStr(name));
-    node.eval();
+    node.run();
   } finally {
     pop();
   }
@@ -480,10 +480,10 @@ public final class UserFunc extends Func implements Trace {
   public final Token token;
   public final ArrayList<String> args;
   public final String vararg;
-  public final Ast body;
+  public final Statement body;
   public final Scope scope;
   public UserFunc(
-      Token token, ArrayList<String> args, String vararg, Ast body,
+      Token token, ArrayList<String> args, String vararg, Statement body,
       Scope scope) {
     this.token = token;
     this.args = args;
@@ -509,12 +509,16 @@ public final class UserFunc extends Func implements Trace {
         Simple.this.put(vararg, new List(al));
       }
 
-      Val result = body.eval();
+      Val result = body.run();
 
       FLAG_RETURN = false;
 
-      if (jmp())
-        throw err("Wierd control flow issue");
+      if (FLAG_CONTINUE)
+        throw err("'continue' statement outside of 'while'");
+
+      if (FLAG_BREAK)
+        throw err("'break' statement outside of 'while'");
+
       return result;
 
     } finally {
@@ -850,89 +854,125 @@ public final class Parser {
           peek(), "Expected " + type + " but found " + peek().type);
     return next();
   }
-  public ModuleAst parse() {
+  public Module parse() {
     Token token = peek();
-    ArrayList<Ast> exprs = new ArrayList<Ast>();
+    ArrayList<Statement> exprs = new ArrayList<Statement>();
     while (!at("EOF"))
-      exprs.add(parseExpression());
-    return new ModuleAst(token, name, new BlockAst(token, exprs));
+      exprs.add(parseStatement());
+    return new Module(token, name, new BlockStatement(token, exprs));
   }
-  public Ast parseExpression() {
+  public Statement parseStatement() {
+
+    if (at("{")) {
+      Token token = next();
+      ArrayList<Statement> exprs = new ArrayList<Statement>();
+      while (!at("}"))
+        exprs.add(parseStatement());
+      expect("}");
+      return new BlockStatement(token, exprs);
+    }
+
+    if (at("return")) {
+      Token token = next();
+      Expression value = parseExpression();
+      return new ReturnStatement(token, value);
+    }
+
+    if (at("while")) {
+      Token token = next();
+      Expression cond = parseExpression();
+      Statement body = parseStatement();
+      return new WhileStatement(token, cond, body);
+    }
+
+    if (at("if")) {
+      Token token = next();
+      Expression cond = parseExpression();
+      Statement body = parseStatement();
+      Statement other = new BlockStatement(token, new ArrayList<Statement>());
+      if (consume("else"))
+        other = parseStatement();
+      return new IfStatement(token, cond, body, other);
+    }
+
+    return parseExpression();
+  }
+  public Expression parseExpression() {
     return parseOrExpression();
   }
-  public Ast parseOrExpression() {
-    Ast node = parseAndExpression();
+  public Expression parseOrExpression() {
+    Expression node = parseAndExpression();
     while (true) {
       if (at("or")) {
         Token token = next();
-        Ast right = parseAndExpression();
-        node = new OrAst(token, node, right);
+        Expression right = parseAndExpression();
+        node = new OrExpression(token, node, right);
         continue;
       }
       break;
     }
     return node;
   }
-  public Ast parseAndExpression() {
-    Ast node = parseCompareExpression();
+  public Expression parseAndExpression() {
+    Expression node = parseCompareExpression();
     while (true) {
       if (at("and")) {
         Token token = next();
-        Ast right = parseCompareExpression();
-        node = new AndAst(token, node, right);
+        Expression right = parseCompareExpression();
+        node = new AndExpression(token, node, right);
         continue;
       }
       break;
     }
     return node;
   }
-  public Ast parseCompareExpression() {
-    Ast node = parseAdditiveExpression();
+  public Expression parseCompareExpression() {
+    Expression node = parseAdditiveExpression();
     while (true) {
       if (at("==")) {
         Token token = next();
-        Ast right = parseAdditiveExpression();
-        node = new OperationAst(token, node, "__eq__", right);
+        Expression right = parseAdditiveExpression();
+        node = new OperationExpression(token, node, "__eq__", right);
         continue;
       }
       if (at("!=")) {
         Token token = next();
-        Ast right = parseAdditiveExpression();
-        node = new OperationAst(token, node, "__ne__", right);
+        Expression right = parseAdditiveExpression();
+        node = new OperationExpression(token, node, "__ne__", right);
         continue;
       }
       if (at("<")) {
         Token token = next();
-        Ast right = parseAdditiveExpression();
-        node = new OperationAst(token, node, "__lt__", right);
+        Expression right = parseAdditiveExpression();
+        node = new OperationExpression(token, node, "__lt__", right);
         continue;
       }
       if (at("<=")) {
         Token token = next();
-        Ast right = parseAdditiveExpression();
-        node = new OperationAst(token, node, "__le__", right);
+        Expression right = parseAdditiveExpression();
+        node = new OperationExpression(token, node, "__le__", right);
         continue;
       }
       if (at(">")) {
         Token token = next();
-        Ast right = parseAdditiveExpression();
-        node = new OperationAst(token, node, "__gt__", right);
+        Expression right = parseAdditiveExpression();
+        node = new OperationExpression(token, node, "__gt__", right);
         continue;
       }
       if (at(">=")) {
         Token token = next();
-        Ast right = parseAdditiveExpression();
-        node = new OperationAst(token, node, "__ge__", right);
+        Expression right = parseAdditiveExpression();
+        node = new OperationExpression(token, node, "__ge__", right);
         continue;
       }
       if (at("is")) {
         Token token = next();
         if (consume("not")) {
-          Ast right = parseAdditiveExpression();
-          node = new IsNotAst(token, node, right);
+          Expression right = parseAdditiveExpression();
+          node = new IsNotExpression(token, node, right);
         } else {
-          Ast right = parseAdditiveExpression();
-          node = new IsAst(token, node, right);
+          Expression right = parseAdditiveExpression();
+          node = new IsExpression(token, node, right);
         }
         continue;
       }
@@ -940,85 +980,85 @@ public final class Parser {
     }
     return node;
   }
-  public Ast parseAdditiveExpression() {
-    Ast node = parseMultiplicativeExpression();
+  public Expression parseAdditiveExpression() {
+    Expression node = parseMultiplicativeExpression();
     while (true) {
       if (at("+")) {
         Token token = next();
-        Ast right = parseMultiplicativeExpression();
-        node = new OperationAst(token, node, "__add__", right);
+        Expression right = parseMultiplicativeExpression();
+        node = new OperationExpression(token, node, "__add__", right);
         continue;
       }
       if (at("-")) {
         Token token = next();
-        Ast right = parseMultiplicativeExpression();
-        node = new OperationAst(token, node, "__sub__", right);
+        Expression right = parseMultiplicativeExpression();
+        node = new OperationExpression(token, node, "__sub__", right);
         continue;
       }
       break;
     }
     return node;
   }
-  public Ast parseMultiplicativeExpression() {
-    Ast node = parsePrefixExpression();
+  public Expression parseMultiplicativeExpression() {
+    Expression node = parsePrefixExpression();
     while (true) {
       if (at("*")) {
         Token token = next();
-        Ast right = parsePrefixExpression();
-        node = new OperationAst(token, node, "__mul__", right);
+        Expression right = parsePrefixExpression();
+        node = new OperationExpression(token, node, "__mul__", right);
         continue;
       }
       if (at("/")) {
         Token token = next();
-        Ast right = parsePrefixExpression();
-        node = new OperationAst(token, node, "__div__", right);
+        Expression right = parsePrefixExpression();
+        node = new OperationExpression(token, node, "__div__", right);
         continue;
       }
       if (at("%")) {
         Token token = next();
-        Ast right = parsePrefixExpression();
-        node = new OperationAst(token, node, "__mod__", right);
+        Expression right = parsePrefixExpression();
+        node = new OperationExpression(token, node, "__mod__", right);
         continue;
       }
       break;
     }
     return node;
   }
-  public Ast parsePrefixExpression() {
+  public Expression parsePrefixExpression() {
     // Negative/positive numeric signs for constants must be
     // handled here because otherwise, we wouldn't be able to
     // distinguish between 'x-1' meaning 'x', '-', '1' or
     // 'x', '-1'.
     if (at("+")) {
       Token token = next();
-      Ast node = parsePrefixExpression();
-      if (node instanceof NumAst)
-        return new NumAst(token, ((NumAst) node).val.getVal());
+      Expression node = parsePrefixExpression();
+      if (node instanceof NumExpression)
+        return new NumExpression(token, ((NumExpression) node).val.getVal());
       else
-        return new OperationAst(token, node, "__pos__");
+        return new OperationExpression(token, node, "__pos__");
     }
     if (at("-")) {
       Token token = next();
-      Ast node = parsePrefixExpression();
-      if (node instanceof NumAst)
-        return new NumAst(token, -((NumAst) node).val.getVal());
+      Expression node = parsePrefixExpression();
+      if (node instanceof NumExpression)
+        return new NumExpression(token, -((NumExpression) node).val.getVal());
       else
-        return new OperationAst(token, node, "__neg__");
+        return new OperationExpression(token, node, "__neg__");
     }
     if (at("not")) {
       Token token = next();
-      Ast node = parsePrefixExpression();
-      return new NotAst(token, node);
+      Expression node = parsePrefixExpression();
+      return new NotExpression(token, node);
     }
     return parsePostfixExpression();
   }
-  public Ast parsePostfixExpression() {
-    Ast node = parsePrimaryExpression();
+  public Expression parsePostfixExpression() {
+    Expression node = parsePrimaryExpression();
     while (true) {
       if (at("[")) {
         Token token = expect("[");
-        ArrayList<Ast> args = new ArrayList<Ast>();
-        Ast vararg = null;
+        ArrayList<Expression> args = new ArrayList<Expression>();
+        Expression vararg = null;
         while (!consume("]")) {
           if (consume("*")) {
             vararg = parseExpression();
@@ -1035,9 +1075,10 @@ public final class Parser {
           if (vararg != null || args.size() != 1)
             throw new SyntaxError(
                 token, "For setitem syntax, must have exactly one argument");
-          node = new SetItemAst(token, node, args.get(0), parseExpression());
+          node = new SetItemExpression(
+              token, node, args.get(0), parseExpression());
         } else {
-          node = new CallAst(token, node, args, vararg);
+          node = new CallExpression(token, node, args, vararg);
         }
         continue;
       }
@@ -1047,10 +1088,10 @@ public final class Parser {
         String name = (String) expect("ID").value;
         if (at("=")) {
           token = next();
-          Ast value = parseExpression();
-          node = new SetAttributeAst(token, node, name, value);
+          Expression value = parseExpression();
+          node = new SetAttributeExpression(token, node, name, value);
         } else {
-          node = new GetAttributeAst(token, node, name);
+          node = new GetAttributeExpression(token, node, name);
         }
         continue;
       }
@@ -1058,23 +1099,23 @@ public final class Parser {
       if (at(".")) {
         Token token = next();
         String name = (String) expect("ID").value;
-        node = new GetMethodAst(token, node, name);
+        node = new GetMethodExpression(token, node, name);
         continue;
       }
       break;
     }
     return node;
   }
-  public Ast parsePrimaryExpression() {
+  public Expression parsePrimaryExpression() {
 
     if (at("STR")) {
       Token token = next();
-      return new StringAst(token, (String) token.value);
+      return new StringExpression(token, (String) token.value);
     }
 
     if (at("NUM")) {
       Token token = next();
-      return new NumAst(token, (Double) token.value);
+      return new NumExpression(token, (Double) token.value);
     }
 
     if (at("ID")) {
@@ -1083,49 +1124,17 @@ public final class Parser {
 
       if (at("=")) {
         token = next();
-        Ast value = parseExpression();
-        return new AssignAst(token, name, value);
+        Expression value = parseExpression();
+        return new AssignExpression(token, name, value);
       } else {
-        return new NameAst(token, name);
+        return new NameExpression(token, name);
       }
     }
 
     if (consume("(")) {
-      Ast expr = parseExpression();
+      Expression expr = parseExpression();
       expect(")");
       return expr;
-    }
-
-    if (at("{")) {
-      Token token = next();
-      ArrayList<Ast> exprs = new ArrayList<Ast>();
-      while (!at("}"))
-        exprs.add(parseExpression());
-      expect("}");
-      return new BlockAst(token, exprs);
-    }
-
-    if (at("return")) {
-      Token token = next();
-      Ast value = parseExpression();
-      return new ReturnAst(token, value);
-    }
-
-    if (at("while")) {
-      Token token = next();
-      Ast cond = parseExpression();
-      Ast body = parseExpression();
-      return new WhileAst(token, cond, body);
-    }
-
-    if (at("if")) {
-      Token token = next();
-      Ast cond = parseExpression();
-      Ast body = parseExpression();
-      Ast other = new BlockAst(token, new ArrayList<Ast>());
-      if (consume("else"))
-        other = parseExpression();
-      return new IfAst(token, cond, body, other);
     }
 
     if (at("\\")) {
@@ -1137,8 +1146,18 @@ public final class Parser {
       if (consume("*"))
         vararg = (String) expect("ID").value;
       consume(".");
-      Ast body = parseExpression();
-      return new FunctionAst(token, args, vararg, body);
+      Statement body = parseStatement();
+      return new FunctionExpression(token, args, vararg, body);
+    }
+
+    if (at("if")) {
+      Token token = next();
+      Expression cond = parseExpression();
+      Expression body = parseExpression();
+      Expression other = new NameExpression(token, "nil");
+      if (consume("else"))
+        other = parseExpression();
+      return new IfExpression(token, cond, body, other);
     }
 
     throw new SyntaxError(peek(), "Expected expression");
@@ -1149,30 +1168,103 @@ public final class Parser {
 public abstract class Ast implements Trace {
   public final Token token;
   public Ast(Token token) { this.token = token; }
-  public abstract Val eval();
   public String getLocationString() {
     return "\nin " + token.getLocationString();
   }
 }
-public final class NumAst extends Ast {
+public abstract class Statement extends Ast {
+  public Statement(Token token) { super(token); }
+  public abstract Val run();
+}
+public final class ReturnStatement extends Statement {
+  public final Expression val;
+  public ReturnStatement(Token token, Expression val) {
+    super(token);
+    this.val = val;
+  }
+  public final Val run() {
+    FLAG_RETURN = true;
+    return val.eval();
+  }
+}
+public final class WhileStatement extends Statement {
+  public final Expression cond;
+  public final Statement body;
+  public WhileStatement(Token token, Expression cond, Statement body) {
+    super(token);
+    this.cond = cond;
+    this.body = body;
+  }
+  public final Val run() {
+    while (cond.eval().truthy()) {
+      Val b = body.run();
+      if (FLAG_CONTINUE) {
+        FLAG_CONTINUE = false;
+        continue;
+      }
+      if (FLAG_BREAK) {
+        FLAG_BREAK = false;
+        break;
+      }
+      if (FLAG_RETURN)
+        return b;
+    }
+    return nil;
+  }
+}
+public final class IfStatement extends Statement {
+  public final Expression cond;
+  public final Statement body, other;
+  public IfStatement(
+      Token token, Expression cond, Statement body, Statement other) {
+    super(token);
+    this.cond = cond;
+    this.body = body;
+    this.other = other;
+  }
+  public final Val run() {
+    return cond.eval().truthy() ? body.run() : other.run();
+  }
+}
+public final class BlockStatement extends Statement {
+  public final ArrayList<Statement> body;
+  public BlockStatement(Token token, ArrayList<Statement> body) {
+    super(token);
+    this.body = body;
+  }
+  public final Val run() {
+    for (int i = 0; i < body.size(); i++) {
+      Val v = body.get(i).run();
+      if (FLAG_BREAK||FLAG_CONTINUE||FLAG_RETURN)
+        return v;
+    }
+    return nil;
+  }
+}
+public abstract class Expression extends Statement {
+  public Expression(Token token) { super(token); }
+  public abstract Val eval();
+  public final Val run() { return eval(); }
+}
+public final class NumExpression extends Expression {
   public final Num val;
-  public NumAst(Token token, Double val) {
+  public NumExpression(Token token, Double val) {
     super(token);
     this.val = toNum(val);
   }
   public final Val eval() { return val; }
 }
-public final class StringAst extends Ast {
+public final class StringExpression extends Expression {
   public final Str val;
-  public StringAst(Token token, String val) {
+  public StringExpression(Token token, String val) {
     super(token);
     this.val = toStr(val);
   }
   public final Val eval() { return val; }
 }
-public final class NameAst extends Ast {
+public final class NameExpression extends Expression {
   public final String name;
-  public NameAst(Token token, String name) {
+  public NameExpression(Token token, String name) {
     super(token);
     this.name = name;
   }
@@ -1185,28 +1277,39 @@ public final class NameAst extends Ast {
     }
   }
 }
-public final class AssignAst extends Ast {
+public final class IfExpression extends Expression {
+  public final Expression cond, body, other;
+  public IfExpression(
+      Token token, Expression cond, Expression body, Expression other) {
+    super(token);
+    this.cond = cond;
+    this.body = body;
+    this.other = other;
+  }
+  public final Val eval() {
+    return cond.eval().truthy() ? body.eval() : other.eval();
+  }
+}
+public final class AssignExpression extends Expression {
   public final String name;
-  public final Ast val;
-  public AssignAst(Token token, String name, Ast val) {
+  public final Expression val;
+  public AssignExpression(Token token, String name, Expression val) {
     super(token);
     this.name = name;
     this.val = val;
   }
   public final Val eval() {
     Val v = val.eval();
-    if (jmp())
-      return v;
     Simple.this.put(name, v);
     return v;
   }
 }
-public final class FunctionAst extends Ast {
+public final class FunctionExpression extends Expression {
   public final ArrayList<String> args;
   public final String vararg;
-  public final Ast body;
-  public FunctionAst(
-      Token token, ArrayList<String> args, String vararg, Ast body) {
+  public final Statement body;
+  public FunctionExpression(
+      Token token, ArrayList<String> args, String vararg, Statement body) {
     super(token);
     this.args = args;
     this.vararg = vararg;
@@ -1216,70 +1319,13 @@ public final class FunctionAst extends Ast {
     return new UserFunc(token, args, vararg, body, getScope());
   }
 }
-public final class ReturnAst extends Ast {
-  public final Ast val;
-  public ReturnAst(Token token, Ast val) {
-    super(token);
-    this.val = val;
-  }
-  public final Val eval() {
-    Val v = val.eval();
-    if (jmp()) return v;
-    FLAG_RETURN = true;
-    return v;
-  }
-}
-public final class WhileAst extends Ast {
-  public final Ast cond, body;
-  public WhileAst(Token token, Ast cond, Ast body) {
-    super(token);
-    this.cond = cond;
-    this.body = body;
-  }
-  public final Val eval() {
-    while (true) {
-      Val c = cond.eval();
-      if (jmp())
-        return c;
-
-      if (!c.truthy())
-        break;
-
-      Val b = body.eval();
-      if (FLAG_CONTINUE) {
-        FLAG_CONTINUE = false;
-        continue;
-      }
-      if (FLAG_BREAK) {
-        FLAG_BREAK = false;
-        break;
-      }
-      if (jmp())
-        return b;
-    }
-    return nil;
-  }
-}
-public final class IfAst extends Ast {
-  public final Ast cond, body, other;
-  public IfAst(Token token, Ast cond, Ast body, Ast other) {
-    super(token);
-    this.cond = cond;
-    this.body = body;
-    this.other = other;
-  }
-  public final Val eval() {
-    Val c = cond.eval();
-    if (jmp())
-      return c;
-    return c.truthy() ? body.eval() : other.eval();
-  }
-}
-public final class CallAst extends Ast {
-  public final Ast f;
-  public final ArrayList<Ast> args;
-  public final Ast vararg;
-  public CallAst(Token token, Ast f, ArrayList<Ast> args, Ast vararg) {
+public final class CallExpression extends Expression {
+  public final Expression f;
+  public final ArrayList<Expression> args;
+  public final Expression vararg;
+  public CallExpression(
+      Token token, Expression f,
+      ArrayList<Expression> args, Expression vararg) {
     super(token);
     this.f = f;
     this.args = args;
@@ -1287,21 +1333,11 @@ public final class CallAst extends Ast {
   }
   public final Val eval() {
     Val vf = f.eval();
-    if (jmp())
-      return vf;
     ArrayList<Val> va = new ArrayList<Val>();
-    for (int i = 0; i < args.size(); i++) {
-      Val v = args.get(i).eval();
-      if (jmp())
-        return v;
-      va.add(v);
-    }
+    for (int i = 0; i < args.size(); i++)
+      va.add(args.get(i).eval());
     if (vararg != null) {
-      Val v = vararg.eval();
-      if (!(v instanceof List))
-        throw err(
-            "Expected List for vararg but found " + v.getClass().getName());
-      ArrayList<Val> vl = ((List) v).getVal();
+      ArrayList<Val> vl = asList(vararg.eval(), "vararg").getVal();
       for (int i = 0; i < vl.size(); i++)
         va.add(vl.get(i));
     }
@@ -1313,18 +1349,16 @@ public final class CallAst extends Ast {
     }
   }
 }
-public final class GetMethodAst extends Ast {
-  public final Ast owner;
+public final class GetMethodExpression extends Expression {
+  public final Expression owner;
   public final String name;
-  public GetMethodAst(Token token, Ast owner, String name) {
+  public GetMethodExpression(Token token, Expression owner, String name) {
     super(token);
     this.owner = owner;
     this.name = name;
   }
   public final Val eval() {
     Val v = owner.eval();
-    if (jmp())
-      return v;
     Val f = v.searchMetaBlob(name);
     if (f == null) {
       push(this);
@@ -1337,9 +1371,10 @@ public final class GetMethodAst extends Ast {
     return f.bind(v);
   }
 }
-public final class SetItemAst extends Ast {
-  public final Ast owner, index, value;
-  public SetItemAst(Token token, Ast owner, Ast index, Ast value) {
+public final class SetItemExpression extends Expression {
+  public final Expression owner, index, value;
+  public SetItemExpression(
+      Token token, Expression owner, Expression index, Expression value) {
     super(token);
     this.owner = owner;
     this.index = index;
@@ -1347,14 +1382,8 @@ public final class SetItemAst extends Ast {
   }
   public final Val eval() {
     Val self = owner.eval();
-    if (jmp()) return self;
-
     Val ind = index.eval();
-    if (jmp()) return ind;
-
     Val val = value.eval();
-    if (jmp()) return val;
-
     push(this);
     try {
       self.setitem(ind, val);
@@ -1364,18 +1393,16 @@ public final class SetItemAst extends Ast {
     }
   }
 }
-public final class GetAttributeAst extends Ast {
-  public final Ast owner;
+public final class GetAttributeExpression extends Expression {
+  public final Expression owner;
   public final String name;
-  public GetAttributeAst(Token token, Ast owner, String name) {
+  public GetAttributeExpression(Token token, Expression owner, String name) {
     super(token);
     this.owner = owner;
     this.name = name;
   }
   public final Val eval() {
     Val self = owner.eval();
-    if (jmp()) return self;
-
     push(this);
     try {
       return self.getattr(name);
@@ -1384,11 +1411,12 @@ public final class GetAttributeAst extends Ast {
     }
   }
 }
-public final class SetAttributeAst extends Ast {
-  public final Ast owner;
+public final class SetAttributeExpression extends Expression {
+  public final Expression owner;
   public final String name;
-  public final Ast val;
-  public SetAttributeAst(Token token, Ast owner, String name, Ast val) {
+  public final Expression val;
+  public SetAttributeExpression(
+      Token token, Expression owner, String name, Expression val) {
     super(token);
     this.owner = owner;
     this.name = name;
@@ -1396,10 +1424,7 @@ public final class SetAttributeAst extends Ast {
   }
   public final Val eval() {
     Val self = owner.eval();
-    if (jmp()) return self;
     Val v = val.eval();
-    if (jmp()) return v;
-
     push(this);
     try {
       self.setattr(name, v);
@@ -1409,41 +1434,34 @@ public final class SetAttributeAst extends Ast {
     }
   }
 }
-public final class IsAst extends Ast {
-  public final Ast left, right;
-  public IsAst(Token token, Ast left, Ast right) {
+public final class IsExpression extends Expression {
+  public final Expression left, right;
+  public IsExpression(Token token, Expression left, Expression right) {
     super(token);
     this.left = left;
     this.right = right;
   }
   public final Val eval() {
-    Val l = left.eval();
-    if (jmp()) return l;
-    Val r = right.eval();
-    if (jmp()) return r;
-    return l == r ? tru : fal;
+    return left.eval() == right.eval() ? tru : fal;
   }
 }
-public final class IsNotAst extends Ast {
-  public final Ast left, right;
-  public IsNotAst(Token token, Ast left, Ast right) {
+public final class IsNotExpression extends Expression {
+  public final Expression left, right;
+  public IsNotExpression(Token token, Expression left, Expression right) {
     super(token);
     this.left = left;
     this.right = right;
   }
   public final Val eval() {
-    Val l = left.eval();
-    if (jmp()) return l;
-    Val r = right.eval();
-    if (jmp()) return r;
-    return l != r ? tru : fal;
+    return left.eval() != right.eval() ? tru : fal;
   }
 }
-public final class OperationAst extends Ast {
-  public final Ast owner;
+public final class OperationExpression extends Expression {
+  public final Expression owner;
   public final String name;
-  public final ArrayList<Ast> args;
-  public OperationAst(Token token, Ast owner, String name, Ast... args) {
+  public final ArrayList<Expression> args;
+  public OperationExpression(
+      Token token, Expression owner, String name, Expression... args) {
     super(token);
     this.owner = owner;
     this.name = name;
@@ -1451,13 +1469,9 @@ public final class OperationAst extends Ast {
   }
   public final Val eval() {
     Val v = owner.eval();
-    if (jmp()) return v;
     ArrayList<Val> al = new ArrayList<Val>();
-    for (int i = 0; i < args.size(); i++) {
-      Val vv = args.get(i).eval();
-      if (jmp()) return vv;
-      al.add(vv);
-    }
+    for (int i = 0; i < args.size(); i++)
+      al.add(args.get(i).eval());
     Simple.this.push(this);
     try {
       return v.callMethod(name, al);
@@ -1466,73 +1480,50 @@ public final class OperationAst extends Ast {
     }
   }
 }
-public final class NotAst extends Ast {
-  public final Ast target;
-  public NotAst(Token token, Ast target) {
+public final class NotExpression extends Expression {
+  public final Expression target;
+  public NotExpression(Token token, Expression target) {
     super(token);
     this.target = target;
   }
   public final Val eval() {
-    Val v = target.eval();
-    if (jmp()) return v;
-    return v.truthy() ? fal : tru;
+    return target.eval().truthy() ? fal : tru;
   }
 }
-public final class AndAst extends Ast {
-  public final Ast left, right;
-  public AndAst(Token token, Ast left, Ast right) {
+public final class AndExpression extends Expression {
+  public final Expression left, right;
+  public AndExpression(Token token, Expression left, Expression right) {
     super(token);
     this.left = left;
     this.right = right;
   }
   public final Val eval() {
     Val l = left.eval();
-    if (jmp()) return l;
-    if (!l.truthy())
-      return l;
-    return right.eval();
+    return l.truthy() ? right.eval() : l;
   }
 }
-public final class OrAst extends Ast {
-  public final Ast left, right;
-  public OrAst(Token token, Ast left, Ast right) {
+public final class OrExpression extends Expression {
+  public final Expression left, right;
+  public OrExpression(Token token, Expression left, Expression right) {
     super(token);
     this.left = left;
     this.right = right;
   }
   public final Val eval() {
     Val l = left.eval();
-    if (jmp()) return l;
-    if (l.truthy())
-      return l;
-    return right.eval();
+    return l.truthy() ? l : right.eval();
   }
 }
-public final class BlockAst extends Ast {
-  public final ArrayList<Ast> body;
-  public BlockAst(Token token, ArrayList<Ast> body) {
-    super(token);
-    this.body = body;
-  }
-  public final Val eval() {
-    Val v = nil;
-    for (int i = 0; i < body.size(); i++) {
-      v = body.get(i).eval();
-      if (jmp()) return v;
-    }
-    return v;
-  }
-}
-public final class ModuleAst extends Ast {
+public final class Module extends Ast {
   public final String name;
-  public final BlockAst body;
-  public ModuleAst(Token token, String name, BlockAst body) {
+  public final Statement body;
+  public Module(Token token, String name, Statement body) {
     super(token);
     this.name = name;
     this.body = body;
   }
-  public final Val eval() {
-    return body.eval();
+  public final Val run() {
+    return body.run();
   }
 }
 //// Utils
@@ -1544,6 +1535,12 @@ public static ArrayList<Val> toArrayList(Val... args) {
 }
 public static ArrayList<Ast> toArrayList(Ast... args) {
   ArrayList<Ast> al = new ArrayList<Ast>();
+  for (int i = 0; i < args.length; i++)
+    al.add(args[i]);
+  return al;
+}
+public static ArrayList<Expression> toArrayList(Expression... args) {
+  ArrayList<Expression> al = new ArrayList<Expression>();
   for (int i = 0; i < args.length; i++)
     al.add(args[i]);
   return al;

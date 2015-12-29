@@ -75,6 +75,9 @@ x@x = 534
 assert[x@x == 534]
 
 f = \x{x+2}
+assert[f[2] == nil]
+
+f = \x{return x+2}
 assert[f[2] == 4]
 
 xs = L[1, 2, 3]

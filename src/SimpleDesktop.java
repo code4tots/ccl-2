@@ -18,7 +18,7 @@ public static void main(String[] args) {
 }
 
 public void xmain(String[] args) {
-  ModuleAst mainModule = readModule(args[0]);
+  Module mainModule = readModule(args[0]);
   run(mainModule, "__main__");
 }
 
@@ -52,7 +52,7 @@ public static String readFile(String path) {
   }
 }
 
-public ModuleAst readModule(String path) {
+public Module readModule(String path) {
   return new Parser(readFile(path), path).parse();
 }
 
