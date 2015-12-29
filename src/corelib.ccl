@@ -13,3 +13,14 @@ List@map = \f {
   }
   return xs
 }
+
+List@filter = \f {
+  i = 0
+  xs = L[]
+  while i < self.len[] {
+    if f[self[i]]
+      xs.add[self[i]]
+    i = i + 1
+  }
+  return xs
+}
