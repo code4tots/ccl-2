@@ -1102,9 +1102,6 @@ public final class CallAst extends Ast {
     Val vf = f.eval();
     if (jmp())
       return vf;
-    if (!(vf instanceof Func))
-      throw err(
-          "Expected Func but found " + vf.getClass().getName());
     ArrayList<Val> va = new ArrayList<Val>();
     for (int i = 0; i < args.size(); i++) {
       Val v = args.get(i).eval();
@@ -1123,7 +1120,18 @@ public final class CallAst extends Ast {
     }
     Simple.this.push(new AstFrame(token));
     try {
-      return ((Func) vf).call(null, va);
+      if (vf instanceof Func)
+        return ((Func) vf).call(null, va);
+      else if (vf instanceof List) {
+        expectExactArgumentLength(va, 1);
+        return ((List) vf).getVal().get(
+            asNum(va.get(0), "index").getVal().intValue());
+      } else if (vf instanceof Map) {
+        expectExactArgumentLength(va, 1);
+        return ((Map) vf).getVal().get(va.get(0));
+      } else {
+        return vf.callMethod(toStr("__call__"), va);
+      }
     } finally {
       Simple.this.pop();
     }

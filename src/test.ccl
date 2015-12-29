@@ -25,5 +25,12 @@ Assert[L[1, 2, 3].map[\x. x+1] == L[2, 3, 4]]
 Assert[+1 == 1]
 Assert[-1 == 0-1]
 
+Assert[L[1, 2, 3][1] == 2]
+Assert[M[1, 2][1] == 2]
+
+# IndexableTest = M["__call__", \index. index + 3]
+# indexable = new[IndexableTest]
+# Assert[indexable[5] == 8]
+
 Print["*** All tests pass! ***"]
 
