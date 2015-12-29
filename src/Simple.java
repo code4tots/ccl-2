@@ -1188,8 +1188,14 @@ public final class GetMethodAst extends Ast {
     if (jmp())
       return v;
     Val f = v.searchMetaBlob(name);
-    if (f == null)
-      throw noSuchMethodErr(v, name);
+    if (f == null) {
+      push(this);
+      try {
+        throw noSuchMethodErr(v, name);
+      } finally {
+        pop();
+      }
+    }
     return f.bind(v);
   }
 }
