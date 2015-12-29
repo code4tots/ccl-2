@@ -304,6 +304,12 @@ public abstract class Val {
   public Val call(ArrayList<Val> args) {
     throw err(getClass().getName() + " is not callable");
   }
+  public void setattr(String name, Val val) {
+    throw err(getClass().getName() + " does not support attribute access");
+  }
+  public Val getattr(String name) {
+    throw err(getClass().getName() + " does not support attribute access");
+  }
 }
 public final class Nil extends Val {
   public final Val searchMetaBlob(String key) { return MB_NIL.get(key); }
@@ -524,6 +530,12 @@ public final class Blob extends Val {
   }
   public Blob put(BuiltinFunc bf) {
     return put(bf.name, bf);
+  }
+  public void setattr(String name, Val val) {
+    put(name, val);
+  }
+  public Val getattr(String name) {
+    return get(name);
   }
   public final Val searchMetaBlob(String key) { return metaBlob.get(key); }
   // TODO: Make 'equals' overridable by user.
@@ -1012,11 +1024,9 @@ public final class Parser {
         if (at("=")) {
           token = next();
           Ast value = parseExpression();
-          node = new OperationAst(
-              token, node, "__setattr__", new StringAst(token, name), value);
+          node = new SetAttributeAst(token, node, name, value);
         } else {
-          node = new OperationAst(
-              token, node, "__getattr__", new StringAst(token, name));
+          node = new GetAttributeAst(token, node, name);
         }
         continue;
       }
@@ -1300,6 +1310,51 @@ public final class GetMethodAst extends Ast {
       }
     }
     return f.bind(v);
+  }
+}
+public final class GetAttributeAst extends Ast {
+  public final Ast owner;
+  public final String name;
+  public GetAttributeAst(Token token, Ast owner, String name) {
+    super(token);
+    this.owner = owner;
+    this.name = name;
+  }
+  public final Val eval() {
+    Val self = owner.eval();
+    if (jmp()) return self;
+
+    push(this);
+    try {
+      return self.getattr(name);
+    } finally {
+      pop();
+    }
+  }
+}
+public final class SetAttributeAst extends Ast {
+  public final Ast owner;
+  public final String name;
+  public final Ast val;
+  public SetAttributeAst(Token token, Ast owner, String name, Ast val) {
+    super(token);
+    this.owner = owner;
+    this.name = name;
+    this.val = val;
+  }
+  public final Val eval() {
+    Val self = owner.eval();
+    if (jmp()) return self;
+    Val v = val.eval();
+    if (jmp()) return v;
+
+    push(this);
+    try {
+      self.setattr(name, v);
+      return v;
+    } finally {
+      pop();
+    }
   }
 }
 public final class IsAst extends Ast {

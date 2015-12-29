@@ -69,4 +69,9 @@ assert[x == 1]
 
 assert[if 1 == 0 false else true]
 
+MyClass = C[]
+x = new[MyClass]
+x@x = 534
+assert[x@x == 534]
+
 print["*** All tests pass! ***"]
