@@ -101,14 +101,14 @@ public final Scope GLOBALS = new Scope(null)
     .put("Str", MB_STR)
     .put("List", MB_LIST)
     .put("Map", MB_MAP)
-    .put(new BuiltinFunc("Print") {
+    .put(new BuiltinFunc("print") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
         System.out.println(args.get(0));
         return args.get(0);
       }
     })
-    .put(new BuiltinFunc("Assert") {
+    .put(new BuiltinFunc("assert") {
       public Val calli(Val self, ArrayList<Val> args) {
         if (args.size() != 1 && args.size() != 2)
           throw err(
