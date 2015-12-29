@@ -28,9 +28,9 @@ assert[-1 == 0-1]
 assert[L[1, 2, 3][1] == 2]
 assert[M[1, 2][1] == 2]
 
-# IndexableTest = M["__call__", \index. index + 3]
-# indexable = new[IndexableTest]
-# assert[indexable[5] == 8]
+IndexableTest = C["__call__", \index. index + 3]
+indexable = new[IndexableTest]
+assert[indexable[5] == 8]
 
 print["*** All tests pass! ***"]
 
