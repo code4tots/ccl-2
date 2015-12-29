@@ -503,7 +503,14 @@ public final class UserFunc extends Func implements Trace {
         Simple.this.put(vararg, new List(al));
       }
 
-      return body.eval();
+      Val result = body.eval();
+
+      FLAG_RETURN = false;
+
+      if (jmp())
+        throw err("Wierd control flow issue");
+      return result;
+
     } finally {
       Simple.this.pop();
     }
