@@ -52,6 +52,14 @@ public final Blob MB_BOOL = new Blob(META_BLOB_META)
 public final Blob MB_NUM = new Blob(META_BLOB_META)
     .put("__name__", toStr("Num"))
     .put(eqf).put(reprf).put(strf)
+    .put(new BuiltinFunc("__lt__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        Num left = asNum(self, "self");
+        Num right = asNum(args.get(0), "argument 0");
+        return left.getVal() < right.getVal() ? tru : fal;
+      }
+    })
     .put(new BuiltinFunc("__add__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -562,6 +570,7 @@ public Err err(String message) {
 public static final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
       "and", "or", "xor", "return", "is", "import", "super",
+      "while",
       "def", "class", "not");
   public static final ArrayList<String> SYMBOLS;
 
@@ -855,6 +864,30 @@ public final class Parser {
         node = new OperationAst(token, node, "__ne__", right);
         continue;
       }
+      if (at("<")) {
+        Token token = next();
+        Ast right = parseAdditiveExpression();
+        node = new OperationAst(token, node, "__lt__", right);
+        continue;
+      }
+      if (at("<=")) {
+        Token token = next();
+        Ast right = parseAdditiveExpression();
+        node = new OperationAst(token, node, "__le__", right);
+        continue;
+      }
+      if (at(">")) {
+        Token token = next();
+        Ast right = parseAdditiveExpression();
+        node = new OperationAst(token, node, "__gt__", right);
+        continue;
+      }
+      if (at(">=")) {
+        Token token = next();
+        Ast right = parseAdditiveExpression();
+        node = new OperationAst(token, node, "__ge__", right);
+        continue;
+      }
       if (at("is")) {
         Token token = next();
         if (consume("not")) {
@@ -1044,6 +1077,13 @@ public final class Parser {
       return new ReturnAst(token, value);
     }
 
+    if (at("while")) {
+      Token token = next();
+      Ast cond = parseExpression();
+      Ast body = parseExpression();
+      return new WhileAst(token, cond, body);
+    }
+
     if (at("\\")) {
       Token token = next();
       ArrayList<String> args = new ArrayList<String>();
@@ -1142,6 +1182,37 @@ public final class ReturnAst extends Ast {
     Val v = val.eval();
     FLAG_RETURN = true;
     return v;
+  }
+}
+public final class WhileAst extends Ast {
+  public final Ast cond, body;
+  public WhileAst(Token token, Ast cond, Ast body) {
+    super(token);
+    this.cond = cond;
+    this.body = body;
+  }
+  public final Val eval() {
+    while (true) {
+      Val c = cond.eval();
+      if (jmp())
+        return c;
+
+      if (!c.truthy())
+        break;
+
+      Val b = body.eval();
+      if (FLAG_CONTINUE) {
+        FLAG_CONTINUE = false;
+        continue;
+      }
+      if (FLAG_BREAK) {
+        FLAG_BREAK = false;
+        break;
+      }
+      if (jmp())
+        return b;
+    }
+    return nil;
   }
 }
 public final class CallAst extends Ast {
