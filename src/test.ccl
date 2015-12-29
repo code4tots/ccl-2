@@ -32,10 +32,5 @@ IndexableTest = C["__name__", "IndexableTest", "__call__", \index. index + 3]
 indexable = new[IndexableTest]
 assert[indexable[5] == 8]
 
-
-f = \. err["Error occured!"]
-
-f[]
-
 print["*** All tests pass! ***"]
 
