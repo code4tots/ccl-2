@@ -53,6 +53,30 @@ public final Blob MB_NUM = new Blob(META_BLOB_META)
         return left.getVal() < right.getVal() ? tru : fal;
       }
     })
+    .put(new BuiltinFunc("__gt__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        Num left = asNum(self, "self");
+        Num right = asNum(args.get(0), "argument 0");
+        return left.getVal() > right.getVal() ? tru : fal;
+      }
+    })
+    .put(new BuiltinFunc("__le__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        Num left = asNum(self, "self");
+        Num right = asNum(args.get(0), "argument 0");
+        return left.getVal() <= right.getVal() ? tru : fal;
+      }
+    })
+    .put(new BuiltinFunc("__ge__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        Num left = asNum(self, "self");
+        Num right = asNum(args.get(0), "argument 0");
+        return left.getVal() >= right.getVal() ? tru : fal;
+      }
+    })
     .put(new BuiltinFunc("__add__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);

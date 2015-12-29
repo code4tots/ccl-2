@@ -24,3 +24,23 @@ List@filter = \f {
   }
   return xs
 }
+
+List@foldl = \f acc {
+  i = 0
+  while i < self.len[] {
+    acc = f[acc, self[i]]
+    i = i + 1
+  }
+  return acc
+}
+
+List@foldr = \f acc {
+  i = self.len[] - 1
+  while 0 <= i {
+    acc = f[self[i], acc]
+    i = i - 1
+  }
+  return acc
+}
+
+List@fold = List@foldl

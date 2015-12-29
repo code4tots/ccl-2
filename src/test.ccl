@@ -86,4 +86,8 @@ assert[L[1, 2, 3].len[] == 3]
 
 assert[L[1, 4, 2, 3].filter[\x. 2 < x] == L[4, 3]]
 
+assert[L[1, 2].foldl[L, 0] == L[L[0, 1], 2], L[1, 2].foldl[L, 0].repr[]]
+assert[L[0, 1].foldr[L, 2] == L[0, L[1, 2]]]
+assert[L[1, 2, 3].fold[\a b. a + b, 4] == 10]
+
 print["*** All tests pass! ***"]
