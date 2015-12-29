@@ -126,6 +126,12 @@ public final Scope GLOBALS = new Scope(null)
         return nil;
       }
     })
+    .put(new BuiltinFunc("err") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        throw err(args.get(0).toString());
+      }
+    })
     .put(new BuiltinFunc("new") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -174,8 +180,12 @@ public ModuleAst readModule(String content, String path) {
   return new Parser(content, path).parse();
 }
 
-public void run(ModuleAst node, String name) {
-  push(new ModuleFrame(new Scope(GLOBALS), node, name));
+public void run(final ModuleAst node, final String name) {
+  push(new Trace() {
+    public String getLocationString() {
+      return "\nin module " + node.name + " (" + name + ")";
+    }
+  }, new Scope(GLOBALS));
   try {
     put("__name__", toStr(name));
     node.eval();
@@ -187,9 +197,22 @@ public void run(ModuleAst node, String name) {
 
 //// Runtime information (stack trace, etc.)
 
-public final int MAX_RECURSION_DEPTH = 2000;
-private final Frame[] STACK = new Frame[MAX_RECURSION_DEPTH];
+public Simple() {
+  push(new Trace() {
+    public String getLocationString() {
+      return "";
+    }
+  }, GLOBALS);
+}
+
+public static interface Trace {
+  public String getLocationString();
+}
+
+public final int MAX_RECURSION_DEPTH = 300;
 private int DEPTH = 0;
+private final Scope[] SCOPE_STACK = new Scope[MAX_RECURSION_DEPTH];
+private final Trace[] TRACE_STACK = new Trace[MAX_RECURSION_DEPTH];
 private boolean FLAG_RETURN = false;
 private boolean FLAG_BREAK = false;
 private boolean FLAG_CONTINUE = false;
@@ -198,90 +221,47 @@ private boolean jmp() {
   return FLAG_RETURN || FLAG_BREAK || FLAG_CONTINUE;
 }
 
-public void push(Frame frame) {
+public void push(Trace trace) {
+  push(trace, SCOPE_STACK[DEPTH-1]);
+}
+
+public void push(Trace trace, Scope scope) {
   if (DEPTH >= MAX_RECURSION_DEPTH)
-    throw new RuntimeException("Stack overflow");
-  STACK[DEPTH++] = frame;
+    throw err(
+        "Stack overflow (max recursion depth is set to " +
+        Integer.toString(MAX_RECURSION_DEPTH) + ")");
+  TRACE_STACK[DEPTH] = trace;
+  SCOPE_STACK[DEPTH++] = scope;
 }
 
 public void pop() {
-  if (DEPTH == 0)
-    throw new RuntimeException("Stack underflow");
-  STACK[--DEPTH] = null;
+  if (DEPTH <= 1)
+    throw err("Stack underflow");
+
+  TRACE_STACK[--DEPTH] = null;
+  SCOPE_STACK[DEPTH] = null;
 }
 
 public Val get(String name) {
-  Val val = getFrame().scope.getOrNull(name);
+  Val val = getScope().getOrNull(name);
   if (val == null)
     throw err("No variabled named '" + name + "'");
   return val;
 }
 
 public void put(String name, Val val) {
-  getFrame().scope.put(name, val);
+  getScope().put(name, val);
 }
 
-public Frame getFrame() {
-  return STACK[DEPTH-1];
+public Scope getScope() {
+  return SCOPE_STACK[DEPTH-1];
 }
 
-public String getLocationString() {
+public String getStackTrace() {
   StringBuilder sb = new StringBuilder();
-  for (int i = 0; i < DEPTH; i++)
-    sb.append(STACK[i].getLocationString());
+  for (int i = DEPTH-1; i >= 0; i--)
+    sb.append(TRACE_STACK[i].getLocationString());
   return sb.toString();
-}
-
-public abstract class Frame {
-  public final Scope scope;
-  public Frame(Scope scope) { this.scope = scope; }
-  public abstract String getLocationString();
-}
-
-public final class ModuleFrame extends Frame {
-  public final ModuleAst module;
-  public final String moduleName;
-  public ModuleFrame(Scope scope, ModuleAst module, String moduleName) {
-    super(new Scope(scope));
-    this.module = module;
-    this.moduleName = moduleName;
-  }
-  public final String getLocationString() {
-    return "\nin module '" + module.name + "' (" + moduleName + ")";
-  }
-}
-
-public final class UserFuncFrame extends Frame {
-  public final Token token;
-  public UserFuncFrame(Scope scope, Token token) {
-    super(new Scope(scope));
-    this.token = token;
-  }
-  public final String getLocationString() {
-    return "\nin user function defined in " + token.getLocationString();
-  }
-}
-
-public final class AstFrame extends Frame {
-  public final Token token;
-  public AstFrame(Token token) {
-    super(Simple.this.getFrame().scope);
-    this.token = token;
-  }
-  public final String getLocationString() {
-    return "\nin expression in " + token.getLocationString();
-  }
-}
-
-public final class BuiltinFuncFrame extends Frame {
-  public final String name;
-  public BuiltinFuncFrame(String name) {
-    super(Simple.this.getFrame().scope);
-    this.name = name;
-  }
-  public final String getLocationString() {
-    return "\nin builtin function in " + name;
-  }
 }
 
 //// Val
@@ -439,11 +419,11 @@ public final class BoundFunc extends Func {
   // Binding an already bound function shouldn't change anything.
   public final Func bind(Val self) { return this; }
 }
-public abstract class BuiltinFunc extends Func {
+public abstract class BuiltinFunc extends Func implements Trace {
   public final String name;
   public BuiltinFunc(String name) { this.name = name; }
   public final Val call(Val self, ArrayList<Val> args) {
-    Simple.this.push(new BuiltinFuncFrame(name));
+    Simple.this.push(this);
     try {
       return calli(self, args);
     } finally {
@@ -452,8 +432,11 @@ public abstract class BuiltinFunc extends Func {
   }
   public abstract Val calli(Val self, ArrayList<Val> args);
   public final String repr() { return "<builtin func " + name + ">"; }
+  public final String getLocationString() {
+    return "\nin builtin func '" + name + "'";
+  }
 }
-public final class UserFunc extends Func {
+public final class UserFunc extends Func implements Trace {
   public final Token token;
   public final ArrayList<String> args;
   public final String vararg;
@@ -469,7 +452,7 @@ public final class UserFunc extends Func {
     this.scope = scope;
   }
   public final Val call(Val self, ArrayList<Val> args) {
-    Simple.this.push(new UserFuncFrame(scope, token));
+    Simple.this.push(this, new Scope(scope));
     try {
       Simple.this.put("self", self);
       if (vararg == null) {
@@ -495,6 +478,9 @@ public final class UserFunc extends Func {
     return
         "<func defined in " + token.lexer.filespec + " line " +
         Integer.toString(token.getLineNumber()) + ">";
+  }
+  public final String getLocationString() {
+    return "\nin user func defined in " + token.getLocationString();
   }
 }
 public final class Blob extends Val {
@@ -555,7 +541,7 @@ public final class Err extends RuntimeException {
   public static final long serialVersionUID = 42L;
   public final String message;
   public Err(String message) {
-    super(message + Simple.this.getLocationString());
+    super(message + Simple.this.getStackTrace());
     this.message = message;
   }
 }
@@ -1069,10 +1055,13 @@ public final class Parser {
 }
 
 //// Ast
-public abstract class Ast {
+public abstract class Ast implements Trace {
   public final Token token;
   public Ast(Token token) { this.token = token; }
   public abstract Val eval();
+  public String getLocationString() {
+    return "\nin " + token.getLocationString();
+  }
 }
 public final class NumAst extends Ast {
   public final Num val;
@@ -1096,7 +1085,14 @@ public final class NameAst extends Ast {
     super(token);
     this.name = name;
   }
-  public final Val eval() { return Simple.this.get(name); }
+  public final Val eval() {
+    push(this);
+    try {
+      return Simple.this.get(name);
+    } finally {
+      pop();
+    }
+  }
 }
 public final class AssignAst extends Ast {
   public final String name;
@@ -1126,7 +1122,7 @@ public final class FunctionAst extends Ast {
     this.body = body;
   }
   public final Val eval() {
-    return new UserFunc(token, args, vararg, body, getFrame().scope);
+    return new UserFunc(token, args, vararg, body, getScope());
   }
 }
 public final class ReturnAst extends Ast {
@@ -1171,7 +1167,7 @@ public final class CallAst extends Ast {
       for (int i = 0; i < vl.size(); i++)
         va.add(vl.get(i));
     }
-    Simple.this.push(new AstFrame(token));
+    Simple.this.push(this);
     try {
       return vf.call(va);
     } finally {
@@ -1246,7 +1242,7 @@ public final class OperationAst extends Ast {
       if (jmp()) return vv;
       al.add(vv);
     }
-    Simple.this.push(new AstFrame(token));
+    Simple.this.push(this);
     try {
       return v.callMethod(name, al);
     } finally {
