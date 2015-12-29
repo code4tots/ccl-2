@@ -284,6 +284,9 @@ public abstract class Val {
   }
   public String toString() { return repr(); }
   public boolean truthy() { return true; }
+  public Val call(ArrayList<Val> args) {
+    throw err(getClass().getName() + " is not callable");
+  }
 }
 public final class Nil extends Val {
   public final Map getMetaMap() { return MM_NIL; }
@@ -360,6 +363,16 @@ public final class List extends WrapperVal<ArrayList<Val>> {
     sb.append("]");
     return sb.toString();
   }
+  public final Val get(int i) {
+    return getVal().get(i);
+  }
+  public final Val put(int i, Val val) {
+    return getVal().set(i, val);
+  }
+  public final Val call(ArrayList<Val> args) {
+    expectExactArgumentLength(args, 1);
+    return get(asNum(args.get(0), "index").getVal().intValue());
+  }
 }
 public final class Map extends WrapperVal<HashMap<Val, Val>> {
   public Map() { super(new HashMap<Val, Val>()); }
@@ -372,6 +385,11 @@ public final class Map extends WrapperVal<HashMap<Val, Val>> {
   public Map put(String key, Val val) {
     getVal().put(toStr(key), val);
     return this;
+  }
+  public Val get(Val key) { return getVal().get(key); }
+  public Val call(ArrayList<Val> args) {
+    expectExactArgumentLength(args, 1);
+    return get(args.get(0));
   }
   public String repr() {
     StringBuilder sb = new StringBuilder();
@@ -393,6 +411,7 @@ public final class Map extends WrapperVal<HashMap<Val, Val>> {
 public abstract class Func extends Val {
   public abstract Val call(Val self, ArrayList<Val> args);
   public final Map getMetaMap() { return MM_FUNC; }
+  public final Val call(ArrayList<Val> args) { return call(nil, args); }
   public final boolean equals(Val other) { return this == other; }
 }
 public final class BoundFunc extends Func {
@@ -1120,18 +1139,7 @@ public final class CallAst extends Ast {
     }
     Simple.this.push(new AstFrame(token));
     try {
-      if (vf instanceof Func)
-        return ((Func) vf).call(null, va);
-      else if (vf instanceof List) {
-        expectExactArgumentLength(va, 1);
-        return ((List) vf).getVal().get(
-            asNum(va.get(0), "index").getVal().intValue());
-      } else if (vf instanceof Map) {
-        expectExactArgumentLength(va, 1);
-        return ((Map) vf).getVal().get(va.get(0));
-      } else {
-        return vf.callMethod(toStr("__call__"), va);
-      }
+      return vf.call(va);
     } finally {
       Simple.this.pop();
     }
