@@ -569,9 +569,8 @@ public Err err(String message) {
 
 public static final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
-      "and", "or", "xor", "return", "is", "import", "super",
-      "while",
-      "def", "class", "not");
+      "and", "or", "xor", "return", "is", "import", "super", "if", "else",
+      "while", "def", "class", "not");
   public static final ArrayList<String> SYMBOLS;
 
   // My syntax highlighter does funny things if it sees "{", "}" in the
@@ -1084,6 +1083,16 @@ public final class Parser {
       return new WhileAst(token, cond, body);
     }
 
+    if (at("if")) {
+      Token token = next();
+      Ast cond = parseExpression();
+      Ast body = parseExpression();
+      Ast other = new BlockAst(token, new ArrayList<Ast>());
+      if (consume("else"))
+        other = parseExpression();
+      return new IfAst(token, cond, body, other);
+    }
+
     if (at("\\")) {
       Token token = next();
       ArrayList<String> args = new ArrayList<String>();
@@ -1213,6 +1222,21 @@ public final class WhileAst extends Ast {
         return b;
     }
     return nil;
+  }
+}
+public final class IfAst extends Ast {
+  public final Ast cond, body, other;
+  public IfAst(Token token, Ast cond, Ast body, Ast other) {
+    super(token);
+    this.cond = cond;
+    this.body = body;
+    this.other = other;
+  }
+  public final Val eval() {
+    Val c = cond.eval();
+    if (jmp())
+      return c;
+    return c.truthy() ? body.eval() : other.eval();
   }
 }
 public final class CallAst extends Ast {
