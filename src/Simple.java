@@ -1200,6 +1200,7 @@ public final class ReturnAst extends Ast {
   }
   public final Val eval() {
     Val v = val.eval();
+    if (jmp()) return v;
     FLAG_RETURN = true;
     return v;
   }
