@@ -94,5 +94,7 @@ assert[L[0, 1].foldr[L, 2] == L[0, L[1, 2]]]
 assert[L[1, 2, 3].fold[\a b. a + b, 4] == 10]
 
 assert[L[1, 2, 3, 4].cut[1, nil] == L[2, 3, 4], L[1, 2, 3, 4].cut[1, nil]]
+assert[L[1, 2, 3, 4].cut[1, 2] == L[2], L[1, 2, 3, 4].cut[1, 2]]
+assert[L[1, 2, 3, 4].cut[1, -1] == L[2, 3], L[1, 2, 3, 4].cut[1, -1]]
 
 print["*** All tests pass! ***"]
