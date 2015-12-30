@@ -40,6 +40,21 @@ Features under consideration
     and without iterators, this seems rather clunky.
 * Generators/Coroutines
   Maybe. I want it to be really elegant...
+* Channel/Goroutines
+  Maybe instead of iterators/generators, I could take a page from golang and
+  use channels and goroutines.
+
+  At first I was concerned that channels wouldn't blocked, and in
+  situation like with iterators, you actually want the iterator to block,
+  and wait until caller asks for more.
+
+  By default, in Go, apparently channels block unless you specify specify
+  a buffer size: https://www.golang-book.com/books/intro/10
+
+* __new__ attribute convention, so that 'new' calls '__new__' if a type has
+  a '__new__' attribute?
+  * Hmm, wait, then how do we allocate a Blob from inside of 'MyType.__new__'?
+    If you tried to call 'new[MyType]', it would recurse.
 
 Done features
 -------------
