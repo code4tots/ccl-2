@@ -4,6 +4,61 @@
 # This should make porting easier if I choose to do so in the future.
 #
 
+"""
+
+# Assumed bultins
+
+Nil@__eq__
+Nil@str
+Nil@repr
+
+Bool@__eq__
+Bool@str
+Bool@repr
+
+Num+ (unary)
+Num- (unary)
+Num+
+Num-
+Num*
+Num/
+Num%
+Num@__eq__
+Num@str
+Num@repr
+
+Str+
+Str% # string format like in Python.
+Str@__eq__
+Str@str
+Str@repr
+
+List@len
+List@add
+List@pop
+List@__eq__
+List@str
+List@repr
+List[]
+List[]=
+
+Map@len
+Map@__eq__
+Map@str
+Map@repr
+Map[]
+Map[]=
+Map@keys
+Map@vals
+
+Func[]
+Func@apply
+Func@__eq__
+Func@str
+Func@repr
+
+"""
+
 List@map = \f {
   i = 0
   xs = L[]
