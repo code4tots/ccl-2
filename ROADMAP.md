@@ -56,6 +56,33 @@ Features under consideration
   * Hmm, wait, then how do we allocate a Blob from inside of 'MyType.__new__'?
     If you tried to call 'new[MyType]', it would recurse.
 
+* There are many interesting cases to consider on what to do about
+  coroutine/iterators.
+
+  For instance, sometimes you want 'List@map' to run a function in parallel on
+  all the items on the list.
+
+  On the other hand, if you are iterating over it, sometimes you want
+  'List@map' to be lazy and not necessarily process the entire list -- we only
+  want values up to what we have already specified.
+
+  How are we going to indicate when we want 'map' to be strict or lazy?
+
+  What about with an 'each' method, where 'each' is like 'map' but doesn't
+  save the values? We might want this one to be always strict, since
+  what is the point if not to use it as a looping construct? This is basically
+  a lazy 'map' where we request all values but drop them immediately, right?
+  What about concurrency, do we want 'each' to specify parallelism?
+  Is it useful to have an 'each' method that runs in parallel? Would 'each'
+  still be useful even if you couldn't mutate the outside world from inside
+  the callback?
+
+  Fold/reduce at least may be easier? Foldl/foldr we always want sequential
+  since ordering is specified and we always want strict since in there is no
+  partial results to return as in lists -- just the final combination.
+  Reduce we always want to indicate concurrency I would imagine.
+
+
 Done features
 -------------
 
