@@ -93,4 +93,13 @@ assert[L[1, 2].foldl[L, 0] == L[L[0, 1], 2], L[1, 2].foldl[L, 0].repr[]]
 assert[L[0, 1].foldr[L, 2] == L[0, L[1, 2]]]
 assert[L[1, 2, 3].fold[\a b. a + b, 4] == 10]
 
+xs = L[]
+i = 0
+while i < 2000000 {
+  xs.add[i]
+  i = i + 1
+}
+print[xs.len[]]
+print[xs.fold[\a b. a + b, 0]]
+
 print["*** All tests pass! ***"]

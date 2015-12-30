@@ -1,3 +1,4 @@
+import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,7 +20,13 @@ public static void main(String[] args) {
 
 public void xmain(String[] args) {
   Module mainModule = readModule(args[0]);
+  long jvmUpTime = ManagementFactory.getRuntimeMXBean().getUptime();
+  System.out.println("Startup time took " + jvmUpTime + "ms");
+  long start = System.currentTimeMillis();
   run(mainModule, "__main__");
+  long end = System.currentTimeMillis();
+  long dur = end - start;
+  System.out.println("Running __main__ took " + dur + "ms");
 }
 
 public SimpleDesktop(String corelib) {
