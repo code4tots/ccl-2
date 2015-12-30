@@ -123,3 +123,5 @@ List@cut = \start end {
 
   return xs
 }
+
+List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
