@@ -38,6 +38,8 @@ Features under consideration
     really fast.
     Technically, lambdas already are this mechanism, but with just lambdas
     and without iterators, this seems rather clunky.
+* Generators/Coroutines
+  Maybe. I want it to be really elegant...
 
 Done features
 -------------
