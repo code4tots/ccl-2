@@ -855,17 +855,11 @@ public final class Parser {
     return next();
   }
   public Module parse() {
-    long startTime = System.currentTimeMillis();
 
     Token token = peek();
     ArrayList<Statement> exprs = new ArrayList<Statement>();
     while (!at("EOF"))
       exprs.add(parseStatement());
-
-    long endTime = System.currentTimeMillis();
-    long duration = endTime - startTime;
-
-    System.out.println("Parsing " + filespec + " took " + duration + "ms");
 
     return new Module(token, name, new BlockStatement(token, exprs));
   }
