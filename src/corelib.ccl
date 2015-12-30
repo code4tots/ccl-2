@@ -99,3 +99,27 @@ List@foldr = \f acc {
 }
 
 List@fold = List@foldl
+
+List@cut = \start end {
+  if end is nil
+    end = self.len[]
+
+  if start < 0
+    start = start + self.len[]
+
+  if end < 0
+    end = end + self.len[]
+
+  if start < 0 or start > self.len[] or end < 0 or end > self.len[]
+    err["List@cut range out of bounds: len = " + self.len[].str[] +
+        " start = " + start.str[] + " end = " + end.str[]]
+
+  xs = L[]
+  i = start
+  while i < end {
+    xs.add[self[i]]
+    i = i + 1
+  }
+
+  return xs
+}

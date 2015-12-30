@@ -95,7 +95,15 @@ public final Blob MB_NUM = new Blob(META_BLOB_META)
     });
 public final Blob MB_STR = new Blob(META_BLOB_META)
     .put("__name__", toStr("Str"))
-    .put(eqf).put(reprf).put(strf);
+    .put(eqf).put(reprf).put(strf)
+    .put(new BuiltinFunc("__add__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        Str left = asStr(self, "self");
+        Str right = asStr(args.get(0), "argument 0");
+        return toStr(left.getVal() + right.getVal());
+      }
+    });
 public final Blob MB_LIST = new Blob(META_BLOB_META)
     .put("__name__", toStr("List"))
     .put(eqf).put(reprf).put(strf)
@@ -147,7 +155,7 @@ public final Scope GLOBALS = new Scope(null)
         if (!args.get(0).truthy()) {
           String message = "Assertion error";
           if (args.size() == 2)
-            message += ": " + asStr(args.get(1), "argument 1").getVal();
+            message += ": " + args.get(1).toString();
           throw err(message);
         }
         return nil;
