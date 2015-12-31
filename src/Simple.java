@@ -1155,7 +1155,8 @@ public final class Parser {
 
     if (at("STR")) {
       Token token = next();
-      return new StringAst(token, (String) token.value);
+      return new NewAst(
+          token, Opcode.LITERAL, toStr((String) token.value), null);
     }
 
     if (at("NUM")) {
@@ -1218,6 +1219,51 @@ public abstract class Ast implements Trace {
   }
   public abstract Val eval();
 }
+public enum Opcode {
+  LITERAL,
+}
+public final class NewAst extends Ast {
+  public final Opcode opcode;
+  public final Val data;
+  public final ArrayList<NewAst> kids;
+  public final NewAst next;
+  public NewAst(Token token, Opcode opcode, Val data, ArrayList<NewAst> kids) {
+    super(token);
+    this.opcode = opcode;
+    this.data = data;
+    this.kids = kids;
+    switch (opcode) {
+    default:
+      next = null;
+    }
+  }
+  public NewAst(
+      Token token, Opcode opcode, Val data, ArrayList<NewAst> kids,
+      NewAst next) {
+    super(token);
+    this.opcode = opcode;
+    this.data = data;
+    this.kids = kids;
+    this.next = next;
+  }
+  public final Val eval() {
+    ArrayList<NewAst> ops = new ArrayList<NewAst>();
+    ops.add(this);
+    return eval(ops, new ArrayList<Val>());
+  }
+  public final Val eval(ArrayList<NewAst> ops, ArrayList<Val> vals) {
+    while (!ops.isEmpty()) {
+      NewAst op = ops.remove(ops.size() - 1);
+      switch (op.opcode) {
+      case LITERAL:
+        vals.add(data);
+        break;
+      default:
+      }
+    }
+    return vals.remove(vals.size() - 1);
+  }
+}
 public final class ReturnAst extends Ast {
   public final Ast val;
   public ReturnAst(Token token, Ast val) {
@@ -1274,14 +1320,6 @@ public final class NumAst extends Ast {
   public NumAst(Token token, Double val) {
     super(token);
     this.val = toNum(val);
-  }
-  public final Val eval() { return val; }
-}
-public final class StringAst extends Ast {
-  public final Str val;
-  public StringAst(Token token, String val) {
-    super(token);
-    this.val = toStr(val);
   }
   public final Val eval() { return val; }
 }
