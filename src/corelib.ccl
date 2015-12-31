@@ -59,7 +59,9 @@ Func@repr
 
 """
 
-Val@str = \. self.repr[]
+Val@__str__ = \. self.__repr__[]
+Val@str = \. self.__str__[]
+Val@repr = \. self.__repr__[]
 
 MetaBlob.extend[Val]
 Nil.extend[Val]

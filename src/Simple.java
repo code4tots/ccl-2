@@ -11,6 +11,25 @@ public class Simple {
 //// Language core library.
 // The stuff that gets included before anything is imported.
 
+public final BuiltinFunc native_eq = new BuiltinFunc("__eq__") {
+  public Val calli(Val self, ArrayList<Val> args) {
+    expectExactArgumentLength(args, 1);
+    return self.equals(args.get(0)) ? tru : fal;
+  }
+};
+public final BuiltinFunc native_repr = new BuiltinFunc("__repr__") {
+  public Val calli(Val self, ArrayList<Val> args) {
+    expectExactArgumentLength(args, 0);
+    return toStr(self.repr());
+  }
+};
+public final BuiltinFunc native_str = new BuiltinFunc("__str__") {
+  public Val calli(Val self, ArrayList<Val> args) {
+    expectExactArgumentLength(args, 0);
+    return toStr(self.toString());
+  }
+};
+
 // Meta blobs for builtin types.
 public final Nil nil = new Nil();
 public final Bool tru = new Bool(true);
@@ -41,7 +60,7 @@ public final HashMap<String, Val> ROOT_META_BLOB =
         return self;
       }
     })
-    .put(new BuiltinFunc("repr") {
+    .put(new BuiltinFunc("__repr__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 0);
         Val v = asBlob(self, "self").get("__name__");
@@ -53,12 +72,6 @@ public final HashMap<String, Val> ROOT_META_BLOB =
 public final Blob MB_META_BLOB = new Blob(ROOT_META_BLOB, ROOT_META_BLOB);
 public final Blob MB_VAL = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Val"))
-    .put(new BuiltinFunc("__eq__") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        expectExactArgumentLength(args, 1);
-        return self.equals(args.get(0)) ? tru : fal;
-      }
-    })
     .put(new BuiltinFunc("__ge__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -83,19 +96,16 @@ public final Blob MB_VAL = new Blob(ROOT_META_BLOB)
             self.callMethod("__eq__", toArrayList(args.get(0))).truthy() ?
             fal : tru;
       }
-    })
-    .put(new BuiltinFunc("repr") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        expectExactArgumentLength(args, 0);
-        return toStr(self.repr());
-      }
     });
 public final Blob MB_NIL = new Blob(ROOT_META_BLOB)
-    .put("__name__", toStr("Nil"));
+    .put("__name__", toStr("Nil"))
+    .put(native_eq).put(native_repr).put(native_str);
 public final Blob MB_BOOL = new Blob(ROOT_META_BLOB)
-    .put("__name__", toStr("Bool"));
+    .put("__name__", toStr("Bool"))
+    .put(native_eq).put(native_repr).put(native_str);
 public final Blob MB_NUM = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Num"))
+    .put(native_eq).put(native_repr).put(native_str)
     .put(new BuiltinFunc("__lt__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -122,6 +132,7 @@ public final Blob MB_NUM = new Blob(ROOT_META_BLOB)
     });
 public final Blob MB_STR = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Str"))
+    .put(native_eq).put(native_repr).put(native_str)
     .put(new BuiltinFunc("__add__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -132,6 +143,7 @@ public final Blob MB_STR = new Blob(ROOT_META_BLOB)
     });
 public final Blob MB_LIST = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("List"))
+    .put(native_eq).put(native_repr).put(native_str)
     .put(new BuiltinFunc("len") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 0);
@@ -146,9 +158,11 @@ public final Blob MB_LIST = new Blob(ROOT_META_BLOB)
       }
     });
 public final Blob MB_MAP = new Blob(ROOT_META_BLOB)
-    .put("__name__", toStr("Map"));
+    .put("__name__", toStr("Map"))
+    .put(native_eq).put(native_repr).put(native_str);
 public final Blob MB_FUNC = new Blob(ROOT_META_BLOB)
-    .put("__name__", toStr("Func"));
+    .put("__name__", toStr("Func"))
+    .put(native_eq).put(native_repr).put(native_str);
 
 // Builtins
 public final Scope GLOBALS = new Scope(null)
@@ -624,10 +638,10 @@ public final class Blob extends Val {
   // TODO: Make 'hashCode' overridable by user.
   public final int hashCode() { return super.hashCode(); }
   public final String repr() {
-    return asStr(callMethod("repr"), "repr[]").getVal();
+    return asStr(callMethod("__repr__"), "repr[]").getVal();
   }
   public final String toString() {
-    return asStr(callMethod("str"), "str[]").getVal();
+    return asStr(callMethod("__str__"), "str[]").getVal();
   }
 }
 
