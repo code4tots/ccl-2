@@ -329,7 +329,7 @@ public String getStackTrace() {
 public abstract class Val {
   public abstract Val searchMetaBlob(String key);
   public abstract boolean equals(Val other);
-  public abstract String repr(); // TODO: Make final and read from metablob.
+  public abstract String repr();
   public final boolean equals(Object other) {
     return (other instanceof Val) && equals((Val) other);
   }
@@ -345,6 +345,9 @@ public abstract class Val {
   public Val bind(Val self) { return this; }
   // TODO: Make toString final and read from metablob.
   public String toString() { return repr(); }
+  // TODO: Figure out whether I want to have a special method for truthy,
+  // or whether 'truthy' should be sacred where 'nil' and 'false' are the
+  // only false values.
   public boolean truthy() { return true; }
   public Val call(Val self, ArrayList<Val> args) {
     return bind(self).call(args);
