@@ -147,6 +147,8 @@ List@iter = \ {
   return iter
 }
 
+GLOBAL@Iter = C["__name__", "Iter"]
+
 Iter@__new__ = \f {
   iter = new[Iter]
   iter@done = false

@@ -140,8 +140,6 @@ public final Blob MB_FUNC = new Blob(ROOT_META_BLOB)
             asList(args.get(1), "argument 1").getVal());
       }
     });
-public final Blob MB_ITER = new Blob(ROOT_META_BLOB)
-    .put("__name__", toStr("Iter"));
 
 // Builtins
 public final Scope GLOBALS = new Scope(null)
@@ -157,7 +155,6 @@ public final Scope GLOBALS = new Scope(null)
     .put("List", MB_LIST)
     .put("Map", MB_MAP)
     .put("Func", MB_FUNC)
-    .put("Iter", MB_ITER)
     .put(new BuiltinFunc("print") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -250,6 +247,7 @@ public void run(final Module node, final String name) {
 
 //// Runtime information (stack trace, etc.)
 public Simple(String corelib) {
+  GLOBALS.put("GLOBAL", new Blob(new HashMap<String, Val>(), GLOBALS.table));
   push(new Trace() {
     public String getLocationString() {
       return "";
