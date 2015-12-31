@@ -139,33 +139,39 @@ List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
 
 List@iter = \ {
   list = self
-  iter = Iter[\{
-    val = list[self@i]
-    self@i = self@i + 1
-    if self@i >= list.len[]
-      self@done = true
-    return val
-  }]
-  iter@i = 0
+  iter = Iter[
+    \{
+      self@i = 0
+    },
+    \{
+      val = list[self@i]
+      self@i = self@i + 1
+      return val
+    },
+    \. self@i < list.len[]
+  ]
+  assert[iter is not nil, iter]
   return iter
 }
 
 GLOBAL@Iter = C["__name__", "Iter"]
 
-Iter@__new__ = \f {
+Iter@__new__ = \init more f {
   iter = new[Iter]
-  iter@done = false
+  if init
+    init.apply[iter, L[]]
+  iter@more = more
   iter@next = f
   return iter
 }
 
-Iter@next = \. self@next.apply[self, L[]]
+Iter@more = \. self@more.apply[self, L[]]
 
-Iter@done = \. self@done
+Iter@next = \. self@next.apply[self, L[]]
 
 Iter@list = \ {
   xs = L[]
-  while not self.done[]
+  while self.more[]
     xs.add[self.next[]]
   return xs
 }

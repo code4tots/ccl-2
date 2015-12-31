@@ -590,10 +590,7 @@ public final class Blob extends Val {
     return searchMetaBlob("__call__").call(this, args);
   }
   public final Val get(String key) {
-    Val v = attrs.get(key);
-    if (v == null)
-      throw err("No attribute '" + key + "'"); // TODO: Add type to message.
-    return v;
+    return attrs.get(key);
   }
   public final Blob put(String key, Val val) {
     attrs.put(key, val);
@@ -606,7 +603,10 @@ public final class Blob extends Val {
     put(name, val);
   }
   public Val getattr(String name) {
-    return get(name);
+    Val v = get(name);
+    if (v == null)
+      throw err("No attribute '" + name + "'"); // TODO: Add type to message.
+    return v;
   }
   public final Val searchMetaBlob(String key) { return metaBlob.get(key); }
   // TODO: Make 'equals' overridable by user.
