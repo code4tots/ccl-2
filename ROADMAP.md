@@ -82,6 +82,12 @@ Features under consideration
   partial results to return as in lists -- just the final combination.
   Reduce we always want to indicate concurrency I would imagine.
 
+* Another consideration in implementing coroutines and/or iterators
+  I just realized, it might be a bit more work than I thought --
+  Since I am walking the AST, I need an easy way to save where I am
+  in the AST. This will involve saving not just the locals on
+  SCOPE_STACK, but also the Java variables I've allocated on the
+  stack for walking the tree.
 
 Done features
 -------------
