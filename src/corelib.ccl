@@ -158,9 +158,11 @@ Iter@__new__ = \f {
 
 Iter@next = \. self@next.apply[self, L[]]
 
+Iter@done = \. self@done
+
 Iter@list = \ {
   xs = L[]
-  while not self@done
+  while not self.done[]
     xs.add[self.next[]]
   return xs
 }
