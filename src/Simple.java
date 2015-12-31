@@ -44,7 +44,7 @@ public final HashMap<String, Val> ROOT_META_BLOB =
     .put(new BuiltinFunc("repr") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 0);
-        Val v = asBlob(self, "self").attrs.get("__name__");
+        Val v = asBlob(self, "self").get("__name__");
         return v == null ?
             toStr("<unnamed meta blob>") : asStr(v, "__name__");
       }
@@ -600,7 +600,10 @@ public final class Blob extends Val {
     return searchMetaBlob("__call__").call(args);
   }
   public final Val get(String key) {
-    return attrs.get(key);
+    Val v = attrs.get(key);
+    if (v == null)
+      throw err("No attribute '" + key + "'"); // TODO: Add type to message.
+    return v;
   }
   public final Blob put(String key, Val val) {
     attrs.put(key, val);
