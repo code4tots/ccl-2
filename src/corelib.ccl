@@ -59,6 +59,9 @@ Func@repr
 
 """
 
+Val@__le__ = \r. self < r or self == r
+Val@__ge__ = \r. not (self < r)
+Val@__gt__ = \r. not (self < r or self == r)
 Val@__str__ = \. self.__repr__[]
 Val@str = \. self.__str__[]
 Val@repr = \. self.__repr__[]

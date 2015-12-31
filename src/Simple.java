@@ -71,32 +71,7 @@ public final HashMap<String, Val> ROOT_META_BLOB =
     .get();
 public final Blob MB_META_BLOB = new Blob(ROOT_META_BLOB, ROOT_META_BLOB);
 public final Blob MB_VAL = new Blob(ROOT_META_BLOB)
-    .put("__name__", toStr("Val"))
-    .put(new BuiltinFunc("__ge__") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        expectExactArgumentLength(args, 1);
-        return self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ?
-            fal : tru;
-      }
-    })
-    .put(new BuiltinFunc("__le__") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        expectExactArgumentLength(args, 1);
-        return
-            self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ||
-            self.callMethod("__eq__", toArrayList(args.get(0))).truthy() ?
-            tru : fal;
-      }
-    })
-    .put(new BuiltinFunc("__gt__") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        expectExactArgumentLength(args, 1);
-        return
-            self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ||
-            self.callMethod("__eq__", toArrayList(args.get(0))).truthy() ?
-            fal : tru;
-      }
-    });
+    .put("__name__", toStr("Val"));
 public final Blob MB_NIL = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Nil"))
     .put(native_eq).put(native_repr).put(native_str);
