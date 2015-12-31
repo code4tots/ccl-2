@@ -1155,7 +1155,8 @@ public final class Parser {
 
     if (at("NUM")) {
       Token token = next();
-      return new NumAst(token, (Double) token.value);
+      return new NewAst(
+          token, Opcode.LITERAL, toNum((Double) token.value), null);
     }
 
     if (at("ID")) {
@@ -1308,14 +1309,6 @@ public final class BlockAst extends Ast {
     }
     return nil;
   }
-}
-public final class NumAst extends Ast {
-  public final Num val;
-  public NumAst(Token token, Double val) {
-    super(token);
-    this.val = toNum(val);
-  }
-  public final Val eval() { return val; }
 }
 public final class NameAst extends Ast {
   public final String name;
