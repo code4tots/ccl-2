@@ -6,46 +6,43 @@
 
 """
 
-# Assumed bultins
+# Bultins implemented natively
 
 Nil@__eq__
-Nil@str
-Nil@repr
+Nil@__repr__
 
 Bool@__eq__
-Bool@str
-Bool@repr
+Bool@__repr__
 
-Num+ (unary)
-Num- (unary)
-Num+
-Num-
-Num*
-Num/
-Num%
+Num@__pos__
+Num@__neg__
+Num@__add__
+Num@__sub__
+Num@__mul__
+Num@__div__
+Num@__mod__
 Num@__eq__
-Num@str
-Num@repr
+Num@__repr__
 
-Str+
-Str% # string format like in Python.
+Str@__add__
+Str@__mod__ # string format like in Python.
 Str@__eq__
-Str@str
-Str@repr
+Str@__repr__
+Str@len
+Str[]
+Str[]=
 
-List@len
 List@add
 List@pop
 List@__eq__
-List@str
-List@repr
+List@__repr__
+List@len
 List[]
 List[]=
 
-Map@len
 Map@__eq__
-Map@str
-Map@repr
+Map@__repr__
+Map@len
 Map[]
 Map[]=
 Map@keys
@@ -54,8 +51,7 @@ Map@vals
 Func[]
 Func@apply
 Func@__eq__
-Func@str
-Func@repr
+Func@__repr__
 
 """
 
@@ -67,14 +63,7 @@ Val@__str__ = \. self.__repr__[]
 Val@str = \. self.__str__[]
 Val@repr = \. self.__repr__[]
 
-MetaBlob.extend[Val]
-Nil.extend[Val]
-Bool.extend[Val]
-Num.extend[Val]
-Str.extend[Val]
-List.extend[Val]
-Map.extend[Val]
-Func.extend[Val]
+Str@__str__ = \. self
 
 List@map = \f {
   i = 0
@@ -142,3 +131,12 @@ List@cut = \start end {
 }
 
 List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
+
+MetaBlob.extend[Val]
+Nil.extend[Val]
+Bool.extend[Val]
+Num.extend[Val]
+Str.extend[Val]
+List.extend[Val]
+Map.extend[Val]
+Func.extend[Val]

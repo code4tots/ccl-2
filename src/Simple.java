@@ -23,12 +23,6 @@ public final BuiltinFunc native_repr = new BuiltinFunc("__repr__") {
     return toStr(self.repr());
   }
 };
-public final BuiltinFunc native_str = new BuiltinFunc("__str__") {
-  public Val calli(Val self, ArrayList<Val> args) {
-    expectExactArgumentLength(args, 0);
-    return toStr(self.toString());
-  }
-};
 
 // Meta blobs for builtin types.
 public final Nil nil = new Nil();
@@ -74,13 +68,13 @@ public final Blob MB_VAL = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Val"));
 public final Blob MB_NIL = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Nil"))
-    .put(native_eq).put(native_repr).put(native_str);
+    .put(native_eq).put(native_repr);
 public final Blob MB_BOOL = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Bool"))
-    .put(native_eq).put(native_repr).put(native_str);
+    .put(native_eq).put(native_repr);
 public final Blob MB_NUM = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Num"))
-    .put(native_eq).put(native_repr).put(native_str)
+    .put(native_eq).put(native_repr)
     .put(new BuiltinFunc("__lt__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -107,7 +101,7 @@ public final Blob MB_NUM = new Blob(ROOT_META_BLOB)
     });
 public final Blob MB_STR = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Str"))
-    .put(native_eq).put(native_repr).put(native_str)
+    .put(native_eq).put(native_repr)
     .put(new BuiltinFunc("__add__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -118,7 +112,7 @@ public final Blob MB_STR = new Blob(ROOT_META_BLOB)
     });
 public final Blob MB_LIST = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("List"))
-    .put(native_eq).put(native_repr).put(native_str)
+    .put(native_eq).put(native_repr)
     .put(new BuiltinFunc("len") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 0);
@@ -134,10 +128,10 @@ public final Blob MB_LIST = new Blob(ROOT_META_BLOB)
     });
 public final Blob MB_MAP = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Map"))
-    .put(native_eq).put(native_repr).put(native_str);
+    .put(native_eq).put(native_repr);
 public final Blob MB_FUNC = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Func"))
-    .put(native_eq).put(native_repr).put(native_str);
+    .put(native_eq).put(native_repr);
 
 // Builtins
 public final Scope GLOBALS = new Scope(null)
