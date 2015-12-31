@@ -104,4 +104,6 @@ assert[5 >= 4 and 5 >= 5]
 assert[1 <= 1 and 1 <= 2]
 assert[2 > 1 and not (1 > 2)]
 
+assert[List.str[] == 'List', List.str[] + " " + List.repr[]]
+
 print["*** All tests pass! ***"]

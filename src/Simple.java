@@ -12,64 +12,90 @@ public class Simple {
 // The stuff that gets included before anything is imported.
 
 // Meta blobs for builtin types.
-
-public final BuiltinFunc eqf = new BuiltinFunc("__eq__") {
-  public Val calli(Val self, ArrayList<Val> args) {
-    expectExactArgumentLength(args, 1);
-    return self.equals(args.get(0)) ? tru : fal;
-  }
-};
-public final BuiltinFunc gef = new BuiltinFunc("__ge__") {
-  public Val calli(Val self, ArrayList<Val> args) {
-    expectExactArgumentLength(args, 1);
-    return self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ?
-        fal : tru;
-  }
-};
-public final BuiltinFunc lef = new BuiltinFunc("__le__") {
-  public Val calli(Val self, ArrayList<Val> args) {
-    expectExactArgumentLength(args, 1);
-    return
-        self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ||
-        self.callMethod("__eq__", toArrayList(args.get(0))).truthy() ?
-        tru : fal;
-  }
-};
-public final BuiltinFunc gtf = new BuiltinFunc("__gt__") {
-  public Val calli(Val self, ArrayList<Val> args) {
-    expectExactArgumentLength(args, 1);
-    return
-        self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ||
-        self.callMethod("__eq__", toArrayList(args.get(0))).truthy() ?
-        fal : tru;
-  }
-};
-public final BuiltinFunc strf = new BuiltinFunc("str") {
-  public Val calli(Val self, ArrayList<Val> args) {
-    expectExactArgumentLength(args, 0);
-    return toStr(self.toString());
-  }
-};
-public final BuiltinFunc reprf = new BuiltinFunc("repr") {
-  public Val calli(Val self, ArrayList<Val> args) {
-    expectExactArgumentLength(args, 0);
-    return toStr(self.repr());
-  }
-};
 public final Nil nil = new Nil();
 public final Bool tru = new Bool(true);
 public final Bool fal = new Bool(false);
-// TODO: Consider meta meta types.
-public final HashMap<String, Val> META_BLOB_META = new HashMap<String, Val>();
-public final Blob MB_NIL = new Blob(META_BLOB_META)
-    .put("__name__", toStr("Nil"))
-    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf);
-public final Blob MB_BOOL = new Blob(META_BLOB_META)
-    .put("__name__", toStr("Bool"))
-    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf);
-public final Blob MB_NUM = new Blob(META_BLOB_META)
+public final HashMap<String, Val> ROOT_META_BLOB =
+    new BlobHashMapFactory()
+    .put("__name__", toStr("MetaBlob"))
+    .put(new BuiltinFunc("__add__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        HashMap<String, Val> attrs = new HashMap<String, Val>();
+        attrs.putAll(asBlob(self, "self").attrs);
+        attrs.putAll(asBlob(args.get(0), "argument 0").attrs);
+        return new Blob(ROOT_META_BLOB, attrs);
+      }
+    })
+    .put(new BuiltinFunc("extend") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        HashMap<String, Val> attrs = asBlob(self, "self").attrs;
+        Iterator<HashMap.Entry<String, Val>> iter =
+            asBlob(args.get(0), "argument 0").attrs.entrySet().iterator();
+        while (iter.hasNext()) {
+          HashMap.Entry<String, Val> ent = iter.next();
+          if (attrs.get(ent.getKey()) == null)
+            attrs.put(ent.getKey(), ent.getValue());
+        }
+        return self;
+      }
+    })
+    .put(new BuiltinFunc("repr") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 0);
+        Val v = asBlob(self, "self").attrs.get("__name__");
+        return v == null ?
+            toStr("<unnamed meta blob>") : asStr(v, "__name__");
+      }
+    })
+    .get();
+public final Blob MB_META_BLOB = new Blob(ROOT_META_BLOB, ROOT_META_BLOB);
+public final Blob MB_VAL = new Blob(ROOT_META_BLOB)
+    .put("__name__", toStr("Val"))
+    .put(new BuiltinFunc("__eq__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        return self.equals(args.get(0)) ? tru : fal;
+      }
+    })
+    .put(new BuiltinFunc("__ge__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        return self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ?
+            fal : tru;
+      }
+    })
+    .put(new BuiltinFunc("__le__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        return
+            self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ||
+            self.callMethod("__eq__", toArrayList(args.get(0))).truthy() ?
+            tru : fal;
+      }
+    })
+    .put(new BuiltinFunc("__gt__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        return
+            self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ||
+            self.callMethod("__eq__", toArrayList(args.get(0))).truthy() ?
+            fal : tru;
+      }
+    })
+    .put(new BuiltinFunc("repr") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 0);
+        return toStr(self.repr());
+      }
+    });
+public final Blob MB_NIL = new Blob(ROOT_META_BLOB)
+    .put("__name__", toStr("Nil"));
+public final Blob MB_BOOL = new Blob(ROOT_META_BLOB)
+    .put("__name__", toStr("Bool"));
+public final Blob MB_NUM = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Num"))
-    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf)
     .put(new BuiltinFunc("__lt__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -94,9 +120,8 @@ public final Blob MB_NUM = new Blob(META_BLOB_META)
         return toNum(left.getVal() - right.getVal());
       }
     });
-public final Blob MB_STR = new Blob(META_BLOB_META)
+public final Blob MB_STR = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Str"))
-    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf)
     .put(new BuiltinFunc("__add__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -105,9 +130,8 @@ public final Blob MB_STR = new Blob(META_BLOB_META)
         return toStr(left.getVal() + right.getVal());
       }
     });
-public final Blob MB_LIST = new Blob(META_BLOB_META)
+public final Blob MB_LIST = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("List"))
-    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf)
     .put(new BuiltinFunc("len") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 0);
@@ -121,24 +145,25 @@ public final Blob MB_LIST = new Blob(META_BLOB_META)
         return self;
       }
     });
-public final Blob MB_MAP = new Blob(META_BLOB_META)
-    .put("__name__", toStr("Map"))
-    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf);
-public final Blob MB_FUNC = new Blob(META_BLOB_META)
-    .put("__name__", toStr("Func"))
-    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf);
+public final Blob MB_MAP = new Blob(ROOT_META_BLOB)
+    .put("__name__", toStr("Map"));
+public final Blob MB_FUNC = new Blob(ROOT_META_BLOB)
+    .put("__name__", toStr("Func"));
 
 // Builtins
 public final Scope GLOBALS = new Scope(null)
     .put("nil", nil)
     .put("true", tru)
     .put("false", fal)
+    .put("MetaBlob", MB_META_BLOB)
+    .put("Val", MB_VAL)
     .put("Nil", MB_NIL)
     .put("Bool", MB_BOOL)
     .put("Num", MB_NUM)
     .put("Str", MB_STR)
     .put("List", MB_LIST)
     .put("Map", MB_MAP)
+    .put("Func", MB_FUNC)
     .put(new BuiltinFunc("print") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -149,9 +174,7 @@ public final Scope GLOBALS = new Scope(null)
     .put(new BuiltinFunc("assert") {
       public Val calli(Val self, ArrayList<Val> args) {
         if (args.size() != 1 && args.size() != 2)
-          throw err(
-              "Expected 1 or 2 arguments but found " +
-              Integer.toString(args.size()));
+          throw err("Expected 1 or 2 arguments but found " + args.size());
 
         if (!args.get(0).truthy()) {
           String message = "Assertion error";
@@ -181,7 +204,7 @@ public final Scope GLOBALS = new Scope(null)
         HashMap<String, Val> attrs = new HashMap<String, Val>();
         for (int i = 0; i < args.size(); i += 2)
           attrs.put(asStr(args.get(i), i).getVal(), args.get(i+1));
-        return new Blob(META_BLOB_META, attrs);
+        return new Blob(ROOT_META_BLOB, attrs);
       }
     })
     .put(new BuiltinFunc("L") { // 'L' is for 'list'
@@ -306,9 +329,12 @@ public String getStackTrace() {
 public abstract class Val {
   public abstract Val searchMetaBlob(String key);
   public abstract boolean equals(Val other);
-  public abstract String repr();
+  public abstract String repr(); // TODO: Make final and read from metablob.
   public final boolean equals(Object other) {
     return (other instanceof Val) && equals((Val) other);
+  }
+  public final Val callMethod(String name) {
+    return callMethod(name, new ArrayList<Val>());
   }
   public final Val callMethod(String name, ArrayList<Val> args) {
     Val f = searchMetaBlob(name);
@@ -317,6 +343,7 @@ public abstract class Val {
     return f.call(this, args);
   }
   public Val bind(Val self) { return this; }
+  // TODO: Make toString final and read from metablob.
   public String toString() { return repr(); }
   public boolean truthy() { return true; }
   public Val call(Val self, ArrayList<Val> args) {
@@ -557,6 +584,16 @@ public final class Blob extends Val {
     this.attrs = attrs;
   }
   public final Val call(ArrayList<Val> args) {
+    Val callable = searchMetaBlob("__call__");
+    if (callable == null) {
+      String name = ""; 
+      Val mn = searchMetaBlob("__name__");
+      if (mn != null && (mn instanceof Str))
+        name += ((Str) mn).getVal();
+      else
+        name += "<unknown>";
+      throw err(name + " type is not callable");
+    }
     return searchMetaBlob("__call__").call(args);
   }
   public final Val get(String key) {
@@ -580,10 +617,12 @@ public final class Blob extends Val {
   public final boolean equals(Val other) { return this == other; }
   // TODO: Make 'hashCode' overridable by user.
   public final int hashCode() { return super.hashCode(); }
-  // TODO: Make 'repr' overridable by user.
-  public final String repr() { return "Blob"; }
-  // TODO: Make 'toString' overridable by user.
-  public final String toString() { return super.toString(); }
+  public final String repr() {
+    return asStr(callMethod("repr"), "repr[]").getVal();
+  }
+  public final String toString() {
+    return asStr(callMethod("str"), "str[]").getVal();
+  }
 }
 
 //// Exceptions
@@ -1537,7 +1576,46 @@ public final class Module extends Ast {
     return body.run();
   }
 }
+//// Scope
+
+public final class Scope {
+  public final HashMap<String, Val> table;
+  public final Scope parent;
+  public Scope(Scope parent) {
+    this.parent = parent;
+    table = new HashMap<String, Val>();
+  }
+  public Val getOrNull(String name) {
+    Val value = table.get(name);
+    if (value == null && parent != null)
+      return parent.getOrNull(name);
+    return value;
+  }
+  public Scope put(String name, Val value) {
+    table.put(name, value);
+    return this;
+  }
+  public Scope put(BuiltinFunc bf) {
+    return put(bf.name, bf);
+  }
+  public Scope put(Map m) {
+    String n = asStr(m.getVal().get(toStr("__name__")), "FUBAR").getVal();
+    return put(n, m);
+  }
+}
+
 //// Utils
+public static final class BlobHashMapFactory {
+  public final HashMap<String, Val> val = new HashMap<String, Val>();
+  public BlobHashMapFactory put(String k, Val v) {
+    val.put(k, v);
+    return this;
+  }
+  public BlobHashMapFactory put(BuiltinFunc bf) {
+    return put(bf.name, bf);
+  }
+  public HashMap<String, Val> get() { return val; }
+}
 public static ArrayList<Val> toArrayList(Val... args) {
   ArrayList<Val> al = new ArrayList<Val>();
   for (int i = 0; i < args.length; i++)
@@ -1658,32 +1736,6 @@ public Str toStr(String value) {
 
 public List toList(ArrayList<Val> value) {
   return new List(value);
-}
-
-public final class Scope {
-  public final HashMap<String, Val> table;
-  public final Scope parent;
-  public Scope(Scope parent) {
-    this.parent = parent;
-    table = new HashMap<String, Val>();
-  }
-  public Val getOrNull(String name) {
-    Val value = table.get(name);
-    if (value == null && parent != null)
-      return parent.getOrNull(name);
-    return value;
-  }
-  public Scope put(String name, Val value) {
-    table.put(name, value);
-    return this;
-  }
-  public Scope put(BuiltinFunc bf) {
-    return put(bf.name, bf);
-  }
-  public Scope put(Map m) {
-    String n = asStr(m.getVal().get(toStr("__name__")), "FUBAR").getVal();
-    return put(n, m);
-  }
 }
 
 }

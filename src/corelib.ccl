@@ -59,6 +59,17 @@ Func@repr
 
 """
 
+Val@str = \. self.repr[]
+
+MetaBlob.extend[Val]
+Nil.extend[Val]
+Bool.extend[Val]
+Num.extend[Val]
+Str.extend[Val]
+List.extend[Val]
+Map.extend[Val]
+Func.extend[Val]
+
 List@map = \f {
   i = 0
   xs = L[]
