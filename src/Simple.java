@@ -249,7 +249,6 @@ public void run(final Module node, final String name) {
 }
 
 //// Runtime information (stack trace, etc.)
-
 public Simple(String corelib) {
   push(new Trace() {
     public String getLocationString() {
@@ -319,7 +318,6 @@ public String getStackTrace() {
 }
 
 //// Val
-
 public abstract class Val {
   public abstract Val searchMetaBlob(String key);
   public abstract boolean equals(Val other);
@@ -656,7 +654,6 @@ public Err err(String message) {
 }
 
 //// Lexer
-
 public static final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
       "and", "or", "xor", "return", "is", "import", "super", "if", "else",
@@ -872,7 +869,7 @@ public static final class Token {
   }
 }
 
-/// Parser
+//// Parser
 
 public final class Parser {
   public final Lexer lexer;
