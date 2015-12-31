@@ -1149,12 +1149,12 @@ public final class Parser {
 
     if (at("STR")) {
       Token token = next();
-      return new NewAst(token, Opcode.LITERAL, toStr((String) token.value));
+      return new Ast(token, Opcode.LITERAL, toStr((String) token.value));
     }
 
     if (at("NUM")) {
       Token token = next();
-      return new NewAst(token, Opcode.LITERAL, toNum((Double) token.value));
+      return new Ast(token, Opcode.LITERAL, toNum((Double) token.value));
     }
 
     if (at("ID")) {
@@ -1166,7 +1166,7 @@ public final class Parser {
         Ast value = parseExpression();
         return new AssignAst(token, name, value);
       } else {
-        return new NewAst(token, Opcode.NAME, name, null);
+        return new Ast(token, Opcode.NAME, name, null);
       }
     }
 
@@ -1193,7 +1193,7 @@ public final class Parser {
       Token token = next();
       Ast cond = parseExpression();
       Ast body = parseExpression();
-      Ast other = new NewAst(token, Opcode.NAME, "nil");
+      Ast other = new Ast(token, Opcode.NAME, "nil");
       if (consume("else"))
         other = parseExpression();
       return new IfAst(token, cond, body, other);
@@ -1204,85 +1204,102 @@ public final class Parser {
 }
 
 //// Ast
-public abstract class Ast implements Trace {
-  public final Token token;
-  public Ast(Token token) { this.token = token; }
-  public String getLocationString() {
-    return "\nin " + token.getLocationString();
-  }
-  public abstract Val eval();
-}
 public enum Opcode {
   LITERAL,
   NAME,
   RETURN_0,
   RETURN_1,
+  BLOCK_0,
+  BLOCK_1,
+  WHILE_0,
+  WHILE_1,
 }
-public final class NewAst extends Ast {
+public final class Ast implements Trace {
+  public final Token token;
   public final Opcode opcode;
   public final Object data;
-  public final ArrayList<NewAst> kids;
-  public final NewAst next;
-  public NewAst(Token token, Opcode opcode, Object data) {
+  public final ArrayList<Ast> kids;
+  public final Ast next;
+  public Ast(Token token, Opcode opcode) {
+    this(token, opcode, null, null);
+  }
+  public Ast(Token token, Opcode opcode, Object data) {
     this(token, opcode, data, null);
   }
-  public NewAst(Token token, Opcode opcode, Object data, ArrayList<NewAst> kids) {
-    super(token);
+  public Ast(Token token, Opcode opcode, Object data, ArrayList<Ast> kids) {
+    this.token = token;
     this.opcode = opcode;
     this.data = data;
     this.kids = kids;
     switch (opcode) {
+    case RETURN_0:
+      next = new Ast(token, RETURN_1);
+    case BLOCK_0:
+      next = new Ast(token, BLOCK_1);
     default:
       next = null;
     }
   }
-  public NewAst(
-      Token token, Opcode opcode, Object data, ArrayList<NewAst> kids,
-      NewAst next) {
+  public Ast(
+      Token token, Opcode opcode, Object data, ArrayList<Ast> kids,
+      Ast next) {
     super(token);
     this.opcode = opcode;
     this.data = data;
     this.kids = kids;
     this.next = next;
   }
+  public String getLocationString() {
+    return "\nin " + token.getLocationString();
+  }
   public final Val eval() {
-    ArrayList<NewAst> ops = new ArrayList<NewAst>();
+    ArrayList<Ast> ops = new ArrayList<Ast>();
     ops.add(this);
     return Simple.this.eval(ops, new ArrayList<Val>());
   }
 }
 public final Val eval(
-    ArrayList<NewAst> ops, ArrayList<Val> vals) {
+    ArrayList<Ast> ops, ArrayList<Val> vals) {
   while (!ops.isEmpty()) {
-    NewAst op = ops.remove(ops.size() - 1);
+    Ast op = ops.remove(ops.size() - 1);
     switch (op.opcode) {
-    case LITERAL:
+    case LITERAL: // Load a literal value.
       vals.add((Val) op.data);
       break;
-    case NAME:
+    case NAME: // Lookup variable by name.
       vals.add(Simple.this.get((String) op.data));
       break;
-    case RETURN_0:
+    case RETURN_0: // Queue up expression to return.
+      if (!vals.isEmpty())
+        throw err("FUBAR");
       ops.add(op.next);
       break;
-    case RETURN_1:
+    case RETURN_1: // Just return the value.
       return vals.remove(vals.size() - 1);
+    case BLOCK_0: // Queue up all the sub expressions and check jobs.
+      if (!vals.isEmpty())
+        throw err("FUBAR");
+      for (int i = 0; i < op.kids.sizes(); i++) {
+        ops.add(op.next);
+        ops.add(op.kids.get(i));
+      }
+    case BLOCK_1: // Verify that there is exactly 1 value after a statement,
+                  // and clear it.
+      if (vals.size() != 1)
+        throw err("FUBAR " + vals.size());
+      vals.remove(0);
+    case WHILE_0: // Queue up the condition expresion.
+      ops.add(op.next);
+      ops.add()
+    case WHILE_1: // If condition expression was successful, queue up loop.
+      if (vals.remove(vals.size()-1).truthy()) {
+
+      }
     default:
       throw err("FUBAR " + op.opcode);
     }
   }
   return vals.remove(vals.size() - 1);
-}
-public final class ReturnAst extends Ast {
-  public final Ast val;
-  public ReturnAst(Token token, Ast val) {
-    super(token);
-    this.val = val;
-  }
-  public final Val eval() {
-    FLAG_RETURN = true;
-    return val.eval();
-  }
 }
 public final class WhileAst extends Ast {
   public final Ast cond;
