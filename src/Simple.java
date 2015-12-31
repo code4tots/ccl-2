@@ -19,6 +19,31 @@ public final BuiltinFunc eqf = new BuiltinFunc("__eq__") {
     return self.equals(args.get(0)) ? tru : fal;
   }
 };
+public final BuiltinFunc gef = new BuiltinFunc("__ge__") {
+  public Val calli(Val self, ArrayList<Val> args) {
+    expectExactArgumentLength(args, 1);
+    return self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ?
+        fal : tru;
+  }
+};
+public final BuiltinFunc lef = new BuiltinFunc("__le__") {
+  public Val calli(Val self, ArrayList<Val> args) {
+    expectExactArgumentLength(args, 1);
+    return
+        self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ||
+        self.callMethod("__eq__", toArrayList(args.get(0))).truthy() ?
+        tru : fal;
+  }
+};
+public final BuiltinFunc gtf = new BuiltinFunc("__gt__") {
+  public Val calli(Val self, ArrayList<Val> args) {
+    expectExactArgumentLength(args, 1);
+    return
+        self.callMethod("__lt__", toArrayList(args.get(0))).truthy() ||
+        self.callMethod("__eq__", toArrayList(args.get(0))).truthy() ?
+        fal : tru;
+  }
+};
 public final BuiltinFunc strf = new BuiltinFunc("str") {
   public Val calli(Val self, ArrayList<Val> args) {
     expectExactArgumentLength(args, 0);
@@ -38,43 +63,19 @@ public final Bool fal = new Bool(false);
 public final HashMap<String, Val> META_BLOB_META = new HashMap<String, Val>();
 public final Blob MB_NIL = new Blob(META_BLOB_META)
     .put("__name__", toStr("Nil"))
-    .put(eqf).put(reprf).put(strf);
+    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf);
 public final Blob MB_BOOL = new Blob(META_BLOB_META)
     .put("__name__", toStr("Bool"))
-    .put(eqf).put(reprf).put(strf);
+    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf);
 public final Blob MB_NUM = new Blob(META_BLOB_META)
     .put("__name__", toStr("Num"))
-    .put(eqf).put(reprf).put(strf)
+    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf)
     .put(new BuiltinFunc("__lt__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
         Num left = asNum(self, "self");
         Num right = asNum(args.get(0), "argument 0");
         return left.getVal() < right.getVal() ? tru : fal;
-      }
-    })
-    .put(new BuiltinFunc("__gt__") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        expectExactArgumentLength(args, 1);
-        Num left = asNum(self, "self");
-        Num right = asNum(args.get(0), "argument 0");
-        return left.getVal() > right.getVal() ? tru : fal;
-      }
-    })
-    .put(new BuiltinFunc("__le__") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        expectExactArgumentLength(args, 1);
-        Num left = asNum(self, "self");
-        Num right = asNum(args.get(0), "argument 0");
-        return left.getVal() <= right.getVal() ? tru : fal;
-      }
-    })
-    .put(new BuiltinFunc("__ge__") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        expectExactArgumentLength(args, 1);
-        Num left = asNum(self, "self");
-        Num right = asNum(args.get(0), "argument 0");
-        return left.getVal() >= right.getVal() ? tru : fal;
       }
     })
     .put(new BuiltinFunc("__add__") {
@@ -95,7 +96,7 @@ public final Blob MB_NUM = new Blob(META_BLOB_META)
     });
 public final Blob MB_STR = new Blob(META_BLOB_META)
     .put("__name__", toStr("Str"))
-    .put(eqf).put(reprf).put(strf)
+    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf)
     .put(new BuiltinFunc("__add__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -106,7 +107,7 @@ public final Blob MB_STR = new Blob(META_BLOB_META)
     });
 public final Blob MB_LIST = new Blob(META_BLOB_META)
     .put("__name__", toStr("List"))
-    .put(eqf).put(reprf).put(strf)
+    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf)
     .put(new BuiltinFunc("len") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 0);
@@ -122,10 +123,10 @@ public final Blob MB_LIST = new Blob(META_BLOB_META)
     });
 public final Blob MB_MAP = new Blob(META_BLOB_META)
     .put("__name__", toStr("Map"))
-    .put(eqf).put(reprf).put(strf);
+    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf);
 public final Blob MB_FUNC = new Blob(META_BLOB_META)
     .put("__name__", toStr("Func"))
-    .put(eqf).put(reprf).put(strf);
+    .put(eqf).put(lef).put(gef).put(gtf).put(reprf).put(strf);
 
 // Builtins
 public final Scope GLOBALS = new Scope(null)
