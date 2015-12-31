@@ -1149,14 +1149,12 @@ public final class Parser {
 
     if (at("STR")) {
       Token token = next();
-      return new NewAst(
-          token, Opcode.LITERAL, toStr((String) token.value), null);
+      return new NewAst(token, Opcode.LITERAL, toStr((String) token.value));
     }
 
     if (at("NUM")) {
       Token token = next();
-      return new NewAst(
-          token, Opcode.LITERAL, toNum((Double) token.value), null);
+      return new NewAst(token, Opcode.LITERAL, toNum((Double) token.value));
     }
 
     if (at("ID")) {
@@ -1168,7 +1166,7 @@ public final class Parser {
         Ast value = parseExpression();
         return new AssignAst(token, name, value);
       } else {
-        return new NameAst(token, name);
+        return new NewAst(token, Opcode.NAME, name, null);
       }
     }
 
@@ -1195,7 +1193,7 @@ public final class Parser {
       Token token = next();
       Ast cond = parseExpression();
       Ast body = parseExpression();
-      Ast other = new NameAst(token, "nil");
+      Ast other = new NewAst(token, Opcode.NAME, "nil");
       if (consume("else"))
         other = parseExpression();
       return new IfAst(token, cond, body, other);
@@ -1216,13 +1214,17 @@ public abstract class Ast implements Trace {
 }
 public enum Opcode {
   LITERAL,
+  NAME,
 }
 public final class NewAst extends Ast {
   public final Opcode opcode;
-  public final Val data;
+  public final Object data;
   public final ArrayList<NewAst> kids;
   public final NewAst next;
-  public NewAst(Token token, Opcode opcode, Val data, ArrayList<NewAst> kids) {
+  public NewAst(Token token, Opcode opcode, Object data) {
+    this(token, opcode, data, null);
+  }
+  public NewAst(Token token, Opcode opcode, Object data, ArrayList<NewAst> kids) {
     super(token);
     this.opcode = opcode;
     this.data = data;
@@ -1233,7 +1235,7 @@ public final class NewAst extends Ast {
     }
   }
   public NewAst(
-      Token token, Opcode opcode, Val data, ArrayList<NewAst> kids,
+      Token token, Opcode opcode, Object data, ArrayList<NewAst> kids,
       NewAst next) {
     super(token);
     this.opcode = opcode;
@@ -1244,20 +1246,25 @@ public final class NewAst extends Ast {
   public final Val eval() {
     ArrayList<NewAst> ops = new ArrayList<NewAst>();
     ops.add(this);
-    return eval(ops, new ArrayList<Val>());
+    return Simple.this.eval(ops, new ArrayList<Val>());
   }
-  public final Val eval(ArrayList<NewAst> ops, ArrayList<Val> vals) {
-    while (!ops.isEmpty()) {
-      NewAst op = ops.remove(ops.size() - 1);
-      switch (op.opcode) {
-      case LITERAL:
-        vals.add(data);
-        break;
-      default:
-      }
+}
+public final Val eval(
+    ArrayList<NewAst> ops, ArrayList<Val> vals) {
+  while (!ops.isEmpty()) {
+    NewAst op = ops.remove(ops.size() - 1);
+    switch (op.opcode) {
+    case LITERAL:
+      vals.add((Val) op.data);
+      break;
+    case NAME:
+      vals.add(Simple.this.get((String) op.data));
+      break;
+    default:
+      throw err("FUBAR " + op.opcode);
     }
-    return vals.remove(vals.size() - 1);
   }
+  return vals.remove(vals.size() - 1);
 }
 public final class ReturnAst extends Ast {
   public final Ast val;
@@ -1308,21 +1315,6 @@ public final class BlockAst extends Ast {
         return v;
     }
     return nil;
-  }
-}
-public final class NameAst extends Ast {
-  public final String name;
-  public NameAst(Token token, String name) {
-    super(token);
-    this.name = name;
-  }
-  public final Val eval() {
-    push(this);
-    try {
-      return Simple.this.get(name);
-    } finally {
-      pop();
-    }
   }
 }
 public final class IfAst extends Ast {
