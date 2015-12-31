@@ -1215,6 +1215,8 @@ public abstract class Ast implements Trace {
 public enum Opcode {
   LITERAL,
   NAME,
+  RETURN_0,
+  RETURN_1,
 }
 public final class NewAst extends Ast {
   public final Opcode opcode;
@@ -1260,6 +1262,11 @@ public final Val eval(
     case NAME:
       vals.add(Simple.this.get((String) op.data));
       break;
+    case RETURN_0:
+      ops.add(op.next);
+      break;
+    case RETURN_1:
+      return vals.remove(vals.size() - 1);
     default:
       throw err("FUBAR " + op.opcode);
     }
