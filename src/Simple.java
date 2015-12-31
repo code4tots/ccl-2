@@ -131,7 +131,17 @@ public final Blob MB_MAP = new Blob(ROOT_META_BLOB)
     .put(native_eq).put(native_repr);
 public final Blob MB_FUNC = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Func"))
-    .put(native_eq).put(native_repr);
+    .put(native_eq).put(native_repr)
+    .put(new BuiltinFunc("apply") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 2);
+        return asFunc(self, "self").call(
+            args.get(0),
+            asList(args.get(1), "argument 1").getVal());
+      }
+    });
+public final Blob MB_ITER = new Blob(ROOT_META_BLOB)
+    .put("__name__", toStr("Iter"));
 
 // Builtins
 public final Scope GLOBALS = new Scope(null)
@@ -147,6 +157,7 @@ public final Scope GLOBALS = new Scope(null)
     .put("List", MB_LIST)
     .put("Map", MB_MAP)
     .put("Func", MB_FUNC)
+    .put("Iter", MB_ITER)
     .put(new BuiltinFunc("print") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -580,7 +591,7 @@ public final class Blob extends Val {
         name += "<unknown>";
       throw err(name + " type is not callable");
     }
-    return searchMetaBlob("__call__").call(args);
+    return searchMetaBlob("__call__").call(this, args);
   }
   public final Val get(String key) {
     Val v = attrs.get(key);

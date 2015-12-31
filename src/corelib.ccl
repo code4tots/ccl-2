@@ -55,6 +55,8 @@ Func@__repr__
 
 """
 
+MetaBlob@__call__ = \*args. self@__new__[*args]
+
 Val@__ne__ = \r. not (self == r)
 Val@__le__ = \r. self < r or self == r
 Val@__ge__ = \r. not (self < r)
@@ -132,6 +134,35 @@ List@cut = \start end {
 
 List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
 
+List@iter = \ {
+  list = self
+  iter = Iter[\{
+    val = list[self@i]
+    self@i = self@i + 1
+    if self@i >= list.len[]
+      self@done = true
+    return val
+  }]
+  iter@i = 0
+  return iter
+}
+
+Iter@__new__ = \f {
+  iter = new[Iter]
+  iter@done = false
+  iter@next = f
+  return iter
+}
+
+Iter@next = \. self@next.apply[self, L[]]
+
+Iter@list = \ {
+  xs = L[]
+  while not self@done
+    xs.add[self.next[]]
+  return xs
+}
+
 MetaBlob.extend[Val]
 Nil.extend[Val]
 Bool.extend[Val]
@@ -140,3 +171,4 @@ Str.extend[Val]
 List.extend[Val]
 Map.extend[Val]
 Func.extend[Val]
+Iter.extend[Val]
