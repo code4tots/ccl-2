@@ -65,6 +65,9 @@ Val@__str__ = \. self.__repr__[]
 Val@str = \. self.__str__[]
 Val@repr = \. self.__repr__[]
 
+Num@__pos__ = \. self
+Num@__neg__ = \. 0 - self
+
 Str@__str__ = \. self
 
 List@map = \f {

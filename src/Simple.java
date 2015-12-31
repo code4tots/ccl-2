@@ -1077,18 +1077,12 @@ public final class Parser {
     if (at("+")) {
       Token token = next();
       Ast node = parsePrefixExpression();
-      if (node instanceof NumAst)
-        return new NumAst(token, ((NumAst) node).val.getVal());
-      else
-        return new OperationAst(token, node, "__pos__");
+      return new OperationAst(token, node, "__pos__");
     }
     if (at("-")) {
       Token token = next();
       Ast node = parsePrefixExpression();
-      if (node instanceof NumAst)
-        return new NumAst(token, -((NumAst) node).val.getVal());
-      else
-        return new OperationAst(token, node, "__neg__");
+      return new OperationAst(token, node, "__neg__");
     }
     if (at("not")) {
       Token token = next();
