@@ -1077,12 +1077,18 @@ public final class Parser {
     if (at("+")) {
       Token token = next();
       Ast node = parsePrefixExpression();
-      return new OperationAst(token, node, "__pos__");
+      if (node instanceof NumAst)
+        return new NumAst(token, ((NumAst) node).val.getVal());
+      else
+        return new OperationAst(token, node, "__pos__");
     }
     if (at("-")) {
       Token token = next();
       Ast node = parsePrefixExpression();
-      return new OperationAst(token, node, "__neg__");
+      if (node instanceof NumAst)
+        return new NumAst(token, -((NumAst) node).val.getVal());
+      else
+        return new OperationAst(token, node, "__neg__");
     }
     if (at("not")) {
       Token token = next();
@@ -1149,12 +1155,12 @@ public final class Parser {
 
     if (at("STR")) {
       Token token = next();
-      return new NewAst(token, Opcode.LITERAL, toStr((String) token.value));
+      return new StringAst(token, (String) token.value);
     }
 
     if (at("NUM")) {
       Token token = next();
-      return new NewAst(token, Opcode.LITERAL, toNum((Double) token.value));
+      return new NumAst(token, (Double) token.value);
     }
 
     if (at("ID")) {
@@ -1166,7 +1172,7 @@ public final class Parser {
         Ast value = parseExpression();
         return new AssignAst(token, name, value);
       } else {
-        return new NewAst(token, Opcode.NAME, name, null);
+        return new NameAst(token, name);
       }
     }
 
@@ -1193,7 +1199,7 @@ public final class Parser {
       Token token = next();
       Ast cond = parseExpression();
       Ast body = parseExpression();
-      Ast other = new NewAst(token, Opcode.NAME, "nil");
+      Ast other = new NameAst(token, "nil");
       if (consume("else"))
         other = parseExpression();
       return new IfAst(token, cond, body, other);
@@ -1211,67 +1217,6 @@ public abstract class Ast implements Trace {
     return "\nin " + token.getLocationString();
   }
   public abstract Val eval();
-}
-public enum Opcode {
-  LITERAL,
-  NAME,
-  RETURN_0,
-  RETURN_1,
-}
-public final class NewAst extends Ast {
-  public final Opcode opcode;
-  public final Object data;
-  public final ArrayList<NewAst> kids;
-  public final NewAst next;
-  public NewAst(Token token, Opcode opcode, Object data) {
-    this(token, opcode, data, null);
-  }
-  public NewAst(Token token, Opcode opcode, Object data, ArrayList<NewAst> kids) {
-    super(token);
-    this.opcode = opcode;
-    this.data = data;
-    this.kids = kids;
-    switch (opcode) {
-    default:
-      next = null;
-    }
-  }
-  public NewAst(
-      Token token, Opcode opcode, Object data, ArrayList<NewAst> kids,
-      NewAst next) {
-    super(token);
-    this.opcode = opcode;
-    this.data = data;
-    this.kids = kids;
-    this.next = next;
-  }
-  public final Val eval() {
-    ArrayList<NewAst> ops = new ArrayList<NewAst>();
-    ops.add(this);
-    return Simple.this.eval(ops, new ArrayList<Val>());
-  }
-}
-public final Val eval(
-    ArrayList<NewAst> ops, ArrayList<Val> vals) {
-  while (!ops.isEmpty()) {
-    NewAst op = ops.remove(ops.size() - 1);
-    switch (op.opcode) {
-    case LITERAL:
-      vals.add((Val) op.data);
-      break;
-    case NAME:
-      vals.add(Simple.this.get((String) op.data));
-      break;
-    case RETURN_0:
-      ops.add(op.next);
-      break;
-    case RETURN_1:
-      return vals.remove(vals.size() - 1);
-    default:
-      throw err("FUBAR " + op.opcode);
-    }
-  }
-  return vals.remove(vals.size() - 1);
 }
 public final class ReturnAst extends Ast {
   public final Ast val;
@@ -1322,6 +1267,37 @@ public final class BlockAst extends Ast {
         return v;
     }
     return nil;
+  }
+}
+public final class NumAst extends Ast {
+  public final Num val;
+  public NumAst(Token token, Double val) {
+    super(token);
+    this.val = toNum(val);
+  }
+  public final Val eval() { return val; }
+}
+public final class StringAst extends Ast {
+  public final Str val;
+  public StringAst(Token token, String val) {
+    super(token);
+    this.val = toStr(val);
+  }
+  public final Val eval() { return val; }
+}
+public final class NameAst extends Ast {
+  public final String name;
+  public NameAst(Token token, String name) {
+    super(token);
+    this.name = name;
+  }
+  public final Val eval() {
+    push(this);
+    try {
+      return Simple.this.get(name);
+    } finally {
+      pop();
+    }
   }
 }
 public final class IfAst extends Ast {
