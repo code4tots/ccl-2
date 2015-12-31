@@ -59,6 +59,7 @@ Func@repr
 
 """
 
+Val@__ne__ = \r. not (self == r)
 Val@__le__ = \r. self < r or self == r
 Val@__ge__ = \r. not (self < r)
 Val@__gt__ = \r. not (self < r or self == r)
