@@ -134,7 +134,21 @@ public final Blob MB_LIST = new Blob(ROOT_META_BLOB)
     });
 public final Blob MB_MAP = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Map"))
-    .put(native_eq).put(native_repr);
+    .put(native_eq).put(native_repr)
+    .put(new BuiltinFunc("iter") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 0);
+        final Iterator<HashMap.Entry<Val, Val>> it =
+            asMap(self, "self").getVal().entrySet().iterator();
+        return toIter(new Iterator<Val>() {
+          public Val next() {
+            HashMap.Entry<Val, Val> ent = it.next();
+            return toList(toArrayList(ent.getKey(), ent.getValue()));
+          }
+          public boolean hasNext() { return it.hasNext(); }
+        });
+      }
+    });
 public final Blob MB_FUNC = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Func"))
     .put(native_eq).put(native_repr)
@@ -1702,6 +1716,14 @@ public List asList(Val v, String name) {
         "Expected " + name + " to be List but found " +
         v.getClass().getName());
   return (List) v;
+}
+
+public Map asMap(Val v, String name) {
+  if (!(v instanceof Map))
+    throw err(
+        "Expected " + name + " to be Map but found " +
+        v.getClass().getName());
+  return (Map) v;
 }
 
 public Func asFunc(Val v, String name) {
