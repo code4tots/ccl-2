@@ -1186,8 +1186,10 @@ public final class Parser {
       Token token = next();
       ArrayList<String> args = new ArrayList<String>();
       String vararg = null;
-      while (at("ID"))
+      while (at("ID")) {
         args.add((String) expect("ID").value);
+        consume(",");
+      }
       if (consume("*"))
         vararg = (String) expect("ID").value;
       consume(".");
