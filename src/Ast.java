@@ -207,10 +207,14 @@ public abstract class Ast {
     public final ArrayList<Ast> args;
     public Operation(
         Token token, Ast owner, String name, Ast... args) {
+      this(token, owner, name, toArrayList(args));
+    }
+    public Operation(
+        Token token, Ast owner, String name, ArrayList<Ast> args) {
       super(token);
       this.owner = owner;
       this.name = name;
-      this.args = toArrayList(args);
+      this.args = args;
     }
     public <T> T accept(AstVisitor<T> visitor) {
       return visitor.visitOperation(this);
