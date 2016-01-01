@@ -174,6 +174,17 @@ public final Blob MB_ITER = new Blob(ROOT_META_BLOB)
         expectExactArgumentLength(args, 0);
         return asIter(self, "self").next();
       }
+    })
+    .put(new BuiltinFunc("map") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 1);
+        final Val f = args.get(0);
+        final Iterator<Val> it = asIter(self, "self").getVal();
+        return toIter(new Iterator<Val>() {
+          public Val next() { return f.call(toArrayList(it.next())); }
+          public boolean hasNext() { return it.hasNext(); }
+        });
+      }
     });
 
 // Builtins

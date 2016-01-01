@@ -113,5 +113,6 @@ assert['hi'.repr[] == '"hi"']
 
 assert[L[1, 2, 3].iter[].list[] == L[1, 2, 3]]
 assert[M[1, 2].iter[].list[] == L[L[1, 2]]]
+assert[L[1, 2, 3].iter[].map[\x. x + 1].list[] == L[2, 3, 4]]
 
 print["*** All tests pass! ***"]
