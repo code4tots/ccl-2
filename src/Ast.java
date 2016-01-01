@@ -1,14 +1,15 @@
 import java.util.ArrayList;
 
-public abstract class Ast {
+public abstract class Ast implements Traceable {
 
   public final Token token;
   public Ast(Token token) { this.token = token; }
-  public String getLocationString() {
+  public String getTraceMessage() {
     return "\nin " + token.getLocationString();
   }
   public abstract <T> T accept(AstVisitor<T> visitor);
 
+  // Statement only
   public static final class Return extends Ast {
     public final Ast val;
     public Return(Token token, Ast val) {
@@ -20,8 +21,7 @@ public abstract class Ast {
     }
   }
   public static final class While extends Ast {
-    public final Ast cond;
-    public final Ast body;
+    public final Ast cond, body;
     public While(Token token, Ast cond, Ast body) {
       super(token);
       this.cond = cond;
@@ -41,6 +41,35 @@ public abstract class Ast {
       return visitor.visitBlock(this);
     }
   }
+  public static final class Break extends Ast {
+    public Break(Token token) { super(token); }
+    public <T> T accept(AstVisitor<T> visitor) {
+      return visitor.visitBreak(this);
+    }
+  }
+  public static final class Continue extends Ast {
+    public Continue(Token token) { super(token); }
+    public <T> T accept(AstVisitor<T> visitor) {
+      return visitor.visitContinue(this);
+    }
+  }
+
+  // Statement or Expression
+  public static final class If extends Ast {
+    public final Ast cond, body, other;
+    public If(
+        Token token, Ast cond, Ast body, Ast other) {
+      super(token);
+      this.cond = cond;
+      this.body = body;
+      this.other = other;
+    }
+    public <T> T accept(AstVisitor<T> visitor) {
+      return visitor.visitIf(this);
+    }
+  }
+
+  // Expression only
   public static final class Num extends Ast {
     public final Double val;
     public Num(Token token, Double val) {
@@ -71,19 +100,6 @@ public abstract class Ast {
       return visitor.visitName(this);
     }
   }
-  public static final class If extends Ast {
-    public final Ast cond, body, other;
-    public If(
-        Token token, Ast cond, Ast body, Ast other) {
-      super(token);
-      this.cond = cond;
-      this.body = body;
-      this.other = other;
-    }
-    public <T> T accept(AstVisitor<T> visitor) {
-      return visitor.visitIf(this);
-    }
-  }
   public static final class Assign extends Ast {
     public final String name;
     public final Ast val;
@@ -109,22 +125,6 @@ public abstract class Ast {
     }
     public <T> T accept(AstVisitor<T> visitor) {
       return visitor.visitFunction(this);
-    }
-  }
-  public static final class Call extends Ast {
-    public final Ast f;
-    public final ArrayList<Ast> args;
-    public final Ast vararg;
-    public Call(
-        Token token, Ast f,
-        ArrayList<Ast> args, Ast vararg) {
-      super(token);
-      this.f = f;
-      this.args = args;
-      this.vararg = vararg;
-    }
-    public <T> T accept(AstVisitor<T> visitor) {
-      return visitor.visitCall(this);
     }
   }
   public static final class GetMethod extends Ast {
@@ -188,23 +188,30 @@ public abstract class Ast {
       return visitor.visitIsNot(this);
     }
   }
-  public static final class Operation extends Ast {
+  public static final class Call extends Ast {
     public final Ast owner;
-    public final String name;
+    public final String name; // method name
     public final ArrayList<Ast> args;
-    public Operation(
+    public final Ast vararg;
+    public Call(
         Token token, Ast owner, String name, Ast... args) {
       this(token, owner, name, toArrayList(args));
     }
-    public Operation(
+    public Call(
         Token token, Ast owner, String name, ArrayList<Ast> args) {
+      this(token, owner, name, args, null);
+    }
+    public Call(
+        Token token, Ast owner, String name,
+        ArrayList<Ast> args, Ast vararg) {
       super(token);
       this.owner = owner;
       this.name = name;
       this.args = args;
+      this.vararg = vararg;
     }
     public <T> T accept(AstVisitor<T> visitor) {
-      return visitor.visitOperation(this);
+      return visitor.visitCall(this);
     }
   }
   public static final class Not extends Ast {
@@ -239,6 +246,8 @@ public abstract class Ast {
       return visitor.visitOr(this);
     }
   }
+
+  // Module
   public static final class Module extends Ast {
     public final String name;
     public final Ast body;

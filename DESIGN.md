@@ -15,13 +15,13 @@ Tier 2 (Parser)
   Parser
   Ast
   AstVisitor
+  Traceable
 
-Tier 3 (Object model)
+Tier 3 (Object model & evaluation)
   Val
-
-Tier 4 (Evaluation)
+  Err
   Evaluator
   Scope
 
-Tier 5 (Desktop API)
+Tier 4 (Desktop API)
   Desktop

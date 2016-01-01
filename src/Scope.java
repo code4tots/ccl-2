@@ -17,11 +17,17 @@ public final class Scope {
     table.put(name, value);
     return this;
   }
-  // public Scope put(BuiltinFunc bf) {
-  //   return put(bf.name, bf);
-  // }
+  public Scope put(BuiltinFunc bf) {
+    return put(bf.name, bf);
+  }
   // public Scope put(Map m) {
   //   String n = asStr(m.getVal().get(toStr("__name__")), "FUBAR").getVal();
   //   return put(n, m);
   // }
+
+  public Val eval(Ast ast) { return new Evaluator(this).visit(ast); }
+
+  public static final Scope GLOBAL = new Scope(null)
+      .put("nil", Val.nil)
+      ;
 }

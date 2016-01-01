@@ -71,6 +71,12 @@ public final class Parser {
       return new Ast.If(token, cond, body, other);
     }
 
+    if (at("break"))
+      return new Ast.Break(next());
+
+    if (at("continue"))
+      return new Ast.Continue(next());
+
     return parseExpression();
   }
   public Ast parseExpression() {
@@ -108,37 +114,37 @@ public final class Parser {
       if (at("==")) {
         Token token = next();
         Ast right = parseAdditiveExpression();
-        node = new Ast.Operation(token, node, "__eq__", right);
+        node = new Ast.Call(token, node, "__eq__", right);
         continue;
       }
       if (at("!=")) {
         Token token = next();
         Ast right = parseAdditiveExpression();
-        node = new Ast.Operation(token, node, "__ne__", right);
+        node = new Ast.Call(token, node, "__ne__", right);
         continue;
       }
       if (at("<")) {
         Token token = next();
         Ast right = parseAdditiveExpression();
-        node = new Ast.Operation(token, node, "__lt__", right);
+        node = new Ast.Call(token, node, "__lt__", right);
         continue;
       }
       if (at("<=")) {
         Token token = next();
         Ast right = parseAdditiveExpression();
-        node = new Ast.Operation(token, node, "__le__", right);
+        node = new Ast.Call(token, node, "__le__", right);
         continue;
       }
       if (at(">")) {
         Token token = next();
         Ast right = parseAdditiveExpression();
-        node = new Ast.Operation(token, node, "__gt__", right);
+        node = new Ast.Call(token, node, "__gt__", right);
         continue;
       }
       if (at(">=")) {
         Token token = next();
         Ast right = parseAdditiveExpression();
-        node = new Ast.Operation(token, node, "__ge__", right);
+        node = new Ast.Call(token, node, "__ge__", right);
         continue;
       }
       if (at("is")) {
@@ -162,13 +168,13 @@ public final class Parser {
       if (at("+")) {
         Token token = next();
         Ast right = parseMultiplicativeExpression();
-        node = new Ast.Operation(token, node, "__add__", right);
+        node = new Ast.Call(token, node, "__add__", right);
         continue;
       }
       if (at("-")) {
         Token token = next();
         Ast right = parseMultiplicativeExpression();
-        node = new Ast.Operation(token, node, "__sub__", right);
+        node = new Ast.Call(token, node, "__sub__", right);
         continue;
       }
       break;
@@ -181,19 +187,19 @@ public final class Parser {
       if (at("*")) {
         Token token = next();
         Ast right = parsePrefixExpression();
-        node = new Ast.Operation(token, node, "__mul__", right);
+        node = new Ast.Call(token, node, "__mul__", right);
         continue;
       }
       if (at("/")) {
         Token token = next();
         Ast right = parsePrefixExpression();
-        node = new Ast.Operation(token, node, "__div__", right);
+        node = new Ast.Call(token, node, "__div__", right);
         continue;
       }
       if (at("%")) {
         Token token = next();
         Ast right = parsePrefixExpression();
-        node = new Ast.Operation(token, node, "__mod__", right);
+        node = new Ast.Call(token, node, "__mod__", right);
         continue;
       }
       break;
@@ -211,7 +217,7 @@ public final class Parser {
       if (node instanceof Ast.Num)
         return new Ast.Num(token, ((Ast.Num) node).val);
       else
-        return new Ast.Operation(token, node, "__pos__");
+        return new Ast.Call(token, node, "__pos__");
     }
     if (at("-")) {
       Token token = next();
@@ -219,7 +225,7 @@ public final class Parser {
       if (node instanceof Ast.Num)
         return new Ast.Num(token, -((Ast.Num) node).val);
       else
-        return new Ast.Operation(token, node, "__neg__");
+        return new Ast.Call(token, node, "__neg__");
     }
     if (at("not")) {
       Token token = next();
@@ -251,10 +257,10 @@ public final class Parser {
           if (vararg != null || args.size() != 1)
             throw new SyntaxError(
                 token, "For setitem syntax, must have exactly one argument");
-          node = new Ast.Operation(
+          node = new Ast.Call(
               token, node, "__setitem__", args.get(0), parseExpression());
         } else {
-          node = new Ast.Call(token, node, args, vararg);
+          node = new Ast.Call(token, node, "__call__", args, vararg);
         }
         continue;
       }
