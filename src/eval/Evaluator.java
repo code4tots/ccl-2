@@ -26,11 +26,11 @@ public class Evaluator extends AstVisitor<Val> {
       if (br) break;
       if (cont) continue;
     }
-    return Val.nil;
+    return Nil.val;
   }
 
   public Val visitBlock(Ast.Block node) {
-    Val val = Val.nil;
+    Val val = Nil.val;
     for (int i = 0; i < node.body.size(); i++) {
       val = visit(node.body.get(i));
       if (ret||br||cont) return val;
@@ -61,7 +61,7 @@ public class Evaluator extends AstVisitor<Val> {
   }
 
   public Val visitStr(Ast.Str node) {
-    return Val.Str.from(node.val);
+    return Str.from(node.val);
   }
 
   public Val visitName(Ast.Name node) {
@@ -91,7 +91,7 @@ public class Evaluator extends AstVisitor<Val> {
     for (int i = 0; i < node.args.size(); i++)
       args.add(visit(node.args.get(i)));
     if (node.vararg != null)
-      args.addAll(visit(node.vararg).as(Val.List.class, "vararg").val);
+      args.addAll(visit(node.vararg).as(List.class, "vararg").val);
     return (node.name.equals("__call__") && (owner instanceof Func)) ?
         ((Func) owner).call(owner, args):
         owner.call(node.name, args);
@@ -103,7 +103,7 @@ public class Evaluator extends AstVisitor<Val> {
   }
 
   public Val visitGetAttribute(Ast.GetAttribute node) {
-    Val v = visit(node.owner).as(Val.Blob.class, "self").attrs.get(node.name);
+    Val v = visit(node.owner).as(Blob.class, "self").attrs.get(node.name);
     if (v == null)
       throw new Err(
           "No attribute '" + node.name + "' for type " + v.getMetaName());
@@ -112,20 +112,20 @@ public class Evaluator extends AstVisitor<Val> {
 
   public Val visitSetAttribute(Ast.SetAttribute node) {
     Val v = visit(node.val);
-    visit(node.owner).as(Val.Blob.class, "self").attrs.put(node.name, v);
+    visit(node.owner).as(Blob.class, "self").attrs.put(node.name, v);
     return v;
   }
 
   public Val visitIs(Ast.Is node) {
-    return visit(node.left) == visit(node.right) ? Val.tru : Val.fal;
+    return visit(node.left) == visit(node.right) ? Bool.tru : Bool.fal;
   }
 
   public Val visitIsNot(Ast.IsNot node) {
-    return visit(node.left) != visit(node.right) ? Val.tru : Val.fal;
+    return visit(node.left) != visit(node.right) ? Bool.tru : Bool.fal;
   }
 
   public Val visitNot(Ast.Not node) {
-    return visit(node.target).truthy() ? Val.fal : Val.tru;
+    return visit(node.target).truthy() ? Bool.fal : Bool.tru;
   }
 
   public Val visitAnd(Ast.And node) {

@@ -43,7 +43,7 @@ public final class UserFunc extends Func {
       ArrayList<Val> va = new ArrayList<Val>();
       for (int i = this.args.size(); i < args.size(); i++)
         va.add(args.get(i));
-      scope.put(vararg, Val.List.from(va));
+      scope.put(vararg, List.from(va));
     }
 
     return scope.eval(body);

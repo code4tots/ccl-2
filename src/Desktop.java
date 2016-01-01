@@ -14,19 +14,18 @@ public class Desktop {
           System.getProperty("user.home"),
           "git", "ccl", "src", "corelib.ccl");
 
-  static {
-    Scope.GLOBAL.put(new BuiltinFunc("print") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        System.out.println(args.get(0));
-        return args.get(0);
-      }
-    });
-  }
+  public static final Scope DESKTOP_GLOBAL = new Scope()
+      .put(new BuiltinFunc("print") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          System.out.println(args.get(0));
+          return args.get(0);
+        }
+      });
 
   public static void main(String[] args) {
     try {
-      new Scope(Scope.GLOBAL).eval(readModule(PATH_TO_CORELIB));
-      new Scope(Scope.GLOBAL).eval(readModule(args[0]));
+      new Scope(DESKTOP_GLOBAL).eval(readModule(PATH_TO_CORELIB));
+      new Scope(DESKTOP_GLOBAL).eval(readModule(args[0]));
     } catch (final Err e) {
       System.out.println(e.toString() + e.getTraceString());
       throw e;
