@@ -163,6 +163,12 @@ public final Blob MB_FUNC = new Blob(ROOT_META_BLOB)
 public final Blob MB_ITER = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Iter"))
     .put(native_eq).put(native_repr)
+    .put(new BuiltinFunc("iter") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 0);
+        return self;
+      }
+    })
     .put(new BuiltinFunc("__more__") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 0);
