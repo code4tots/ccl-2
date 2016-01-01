@@ -154,28 +154,6 @@ List@iter = \ {
   return iter
 }
 
-GLOBAL@Iter = C["__name__", "Iter"]
-
-Iter@__new__ = \init more f {
-  iter = new[Iter]
-  if init
-    init.apply[iter, L[]]
-  iter@more = more
-  iter@next = f
-  return iter
-}
-
-Iter@more = \. self@more.apply[self, L[]]
-
-Iter@next = \. self@next.apply[self, L[]]
-
-Iter@list = \ {
-  xs = L[]
-  while self.more[]
-    xs.add[self.next[]]
-  return xs
-}
-
 MetaBlob.extend[Val]
 Nil.extend[Val]
 Bool.extend[Val]
@@ -184,4 +162,3 @@ Str.extend[Val]
 List.extend[Val]
 Map.extend[Val]
 Func.extend[Val]
-Iter.extend[Val]
