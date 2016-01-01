@@ -2,7 +2,7 @@ import java.util.HashMap;
 
 public final class Bool extends Val.Wrap<Boolean> {
 
-  public static final HashMap<String, Val> MMBool = new Hmb()
+  public static final HashMap<String, Val> MM = new Hmb()
       .put("name", Str.from("Bool"))
       .hm;
 
@@ -10,5 +10,5 @@ public final class Bool extends Val.Wrap<Boolean> {
   public static final Bool fal = new Bool(false);
 
   private Bool(Boolean val) { super(val); }
-  public final HashMap<String, Val> getMeta() { return MMBool; }
+  public final HashMap<String, Val> getMeta() { return MM; }
 }

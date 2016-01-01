@@ -281,7 +281,23 @@ public final class Parser {
       if (at(".")) {
         Token token = next();
         String name = (String) expect("ID").value;
-        node = new Ast.GetMethod(token, node, name);
+        if (consume("[")) {
+          ArrayList<Ast> args = new ArrayList<Ast>();
+          Ast vararg = null;
+          while (!consume("]")) {
+            if (consume("*")) {
+              vararg = parseExpression();
+              expect("]");
+              break;
+            } else {
+              args.add(parseExpression());
+              consume(",");
+            }
+          }
+          node = new Ast.Call(token, node, name, args, vararg);
+        }
+        else
+          node = new Ast.GetMethod(token, node, name);
         continue;
       }
       break;

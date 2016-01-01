@@ -68,6 +68,4 @@ Str.extend[Val]
 List.extend[Val]
 Map.extend[Val]
 Func.extend[Val]
-Iter.extend[Val]
-
-print[1]
+# Iter.extend[Val]

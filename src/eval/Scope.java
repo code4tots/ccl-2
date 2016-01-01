@@ -21,12 +21,27 @@ public final class Scope {
   public Scope put(BuiltinFunc bf) {
     return put(bf.name, bf);
   }
+  public Scope put(HashMap<String,Val> bf) {
+    return put(
+        bf.get("name").as(Str.class, "FUBAR").val, new Blob(Val.MMMeta, bf));
+  }
 
   /* package-private */ Scope put(Blob m) {
+    System.out.println("XXX" + m.attrs.get("name").as(Str.class, "FUBAR").val);
     return put(m.attrs.get("name").as(Str.class, "FUBAR").val, m);
   }
 
   public Val eval(Ast ast) { return new Evaluator(this).visit(ast); }
 
-  private static final Scope GLOBAL = new Scope(null);
+  private static final Scope GLOBAL = new Scope(null)
+      .put(Val.MMMeta)
+      .put(Val.MMVal)
+      .put(Nil.MM)
+      .put(Bool.MM)
+      .put(Num.MM)
+      .put(Str.MM)
+      .put(List.MM)
+      .put(Map.MM)
+      .put(Func.MM)
+      ;
 }

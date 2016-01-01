@@ -19,4 +19,18 @@ public final class Err extends RuntimeException {
       sb.append(trace.get(i).getTraceMessage());
     return sb.toString();
   }
+
+  public static void expectArglen(ArrayList<Val> args, int len) {
+    if (args.size() != len)
+      throw new Err(
+          "Expected " + len + " arguments but found " +
+          args.size() + " arguments.");
+  }
+
+  public static void expectMinArglen(ArrayList<Val> args, int len) {
+    if (args.size() != len)
+      throw new Err(
+          "Expected at least " + len + " arguments but found only " +
+          args.size() + " arguments.");
+  }
 }

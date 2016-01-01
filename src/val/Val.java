@@ -1,14 +1,36 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 public abstract class Val {
 
   public static final HashMap<String, Val> MMMeta = new Hmb()
       .put("name", Str.from("Meta"))
+      .put(new BuiltinFunc("extend") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          HashMap<String, Val> m = self.as(Blob.class, "self").attrs;
+          for (int i = 0; i < args.size(); i++) {
+            HashMap<String, Val> h = args.get(i).as(Blob.class, "args").attrs;
+            Iterator<HashMap.Entry<String, Val>> it = h.entrySet().iterator();
+            while (it.hasNext()) {
+              HashMap.Entry<String, Val> e = it.next();
+              if (m.get(e.getKey()) == null) {
+                m.put(e.getKey(), e.getValue());
+              }
+            }
+          }
+          return Nil.val;
+        }
+      })
       .hm;
 
   public static final HashMap<String, Val> MMVal = new Hmb()
       .put("name", Str.from("Val"))
+      .put(new BuiltinFunc("str") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          return self.call("repr", args);
+        }
+      })
       .hm;
 
   public abstract HashMap<String, Val> getMeta();
@@ -43,7 +65,7 @@ public abstract class Val {
     return call("__eq__", other).truthy();
   }
   public final String toString() {
-    return call("__str__").as(Str.class, "result of __str__").val;
+    return call("str").as(Str.class, "result of str").val;
   }
 
   public abstract static class Wrap<T> extends Val {

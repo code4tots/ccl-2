@@ -3,10 +3,6 @@ import java.util.HashMap;
 
 public final class UserFunc extends Func {
 
-  public static final HashMap<String, Val> MMUserFunc = new Hmb()
-      .put("name", Str.from("UserFunc"))
-      .hm;
-
   public final Token token;
   public final ArrayList<String> args;
   public final String vararg;
@@ -21,20 +17,15 @@ public final class UserFunc extends Func {
     this.body = body;
     this.scope = scope;
   }
-  public final HashMap<String, Val> getMeta() { return MMUserFunc; }
   public final String getTraceMessage() {
     return "\nin user function defined in " + token.getLocationString();
   }
   public final Val call(Val self, ArrayList<Val> args) {
     Scope scope = new Scope(this.scope);
-    if (vararg == null && this.args.size() != args.size())
-      throw new Err(
-          "Expected " + this.args.size() + " arguments but found " +
-          args.size());
-    if (vararg != null && this.args.size() > args.size())
-      throw new Err(
-          "Expected at least " + this.args.size() +
-          " arguments but found only " + args.size());
+    if (vararg == null)
+      Err.expectArglen(args, args.size());
+    else
+      Err.expectMinArglen(args, args.size());
 
     for (int i = 0; i < this.args.size(); i++)
       scope.put(this.args.get(i), args.get(i));
