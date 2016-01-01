@@ -92,7 +92,9 @@ public class Evaluator extends AstVisitor<Val> {
       args.add(visit(node.args.get(i)));
     if (node.vararg != null)
       args.addAll(visit(node.vararg).as(Val.List.class, "vararg").val);
-    return owner.call(node.name, args);
+    return (node.name.equals("__call__") && (owner instanceof Func)) ?
+        ((Func) owner).call(owner, args):
+        owner.call(node.name, args);
   }
 
   public Val visitGetMethod(Ast.GetMethod node) {
