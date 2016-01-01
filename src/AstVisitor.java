@@ -11,7 +11,6 @@ public abstract class AstVisitor<T> {
   public abstract T visitFunction(Ast.Function node);
   public abstract T visitCall(Ast.Call node);
   public abstract T visitGetMethod(Ast.GetMethod node);
-  public abstract T visitSetItem(Ast.SetItem node);
   public abstract T visitGetAttribute(Ast.GetAttribute node);
   public abstract T visitSetAttribute(Ast.SetAttribute node);
   public abstract T visitIs(Ast.Is node);

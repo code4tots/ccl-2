@@ -139,19 +139,6 @@ public abstract class Ast {
       return visitor.visitGetMethod(this);
     }
   }
-  public static final class SetItem extends Ast {
-    public final Ast owner, index, value;
-    public SetItem(
-        Token token, Ast owner, Ast index, Ast value) {
-      super(token);
-      this.owner = owner;
-      this.index = index;
-      this.value = value;
-    }
-    public <T> T accept(AstVisitor<T> visitor) {
-      return visitor.visitSetItem(this);
-    }
-  }
   public static final class GetAttribute extends Ast {
     public final Ast owner;
     public final String name;

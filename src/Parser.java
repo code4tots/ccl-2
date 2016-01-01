@@ -251,8 +251,8 @@ public final class Parser {
           if (vararg != null || args.size() != 1)
             throw new SyntaxError(
                 token, "For setitem syntax, must have exactly one argument");
-          node = new Ast.SetItem(
-              token, node, args.get(0), parseExpression());
+          node = new Ast.Operation(
+              token, node, "__setitem__", args.get(0), parseExpression());
         } else {
           node = new Ast.Call(token, node, args, vararg);
         }
