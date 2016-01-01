@@ -125,6 +125,12 @@ public final Blob MB_LIST = new Blob(ROOT_META_BLOB)
         asList(self, "self").getVal().add(args.get(0));
         return self;
       }
+    })
+    .put(new BuiltinFunc("iter") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 0);
+        return toIter(asList(self, "self").getVal().iterator());
+      }
     });
 public final Blob MB_MAP = new Blob(ROOT_META_BLOB)
     .put("__name__", toStr("Map"))
@@ -138,6 +144,21 @@ public final Blob MB_FUNC = new Blob(ROOT_META_BLOB)
         return asFunc(self, "self").call(
             args.get(0),
             asList(args.get(1), "argument 1").getVal());
+      }
+    });
+public final Blob MB_ITER = new Blob(ROOT_META_BLOB)
+    .put("__name__", toStr("Iter"))
+    .put(native_eq).put(native_repr)
+    .put(new BuiltinFunc("__more__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 0);
+        return asIter(self, "self").hasNext() ? tru : fal;
+      }
+    })
+    .put(new BuiltinFunc("__next__") {
+      public Val calli(Val self, ArrayList<Val> args) {
+        expectExactArgumentLength(args, 0);
+        return asIter(self, "self").next();
       }
     });
 
@@ -155,6 +176,7 @@ public final Scope GLOBALS = new Scope(null)
     .put("List", MB_LIST)
     .put("Map", MB_MAP)
     .put("Func", MB_FUNC)
+    .put("Iter", MB_ITER)
     .put(new BuiltinFunc("print") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 1);
@@ -469,6 +491,13 @@ public final class Map extends WrapperVal<HashMap<Val, Val>> {
     sb.append("]");
     return sb.toString();
   }
+}
+public final class Iter extends WrapperVal<Iterator<Val>> {
+  public Iter(Iterator<Val> val) { super(val); }
+  public final Val searchMetaBlob(String key) { return MB_ITER.get(key); }
+  public final boolean hasNext() { return getVal().hasNext(); }
+  public final Val next() { return getVal().next(); }
+  public final String repr() { return "<Iter>"; }
 }
 public abstract class Func extends Val {
   public abstract Val call(Val self, ArrayList<Val> args);
@@ -1691,6 +1720,14 @@ public Blob asBlob(Val v, String name) {
   return (Blob) v;
 }
 
+public Iter asIter(Val v, String name) {
+  if (!(v instanceof Iter))
+    throw err(
+        "Expected " + name + " to be Iter but found " +
+        v.getClass().getName());
+  return (Iter) v;
+}
+
 public Num toNum(Double value) {
   return new Num(value);
 }
@@ -1705,6 +1742,10 @@ public Str toStr(String value) {
 
 public List toList(ArrayList<Val> value) {
   return new List(value);
+}
+
+public Iter toIter(Iterator<Val> value) {
+  return new Iter(value);
 }
 
 }

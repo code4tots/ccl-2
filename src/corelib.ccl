@@ -39,6 +39,7 @@ List@__repr__
 List@len
 List[]
 List[]=
+List@iter
 
 Map@__eq__
 Map@__repr__
@@ -47,11 +48,15 @@ Map[]
 Map[]=
 Map@keys
 Map@vals
+Map@iter
 
 Func[]
 Func@apply
 Func@__eq__
 Func@__repr__
+
+Iter@__more__
+Iter@__next__
 
 """
 
@@ -137,21 +142,11 @@ List@cut = \start end {
 
 List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
 
-List@iter = \ {
-  list = self
-  iter = Iter[
-    \{
-      self@i = 0
-    },
-    \{
-      val = list[self@i]
-      self@i = self@i + 1
-      return val
-    },
-    \. self@i < list.len[]
-  ]
-  assert[iter is not nil, iter]
-  return iter
+Iter@list = \. {
+  xs = L[]
+  while self.__more__[]
+    xs.add[self.__next__[]]
+  return xs
 }
 
 MetaBlob.extend[Val]
@@ -162,3 +157,4 @@ Str.extend[Val]
 List.extend[Val]
 Map.extend[Val]
 Func.extend[Val]
+Iter.extend[Val]

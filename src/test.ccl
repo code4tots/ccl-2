@@ -111,4 +111,6 @@ assert['hi'.repr[] == '"hi"']
 
 (\x y. assert[self == 3 and x == 1 and y == 2]).apply[3, L[1, 2]]
 
+assert[L[1, 2, 3].iter[].list[] == L[1, 2, 3]]
+
 print["*** All tests pass! ***"]
