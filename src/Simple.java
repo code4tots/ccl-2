@@ -407,6 +407,12 @@ public abstract class Val {
   public void setitem(Val index, Val val) {
     throw err(getClass().getName() + " does not support item assignment");
   }
+  public boolean hasNext() {
+    throw err(getClass().getName() + " does not support hasNext");
+  }
+  public Val next() {
+    throw err(getClass().getName() + " does not support next");
+  }
 }
 public final class Nil extends Val {
   public final Val searchMetaBlob(String key) { return MB_NIL.get(key); }

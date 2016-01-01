@@ -142,6 +142,11 @@ List@cut = \start end {
 
 List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
 
+Iter@do = \f {
+  while self.__more__[]
+    f[self.__next__[]]
+}
+
 Iter@list = \. {
   xs = L[]
   while self.__more__[]
