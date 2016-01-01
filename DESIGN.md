@@ -6,20 +6,27 @@ it's going to be easier for me to do some codereuse.
 
 Tier N can compile with only the classes from Tier 1 ... N as dependencies.
 
-Tier 1 (Lexer)
+Tier 1 (grammar dir -- Lexer)
   Lexer
   Token
   SyntaxError
 
-Tier 2 (Parser)
+Tier 2 (grammar dir -- Parser)
   Parser
   Ast
   AstVisitor
-  Traceable
 
-Tier 3 (Object model & evaluation)
+Tier 3 (eval dir -- Object model and Evaluation)
   Val
+    Func
+      UserFunc
+      BuiltinFunc
+    Num
+    Str
+    List
+    Map
   Err
+  Traceable
   Evaluator
   Scope
 

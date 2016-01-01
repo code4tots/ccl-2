@@ -19,10 +19,6 @@ public abstract class Val {
       .put("name", Str.from("Bool"))
       .hm;
 
-  public static final HashMap<String, Val> MMNum = new Hmb()
-      .put("name", Str.from("Num"))
-      .hm;
-
   public static final HashMap<String, Val> MMStr = new Hmb()
       .put("name", Str.from("Str"))
       .hm;
@@ -33,19 +29,6 @@ public abstract class Val {
 
   public static final HashMap<String, Val> MMMap = new Hmb()
       .put("name", Str.from("Map"))
-      .hm;
-
-  public static final HashMap<String, Val> MMBuiltinFunc = new Hmb()
-      .put("name", Str.from("BuiltinFunc"))
-      .put("__call__", new BuiltinFunc("__call__") {
-        public Val calli(Val self, ArrayList<Val> args) {
-          return self.as(BuiltinFunc.class, "self").call(self, args);
-        }
-      })
-      .hm;
-
-  public static final HashMap<String, Val> MMUserFunc = new Hmb()
-      .put("name", Str.from("UserFunc"))
       .hm;
 
   public static final Nil nil = new Nil();
@@ -101,12 +84,6 @@ public abstract class Val {
     public final HashMap<String, Val> getMeta() { return MMBool; }
   }
 
-  public static final class Num extends Wrap<Double> {
-    public static Num from(Double s) { return new Num(s); }
-    public Num(Double val) { super(val); }
-    public final HashMap<String, Val> getMeta() { return MMNum; }
-  }
-
   public static final class Str extends Wrap<String> {
     public static Str from(String s) { return new Str(s); }
     public Str(String val) { super(val); }
@@ -125,50 +102,6 @@ public abstract class Val {
     public final HashMap<String, Val> getMeta() { return MMList; }
   }
 
-  public static final class UserFunc extends Func {
-    public final Token token;
-    public final ArrayList<String> args;
-    public final String vararg;
-    public final Ast body;
-    public final Scope scope;
-    public UserFunc(
-        Token token, ArrayList<String> args, String vararg,
-        Ast body, Scope scope) {
-      this.token = token;
-      this.args = args;
-      this.vararg = vararg;
-      this.body = body;
-      this.scope = scope;
-    }
-    public final HashMap<String, Val> getMeta() { return MMUserFunc; }
-    public final String getTraceMessage() {
-      return "\nin user function defined in " + token.getLocationString();
-    }
-    public final Val call(Val self, ArrayList<Val> args) {
-      Scope scope = new Scope(this.scope);
-      if (vararg == null && this.args.size() != args.size())
-        throw new Err(
-            "Expected " + this.args.size() + " arguments but found " +
-            args.size());
-      if (vararg != null && this.args.size() > args.size())
-        throw new Err(
-            "Expected at least " + this.args.size() +
-            " arguments but found only " + args.size());
-
-      for (int i = 0; i < this.args.size(); i++)
-        scope.put(this.args.get(i), args.get(i));
-
-      if (vararg != null) {
-        ArrayList<Val> va = new ArrayList<Val>();
-        for (int i = this.args.size(); i < args.size(); i++)
-          va.add(args.get(i));
-        scope.put(vararg, Val.List.from(va));
-      }
-
-      return scope.eval(body);
-    }
-  }
-
   public static final class Blob extends Val {
     public final HashMap<String, Val> meta;
     public final HashMap<String, Val> attrs;
@@ -183,7 +116,7 @@ public abstract class Val {
   }
 
   // HashMap Builder
-  private static class Hmb {
+  protected static class Hmb {
     public final HashMap<String, Val> hm = new HashMap<String, Val>();
     public Hmb put(String name, Val value) {
       hm.put(name, value);

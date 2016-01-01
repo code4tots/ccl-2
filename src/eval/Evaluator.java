@@ -57,7 +57,7 @@ public class Evaluator extends AstVisitor<Val> {
   // Expression only
 
   public Val visitNum(Ast.Num node) {
-    return Val.Num.from(node.val);
+    return Num.from(node.val);
   }
 
   public Val visitStr(Ast.Str node) {
@@ -81,7 +81,7 @@ public class Evaluator extends AstVisitor<Val> {
   }
 
   public Val visitFunction(Ast.Function node) {
-    return new Val.UserFunc(
+    return new UserFunc(
         node.token, node.args, node.vararg, node.body, scope);
   }
 
