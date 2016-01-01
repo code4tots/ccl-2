@@ -113,6 +113,7 @@ assert['hi'.repr[] == '"hi"']
 
 assert[L[1, 2, 3].iter[].list[] == L[1, 2, 3]]
 assert[M[1, 2].iter[].list[] == L[L[1, 2]]]
+assert[L[1, 2, 3].iter[].map[\x. x + 1] is not nil]
 assert[L[1, 2, 3].iter[].map[\x. x + 1].list[] == L[2, 3, 4]]
 iter = L[1].iter[]
 assert[iter is iter.iter[]]

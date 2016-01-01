@@ -55,8 +55,8 @@ Func@apply
 Func@__eq__
 Func@__repr__
 
-Iter@__more__
-Iter@__next__
+Iter@more
+Iter@next
 
 """
 
@@ -142,16 +142,36 @@ List@cut = \start end {
 
 List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
 
+# Blobs treat its 'more' and 'next' attributes like methods.
+Iter@__new__ = \more next {
+  self = new[Iter]
+  self@more = more
+  self@next = next
+  return self
+}
+
 Iter@do = \f {
-  while self.__more__[]
-    f[self.__next__[]]
+  while self.more[]
+    f[self.next[]]
+}
+
+Iter@map = \f {
+  src = self
+  return Iter[
+    src.more,
+    \. f[src.next[]]
+  ]
 }
 
 Iter@list = \. {
   xs = L[]
-  while self.__more__[]
-    xs.add[self.__next__[]]
+  while self.more[]
+    xs.add[self.next[]]
   return xs
+}
+
+Iter@__repr__ = \. {
+  return "<Iter>"
 }
 
 MetaBlob.extend[Val]

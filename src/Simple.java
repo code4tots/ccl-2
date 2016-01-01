@@ -169,27 +169,16 @@ public final Blob MB_ITER = new Blob(ROOT_META_BLOB)
         return self;
       }
     })
-    .put(new BuiltinFunc("__more__") {
+    .put(new BuiltinFunc("more") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 0);
-        return asIter(self, "self").hasNext() ? tru : fal;
+        return self.hasNext() ? tru : fal;
       }
     })
-    .put(new BuiltinFunc("__next__") {
+    .put(new BuiltinFunc("next") {
       public Val calli(Val self, ArrayList<Val> args) {
         expectExactArgumentLength(args, 0);
-        return asIter(self, "self").next();
-      }
-    })
-    .put(new BuiltinFunc("map") {
-      public Val calli(Val self, ArrayList<Val> args) {
-        expectExactArgumentLength(args, 1);
-        final Val f = args.get(0);
-        final Iterator<Val> it = asIter(self, "self").getVal();
-        return toIter(new Iterator<Val>() {
-          public Val next() { return f.call(toArrayList(it.next())); }
-          public boolean hasNext() { return it.hasNext(); }
-        });
+        return self.next();
       }
     });
 
@@ -321,10 +310,6 @@ private boolean FLAG_RETURN = false;
 private boolean FLAG_BREAK = false;
 private boolean FLAG_CONTINUE = false;
 
-private boolean jmp() {
-  return FLAG_RETURN || FLAG_BREAK || FLAG_CONTINUE;
-}
-
 public void push(Trace trace) {
   push(trace, SCOPE_STACK[DEPTH-1]);
 }
@@ -371,6 +356,13 @@ public String getStackTrace() {
 //// Val
 public abstract class Val {
   public abstract Val searchMetaBlob(String key);
+  public final String getMetaBlobName() {
+    Val n = searchMetaBlob("__name__");
+    if (n == null || !(n instanceof Str))
+      return "anonymous";
+    else
+      return ((Str) n).getVal();
+  }
   public abstract boolean equals(Val other);
   public abstract String repr();
   public final boolean equals(Object other) {
@@ -606,6 +598,15 @@ public final class UserFunc extends Func implements Trace {
 
       Val result = body.eval();
 
+      System.out.println("UUUUUUUUUUUUUUUUUUUUUUU");
+      System.out.println("-----------------------");
+      System.out.println("-----------------------");
+      System.out.println(token.getLocationString());
+      System.out.println(result.getClass().getName());
+      System.out.println("-----------------------");
+      System.out.println("-----------------------");
+      System.out.println("-----------------------");
+
       FLAG_RETURN = false;
 
       if (FLAG_CONTINUE)
@@ -680,10 +681,19 @@ public final class Blob extends Val {
   // TODO: Make 'hashCode' overridable by user.
   public final int hashCode() { return super.hashCode(); }
   public final String repr() {
-    return asStr(callMethod("__repr__"), "repr[]").getVal();
+    if (searchMetaBlob("__repr__") == null)
+      return "<" + getMetaBlobName() + " instance>";
+    else
+      return asStr(callMethod("__repr__"), "repr[]").getVal();
   }
   public final String toString() {
     return asStr(callMethod("__str__"), "str[]").getVal();
+  }
+  public final Val next() {
+    return getattr("next").call(new ArrayList<Val>());
+  }
+  public final boolean hasNext() {
+    return getattr("more").call(new ArrayList<Val>()).truthy();
   }
 }
 
@@ -1331,9 +1341,12 @@ public final class BlockAst extends Ast {
   public final Val eval() {
     for (int i = 0; i < body.size(); i++) {
       Val v = body.get(i).eval();
-      if (FLAG_BREAK||FLAG_CONTINUE||FLAG_RETURN)
+      if (FLAG_BREAK||FLAG_CONTINUE||FLAG_RETURN) {
+        System.out.println("BlockAst: " + v.getClass().getName());
         return v;
+      }
     }
+    System.out.println("BlockAst: nil, " + FLAG_RETURN);
     return nil;
   }
 }
@@ -1763,14 +1776,6 @@ public Blob asBlob(Val v, String name) {
         "Expected " + name + " to be Blob but found " +
         v.getClass().getName());
   return (Blob) v;
-}
-
-public Iter asIter(Val v, String name) {
-  if (!(v instanceof Iter))
-    throw err(
-        "Expected " + name + " to be Iter but found " +
-        v.getClass().getName());
-  return (Iter) v;
 }
 
 public Num toNum(Double value) {
