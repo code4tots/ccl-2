@@ -22,6 +22,7 @@ public final class UserFunc extends Func {
   }
   public final Val call(Val self, ArrayList<Val> args) {
     Scope scope = new Scope(this.scope);
+    scope.put("self", self);
     if (vararg == null)
       Err.expectArglen(args, args.size());
     else

@@ -9,10 +9,10 @@
 # Bultins implemented natively
 
 Nil@__eq__
-Nil@__repr__
+Nil@repr
 
 Bool@__eq__
-Bool@__repr__
+Bool@repr
 
 Num@__pos__
 Num@__neg__
@@ -22,23 +22,24 @@ Num@__mul__
 Num@__div__
 Num@__mod__
 Num@__eq__
-Num@__repr__
+Num@__lt__
+Num@repr
 
 Str@__add__
 Str@__mod__ # string format like in Python.
 Str@__eq__
-Str@__repr__
+Str@__lt__
+Str@repr
 Str@len
-Str[]
-Str[]=
+Str@__call__ # getitem
 
 List@add
 List@pop
 List@__eq__
 List@__repr__
 List@len
-List[]
-List[]=
+List@__call__ # getitem
+List@__setitem__
 List@iter
 
 Map@__eq__
@@ -46,8 +47,6 @@ Map@__repr__
 Map@len
 Map[]
 Map[]=
-Map@keys
-Map@vals
 Map@iter
 
 Func[]
@@ -59,6 +58,8 @@ Iter@more
 Iter@next
 
 """
+
+Str@str = \. self
 
 Meta.extend[Val]
 Nil.extend[Val]
