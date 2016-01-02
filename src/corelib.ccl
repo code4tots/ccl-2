@@ -245,14 +245,24 @@ Iter@list = \. {
   return xs
 }
 
-GLOBAL@range = \start /end. {
+GLOBAL@range = \start /end /step. {
   state = M['i', start]
 
-  more = \. end is not nil and state['i'] < end
+  step = step or 1
+
+  if step == 0
+    err['range step may not be zero']
+
+  if end is nil
+    more = \. true
+  else if step > 0
+    more = \. state['i'] < end
+  else
+    more = \. state['i'] > end
 
   next = \{
     val = state['i']
-    state['i'] = val + 1
+    state['i'] = val + step
     return val
   }
 

@@ -19,7 +19,13 @@ assert[not (false or false)]
 assert[not (true and false)]
 assert[true and true]
 
-assert[L[1, 2, 3].map[\x. x + 1] == L[2, 3, 4]]
+assert[1 == 1]
+assert[L[1] == L[1]]
+assert[M['a', 'b'] == M['a', 'b']]
+assert[M[1, 2] != M['a', 'b']]
+
+xs = L[1, 2, 3].map[\x. x + 1]
+assert[xs == L[2, 3, 4], xs]
 
 # There was a lexer bug with 'x+1' where 'x+1'
 # would be interpreted as the tokens 'x' and '+1' instead of
@@ -137,6 +143,9 @@ xs = L[1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1].iter[]
 assert[xs == L[7, 8, 7], xs]
 
 xs = range[0, 5].list[]
-assert[xs == L[1, 2, 3, 4], xs]
+assert[xs == L[0, 1, 2, 3, 4], xs]
+
+xs = range[0, -4, -1].list[]
+assert[xs == L[0, -1, -2, -3], xs]
 
 print["*** All tests pass! ***"]

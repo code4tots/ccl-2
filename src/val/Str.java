@@ -14,10 +14,10 @@ public final class Str extends Val.Wrap<String> {
       .put(new BuiltinFunc("__eq__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
-          return
-              self.as(Str.class, "self").val.equals(
-                args.get(0).as(Str.class, "argument").val) ?
-              Bool.tru : Bool.fal;
+          return args.get(0) instanceof Str ?
+              Bool.from(self.as(Str.class, "self").val.equals(
+                  ((Str) args.get(0)).val)):
+              Bool.fal;
         }
       })
       .put(new BuiltinFunc("__add__") {

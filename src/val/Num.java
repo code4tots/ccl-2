@@ -11,7 +11,7 @@ public final class Num extends Val.Wrap<Double> {
           return Num.from(self.as(Num.class, "self").val.hashCode());
         }
       })
-      .put(new BuiltinFunc("repr") {
+      .put(new BuiltinFunc("Num#repr") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
           double val = self.as(Num.class, "self").val;
@@ -20,7 +20,7 @@ public final class Num extends Val.Wrap<Double> {
               Double.toString(val));
         }
       })
-      .put(new BuiltinFunc("__add__") {
+      .put(new BuiltinFunc("Num#__add__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           return Num.from(
@@ -28,7 +28,7 @@ public final class Num extends Val.Wrap<Double> {
               args.get(0).as(Num.class, "argument").val);
         }
       })
-      .put(new BuiltinFunc("__sub__") {
+      .put(new BuiltinFunc("Num#__sub__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           return Num.from(
@@ -36,17 +36,16 @@ public final class Num extends Val.Wrap<Double> {
               args.get(0).as(Num.class, "argument").val);
         }
       })
-      .put(new BuiltinFunc("__eq__") {
+      .put(new BuiltinFunc("Num#__eq__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
-          if (args.get(0) instanceof Num)
-            return Bool.from(
-                self.as(Num.class, "self").val.equals(
-                    ((Num)args.get(0)).val));
-          return Bool.fal;
+          return args.get(0) instanceof Num ?
+              Bool.from(self.as(Num.class, "self").val.equals(
+                    ((Num)args.get(0)).val)):
+              Bool.fal;
         }
       })
-      .put(new BuiltinFunc("__lt__") {
+      .put(new BuiltinFunc("Num#__lt__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           return Bool.from(
@@ -54,7 +53,7 @@ public final class Num extends Val.Wrap<Double> {
                   args.get(0).as(Num.class, "argument").val.intValue());
         }
       })
-      .put(new BuiltinFunc("repr") {
+      .put(new BuiltinFunc("Num#repr") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
           double val = self.as(Num.class, "self").val;

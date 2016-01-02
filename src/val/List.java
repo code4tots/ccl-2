@@ -56,9 +56,10 @@ public final class List extends Val.Wrap<ArrayList<Val>> {
       .put(new BuiltinFunc("List#__eq__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
-          self.as(List.class, "self").val.equals(
-              args.get(0).as(List.class, "arg").val);
-          return self;
+          return args.get(0) instanceof List ?
+              Bool.from(self.as(List.class, "self").val.equals(
+                ((List) args.get(0)).val)):
+              Bool.fal;
         }
       })
       .put(new BuiltinFunc("List#iter") {
