@@ -41,6 +41,13 @@ public final class Map extends Val.Wrap<HashMap<Val, Val>> {
           return result;
         }
       })
+      .put(new BuiltinFunc("Map#__setitem__") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 2);
+          return self.as(Map.class, "self").val.put(
+              args.get(0), args.get(1));
+        }
+      })
       .put(new BuiltinFunc("Map#iter") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);

@@ -23,8 +23,8 @@ public class Evaluator extends AstVisitor<Val> {
     while (visit(node.cond).truthy()) {
       Val val = visit(node.body);
       if (ret) return val;
-      if (br) break;
-      if (cont) continue;
+      if (br) { br = false; break; }
+      if (cont) { cont = false; continue; }
     }
     return Nil.val;
   }

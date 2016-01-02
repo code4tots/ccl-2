@@ -205,7 +205,36 @@ Iter@map = \f {
   ]
 }
 
-# The following Iter methods materializes queued up
+# Yea it's unfortunate. Having generators could really make the
+# following a lot more elegant.
+Iter@filter = \f {
+  src = self
+  state = M['more', true, 'cur', nil]
+
+  next = \. {
+
+    more = false
+    while src.more[] {
+      x = src.next[]
+      if f[x] {
+        cur = x
+        more = true
+        break
+      }
+    }
+
+    last = state['cur']
+
+    state['more'] = more
+    if more then state['cur'] = cur
+
+    return last
+  }
+
+  next[]
+
+  return Iter[\. state['more'], next]
+}
 
 Iter@do = \f {
   while self.more[]

@@ -129,4 +129,11 @@ xs = L[]
 assert[L[5, 6, 7].iter[].do[\x. xs.add[x]] is nil]
 assert[xs == L[5, 6, 7]]
 
+xs = L[1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1].iter[]
+    .filter[\x. x > 4]
+    .map[\x. x + 2]
+    .list[]
+
+assert[xs == L[7, 8, 7], xs]
+
 print["*** All tests pass! ***"]
