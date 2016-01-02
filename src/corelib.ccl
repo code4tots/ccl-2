@@ -253,12 +253,10 @@ GLOBAL@range = \start /end /step. {
   if step == 0
     err['range step may not be zero']
 
-  if end is nil
-    more = \. true
-  else if step > 0
-    more = \. state['i'] < end
-  else
-    more = \. state['i'] > end
+  more =
+    if end is nil      \. true
+    else if step > 0   \. state['i'] < end
+    else               \. state['i'] > end
 
   next = \{
     val = state['i']
