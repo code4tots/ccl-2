@@ -254,6 +254,26 @@ Iter@takeWhile = \f {
   return Iter[\.state['more'], next]
 }
 
+Iter@zip = \iter {
+  src = self
+  state = M['more', true, 'cur', nil]
+
+  next = \. {
+    last = state['cur']
+
+    if src.more[] and iter.more[]
+      state['cur'] = L[src.next[], iter.next[]]
+    else
+      state['more'] = false
+
+    return last
+  }
+
+  next[]
+
+  return Iter[\.state['more'], next]
+}
+
 Iter@do = \f {
   while self.more[]
     f[self.next[]]
