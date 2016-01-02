@@ -251,6 +251,39 @@ Iter@takeWhile = \f {
   return Iter[\.state['more'], next]
 }
 
+Iter@drop = \n {
+  src = self
+  range[0, n].do[\.src.next[]]
+  return self
+}
+
+Iter@dropWhile = \f {
+  src = self
+  state = M['more', true, 'cur', nil]
+
+  next = \. {
+    last = state['cur']
+    if src.more[]
+      state['cur'] = src.next[]
+    else
+      state['more'] = false
+    return last
+  }
+
+  found = false
+
+  while not found and self.more[] {
+    state['cur'] = self.next[]
+    if not f[state['cur']]
+      found = true
+  }
+
+  if not found
+    state['more'] = false
+
+  return Iter[\.state['more'], next]
+}
+
 # TODO:
 # There seems to be a lot of boilerplate here
 # when instantiating Iter...

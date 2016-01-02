@@ -160,4 +160,10 @@ assert[xs == L[L['a', 0], L['b', 1]], xs]
 xs = L[2, 3, 4].iter[].take[2].list[]
 assert[xs == L[2, 3], xs]
 
+xs = L[2, 3, 4].iter[].drop[2].list[]
+assert[xs == L[4], xs]
+
+xs = L[2, 3, 4].iter[].dropWhile[\x. x < 4].list[]
+assert[xs == L[4], xs]
+
 print["*** All tests pass! ***"]
