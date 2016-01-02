@@ -233,6 +233,27 @@ Iter@filter = \f {
   return Iter[\. state['more'], next]
 }
 
+Iter@takeWhile = \f {
+  src = self
+  state = M['more', true, 'cur', nil]
+
+  next = \. {
+    last = state['cur']
+    x = src.next[]
+
+    if not f[x]
+      state['more'] = false
+    else
+      state['cur'] = x
+
+    return last
+  }
+
+  next[]
+
+  return Iter[\.state['more'], next]
+}
+
 Iter@do = \f {
   while self.more[]
     f[self.next[]]
