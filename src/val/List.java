@@ -6,7 +6,13 @@ public final class List extends Val.Wrap<ArrayList<Val>> {
 
   public static final HashMap<String, Val> MM = new Hmb()
       .put("name", Str.from("List"))
-      .put(new BuiltinFunc("repr") {
+      .put(new BuiltinFunc("List#hash") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return Num.from(self.as(List.class, "self").val.hashCode());
+        }
+      })
+      .put(new BuiltinFunc("List#repr") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
           StringBuilder sb = new StringBuilder("L[");
@@ -19,20 +25,20 @@ public final class List extends Val.Wrap<ArrayList<Val>> {
           return Str.from(sb.toString());
         }
       })
-      .put(new BuiltinFunc("len") {
+      .put(new BuiltinFunc("List#len") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
           return Num.from(self.as(List.class, "self").val.size());
         }
       })
-      .put(new BuiltinFunc("__call__") {
+      .put(new BuiltinFunc("List#__call__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           return self.as(List.class, "self").val.get(
               args.get(0).as(Num.class, "index").val.intValue());
         }
       })
-      .put(new BuiltinFunc("__setitem__") {
+      .put(new BuiltinFunc("List#__setitem__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 2);
           return self.as(List.class, "self").val.set(
@@ -40,19 +46,25 @@ public final class List extends Val.Wrap<ArrayList<Val>> {
               args.get(1));
         }
       })
-      .put(new BuiltinFunc("add") {
+      .put(new BuiltinFunc("List#add") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           self.as(List.class, "self").val.add(args.get(0));
           return self;
         }
       })
-      .put(new BuiltinFunc("__eq__") {
+      .put(new BuiltinFunc("List#__eq__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           self.as(List.class, "self").val.equals(
               args.get(0).as(List.class, "arg").val);
           return self;
+        }
+      })
+      .put(new BuiltinFunc("List#iter") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return new BuiltinIter(self.as(List.class, "self").val.iterator());
         }
       })
       .hm;

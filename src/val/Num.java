@@ -5,6 +5,12 @@ public final class Num extends Val.Wrap<Double> {
 
   public static final HashMap<String, Val> MM = new Hmb()
       .put("name", Str.from("Num"))
+      .put(new BuiltinFunc("Num#hash") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return Num.from(self.as(Num.class, "self").val.hashCode());
+        }
+      })
       .put(new BuiltinFunc("repr") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
@@ -55,12 +61,6 @@ public final class Num extends Val.Wrap<Double> {
           return Str.from(Math.floor(val) == val ?
               Integer.toString((int) val):
               Double.toString(val));
-        }
-      })
-      .put(new BuiltinFunc("hash") {
-        public Val calli(Val self, ArrayList<Val> args) {
-          Err.expectArglen(args, 0);
-          return Num.from(self.as(Num.class, "self").val.hashCode());
         }
       })
       .hm;

@@ -48,6 +48,7 @@ public final class Scope {
       .put(List.MM)
       .put(Map.MM)
       .put(Func.MM)
+      .put(BuiltinIter.MM)
       .put(new BuiltinFunc("new") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);

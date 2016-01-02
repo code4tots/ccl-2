@@ -6,7 +6,7 @@ public abstract class Val {
 
   public static final HashMap<String, Val> MMMeta = new Hmb()
       .put("name", Str.from("Meta"))
-      .put(new BuiltinFunc("extend") {
+      .put(new BuiltinFunc("Meta#extend") {
         public Val calli(Val self, ArrayList<Val> args) {
           HashMap<String, Val> m = self.as(Blob.class, "self").attrs;
           for (int i = 0; i < args.size(); i++) {
@@ -22,7 +22,7 @@ public abstract class Val {
           return Nil.val;
         }
       })
-      .put(new BuiltinFunc("repr") {
+      .put(new BuiltinFunc("Meta#repr") {
         public Val calli(Val self, ArrayList<Val> args) {
           return Str.from(
               getMetaNameFromHashMap(self.as(Blob.class, "self").attrs));
@@ -32,7 +32,7 @@ public abstract class Val {
 
   public static final HashMap<String, Val> MMVal = new Hmb()
       .put("name", Str.from("Val"))
-      .put(new BuiltinFunc("str") {
+      .put(new BuiltinFunc("Val#str") {
         public Val calli(Val self, ArrayList<Val> args) {
           return self.call("repr", args);
         }

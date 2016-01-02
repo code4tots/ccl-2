@@ -106,7 +106,8 @@ public class Evaluator extends AstVisitor<Val> {
 
   public Val visitGetMethod(Ast.GetMethod node) {
     // TODO: Figure out if this is really worth it.
-    throw new Err("GetMethod not implemented");
+    try { throw new Err("GetMethod not implemented"); }
+    catch (final Err e) { e.add(node); throw e; }
   }
 
   public Val visitGetAttribute(Ast.GetAttribute node) {

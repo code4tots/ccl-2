@@ -5,6 +5,12 @@ public final class Str extends Val.Wrap<String> {
 
   public static final HashMap<String, Val> MM = new Hmb()
       .put("name", Str.from("Str"))
+      .put(new BuiltinFunc("Str#hash") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return Num.from(self.as(Str.class, "self").val.hashCode());
+        }
+      })
       .put(new BuiltinFunc("__eq__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);

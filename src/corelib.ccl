@@ -154,7 +154,6 @@ List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
 
 GLOBAL@Iter = Meta['Iter']
 
-# Blobs treat its 'more' and 'next' attributes like methods.
 Iter@__new__ = \more next {
   self = new[Iter]
   self@more = more
@@ -162,15 +161,27 @@ Iter@__new__ = \more next {
   return self
 }
 
+Iter@more = \. self@more.apply[self, L[]]
+Iter@next = \. self@next.apply[self, L[]]
+
+Iter@iter = \. self
+
 Iter@do = \f {
   while self.more[]
     f[self.next[]]
 }
 
+# TODO: Come up with a more elegant way to implement user
+# defined iterators. This might mean implementing something
+# like generators in Python.
+# But that may take more time since being able to implement
+# Python style generators is going to involve being able
+# to serialize Evaluator state, and that is going to be more
+# work.
 Iter@map = \f {
   src = self
   return Iter[
-    src.more,
+    \. src.more[],
     \. f[src.next[]]
   ]
 }
@@ -195,3 +206,4 @@ List.extend[Val]
 Map.extend[Val]
 Func.extend[Val]
 Iter.extend[Val]
+BuiltinIter.extend[Iter]

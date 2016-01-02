@@ -6,6 +6,12 @@ public final class Map extends Val.Wrap<HashMap<Val, Val>> {
 
   public static final HashMap<String, Val> MM = new Hmb()
       .put("name", Str.from("Map"))
+      .put(new BuiltinFunc("Map#hash") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return Num.from(self.as(Map.class, "self").val.hashCode());
+        }
+      })
       .put(new BuiltinFunc("Map#repr") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
@@ -33,6 +39,22 @@ public final class Map extends Val.Wrap<HashMap<Val, Val>> {
           if (result == null)
             throw new Err("Key " + args.get(0).repr() + " not found");
           return result;
+        }
+      })
+      .put(new BuiltinFunc("Map#iter") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          final Iterator<HashMap.Entry<Val, Val>> it =
+              self.as(Map.class, "self").val.entrySet().iterator();
+          return new BuiltinIter(new Iterator<Val>() {
+            public boolean hasNext() {
+              return it.hasNext();
+            }
+            public Val next() {
+              HashMap.Entry<Val, Val> e = it.next();
+              return List.from(toArrayList(e.getKey(), e.getValue()));
+            }
+          });
         }
       })
       .hm;
