@@ -254,6 +254,11 @@ Iter@takeWhile = \f {
   return Iter[\.state['more'], next]
 }
 
+# TODO:
+# There seems to be a lot of boilerplate here
+# when instantiating Iter...
+# Think of an elegant solution that gets rid of
+# all this boilerplate without being ugly.
 Iter@zip = \iter {
   src = self
   state = M['more', true, 'cur', nil]
