@@ -5,7 +5,7 @@ public abstract class Ast implements Traceable {
   public final Token token;
   public Ast(Token token) { this.token = token; }
   public String getTraceMessage() {
-    return "\nin " + token.getLocationString();
+    return "\nin expression in " + token.getLocationString();
   }
   public abstract <T> T accept(AstVisitor<T> visitor);
 
@@ -114,12 +114,15 @@ public abstract class Ast implements Traceable {
   }
   public static final class Function extends Ast {
     public final ArrayList<String> args;
+    public final ArrayList<String> optargs;
     public final String vararg;
     public final Ast body;
     public Function(
-        Token token, ArrayList<String> args, String vararg, Ast body) {
+        Token token, ArrayList<String> args,
+        ArrayList<String> optargs, String vararg, Ast body) {
       super(token);
       this.args = args;
+      this.optargs = optargs;
       this.vararg = vararg;
       this.body = body;
     }

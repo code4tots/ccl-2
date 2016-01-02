@@ -13,5 +13,10 @@ public abstract class Func extends Val implements Traceable {
       .hm;
 
   public final HashMap<String, Val> getMeta() { return MM; }
-  public abstract Val call(Val self, ArrayList<Val> args);
+  public final Val call(Val self, ArrayList<Val> args) {
+    try { return calli(self, args); }
+    catch (final Err e) { e.add(this); throw e; }
+    catch (final Throwable e) { throw new Err(e); }
+  }
+  public abstract Val calli(Val self, ArrayList<Val> args);
 }

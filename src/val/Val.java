@@ -65,7 +65,7 @@ public abstract class Val {
     return call("__eq__", other).truthy();
   }
   public final String toString() {
-    return call("str").as(Str.class, "result of str").val;
+    return call("str").as(Str.class, "result of method str").val;
   }
 
   public abstract static class Wrap<T> extends Val {

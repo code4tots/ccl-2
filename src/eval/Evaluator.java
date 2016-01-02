@@ -82,7 +82,7 @@ public class Evaluator extends AstVisitor<Val> {
 
   public Val visitFunction(Ast.Function node) {
     return new UserFunc(
-        node.token, node.args, node.vararg, node.body, scope);
+        node.token, node.args, node.optargs, node.vararg, node.body, scope);
   }
 
   public Val visitCall(Ast.Call node) {
@@ -92,9 +92,14 @@ public class Evaluator extends AstVisitor<Val> {
       args.add(visit(node.args.get(i)));
     if (node.vararg != null)
       args.addAll(visit(node.vararg).as(List.class, "vararg").val);
-    return (node.name.equals("__call__") && (owner instanceof Func)) ?
-        ((Func) owner).call(owner, args):
-        owner.call(node.name, args);
+
+    try {
+      return (node.name.equals("__call__") && (owner instanceof Func)) ?
+          ((Func) owner).call(owner, args):
+          owner.call(node.name, args);
+    }
+    catch (final Err e) { e.add(node); throw e; }
+    catch (final Throwable e) { throw new Err(e); }
   }
 
   public Val visitGetMethod(Ast.GetMethod node) {

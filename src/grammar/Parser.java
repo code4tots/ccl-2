@@ -64,6 +64,7 @@ public final class Parser {
     if (at("if")) {
       Token token = next();
       Ast cond = parseExpression();
+      consume("then");
       Ast body = parseStatement();
       Ast other = new Ast.Block(token, new ArrayList<Ast>());
       if (consume("else"))
@@ -343,16 +344,22 @@ public final class Parser {
         args.add((String) expect("ID").value);
         consume(",");
       }
+      ArrayList<String> optargs = new ArrayList<String>();
+      while (consume("/")) {
+        optargs.add((String) expect("ID").value);
+        consume(",");
+      }
       if (consume("*"))
         vararg = (String) expect("ID").value;
       consume(".");
       Ast body = parseStatement();
-      return new Ast.Function(token, args, vararg, body);
+      return new Ast.Function(token, args, optargs, vararg, body);
     }
 
     if (at("if")) {
       Token token = next();
       Ast cond = parseExpression();
+      consume("then");
       Ast body = parseExpression();
       Ast other = new Ast.Name(token, "nil");
       if (consume("else"))

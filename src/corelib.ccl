@@ -8,14 +8,16 @@
 
 # Bultins implemented natively
 
+L
+M
+err
+
 Nil@__eq__
 Nil@repr
 
 Bool@__eq__
 Bool@repr
 
-Num@__pos__
-Num@__neg__
 Num@__add__
 Num@__sub__
 Num@__mul__
@@ -36,14 +38,14 @@ Str@__call__ # getitem
 List@add
 List@pop
 List@__eq__
-List@__repr__
+List@repr
 List@len
 List@__call__ # getitem
 List@__setitem__
 List@iter
 
 Map@__eq__
-Map@__repr__
+Map@repr
 Map@len
 Map[]
 Map[]=
@@ -52,14 +54,135 @@ Map@iter
 Func[]
 Func@apply
 Func@__eq__
-Func@__repr__
+Func@repr
 
 Iter@more
 Iter@next
 
 """
 
+GLOBAL@assert = \cond /msg. if not cond err[msg or "assertion failed"]
+GLOBAL@R = \arg. arg.repr[]
+GLOBAL@S = \arg. arg.str[]
+
+Meta@__call__ = \*args. self@__new__[*args]
+Meta@__new__ = \name. {
+  meta = new[Meta]
+  meta@name = name
+  return meta
+}
+
+Val@__ne__ = \r. not (self == r)
+Val@__le__ = \r. self < r or self == r
+Val@__ge__ = \r. not (self < r)
+Val@__gt__ = \r. not (self < r or self == r)
+Val@str = \. self.repr[]
+
+Num@__pos__ = \. self
+Num@__neg__ = \. 0 - self
+
 Str@str = \. self
+
+List@map = \f {
+  i = 0
+  xs = L[]
+  while i < self.len[] {
+    xs.add[f[self[i]]]
+    i = i + 1
+  }
+  return xs
+}
+
+List@filter = \f {
+  i = 0
+  xs = L[]
+  while i < self.len[] {
+    if f[self[i]]
+      xs.add[self[i]]
+    i = i + 1
+  }
+  return xs
+}
+
+List@foldl = \f acc {
+  i = 0
+  while i < self.len[] {
+    acc = f[acc, self[i]]
+    i = i + 1
+  }
+  return acc
+}
+
+List@foldr = \f acc {
+  i = self.len[] - 1
+  while 0 <= i {
+    acc = f[self[i], acc]
+    i = i - 1
+  }
+  return acc
+}
+
+List@fold = List@foldl
+
+List@cut = \start end {
+  if end is nil
+    end = self.len[]
+
+  if start < 0
+    start = start + self.len[]
+
+  if end < 0
+    end = end + self.len[]
+
+  if start < 0 or start > self.len[] or end < 0 or end > self.len[]
+    err["List@cut range out of bounds: len = " + self.len[].str[] +
+        " start = " + start.str[] + " end = " + end.str[]]
+
+  xs = L[]
+  i = start
+  while i < end {
+    xs.add[self[i]]
+    i = i + 1
+  }
+
+  return xs
+}
+
+List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
+
+GLOBAL@Iter = Meta['Iter']
+
+# Blobs treat its 'more' and 'next' attributes like methods.
+Iter@__new__ = \more next {
+  self = new[Iter]
+  self@more = more
+  self@next = next
+  return self
+}
+
+Iter@do = \f {
+  while self.more[]
+    f[self.next[]]
+}
+
+Iter@map = \f {
+  src = self
+  return Iter[
+    src.more,
+    \. f[src.next[]]
+  ]
+}
+
+Iter@list = \. {
+  xs = L[]
+  while self.more[]
+    xs.add[self.next[]]
+  return xs
+}
+
+Iter@repr = \. {
+  return "<Iter>"
+}
 
 Meta.extend[Val]
 Nil.extend[Val]
@@ -69,4 +192,4 @@ Str.extend[Val]
 List.extend[Val]
 Map.extend[Val]
 Func.extend[Val]
-# Iter.extend[Val]
+Iter.extend[Val]

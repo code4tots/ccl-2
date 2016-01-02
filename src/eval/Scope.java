@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public final class Scope {
@@ -43,5 +44,26 @@ public final class Scope {
       .put(List.MM)
       .put(Map.MM)
       .put(Func.MM)
+      .put(new BuiltinFunc("new") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          return new Blob(args.get(0).as(Blob.class, "arg"));
+        }
+      })
+      .put(new BuiltinFunc("L") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          return List.from(args);
+        }
+      })
+      .put(new BuiltinFunc("err") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          throw new Err(args.get(0)
+              .call("str").as(Str.class, "result of method str").val);
+        }
+      })
       ;
+  static {
+    GLOBAL.put("GLOBAL", new Blob(new HashMap<String, Val>(), GLOBAL.table));
+  }
 }

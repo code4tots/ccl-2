@@ -2,8 +2,8 @@ import java.util.ArrayList;
 
 public final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
-      "and", "or", "xor", "return", "is", "import", "super", "if", "else",
-      "while", "def", "class", "not", "break", "continue");
+      "and", "or", "xor", "return", "is", "import", "super",
+      "if", "then", "else", "while", "not", "break", "continue");
   public static final ArrayList<String> SYMBOLS;
 
   // My syntax highlighter does funny things if it sees "{", "}" in the
