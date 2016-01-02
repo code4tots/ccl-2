@@ -13,8 +13,19 @@
 # other values are true.
 
 L
+  # Creates a 'List' instance of its arguments.
+
 M
+  # Expects an even number of arguments.
+  # Creates a 'Map' instance.
+
 err
+  # Expects a single string argument and throws an err.
+
+Val@__meta__
+  # expects a single string argument
+  # and returns an unbound value from the meta blob's attribute table,
+  # or nil if none is found.
 
 Nil@repr
 
@@ -73,12 +84,18 @@ Meta@__new__ = \name. {
   return meta
 }
 
+Val@repr = \.
+  '<' + (self.__meta__['name'] or 'unknown') + ' instance>'
 Val@__eq__ = \r. self is r
 Val@__ne__ = \r. not (self == r)
 Val@__le__ = \r. self < r or self == r
 Val@__ge__ = \r. not (self < r)
 Val@__gt__ = \r. not (self < r or self == r)
 Val@str = \. self.repr[]
+
+Nil@repr = \. 'nil'
+
+Bool@repr = \. if self then 'true' else 'false'
 
 Num@__pos__ = \. self
 Num@__neg__ = \. 0 - self
@@ -161,22 +178,24 @@ Iter@__new__ = \more next {
   return self
 }
 
+# 'more' and 'next' are the core methods of Iter.
+# Subclasses will probably want to override just these methods.
 Iter@more = \. self@more.apply[self, L[]]
 Iter@next = \. self@next.apply[self, L[]]
 
 Iter@iter = \. self
 
-Iter@do = \f {
-  while self.more[]
-    f[self.next[]]
-}
-
 # TODO: Come up with a more elegant way to implement user
 # defined iterators. This might mean implementing something
 # like generators in Python.
-# But that may take more time since being able to implement
-# Python style generators is going to involve being able
-# to serialize Evaluator state, and that is going to be more
+# If I am going to go the generator route, that is going to be
+# bit of effort, and if not done carefully, could really
+# complicate things.
+# I'm pretty happy with the level of cleanliness in 'Evaluator.java'.
+# The main issue with generators is that I need to be able to suspend
+# evaluation to come back to on a 'yield'.
+# I don't want to implement generators until I have a clean elegant way
+# of implementing the evaluator.
 # work.
 Iter@map = \f {
   src = self
@@ -186,15 +205,18 @@ Iter@map = \f {
   ]
 }
 
+# The following Iter methods materializes queued up
+
+Iter@do = \f {
+  while self.more[]
+    f[self.next[]]
+}
+
 Iter@list = \. {
   xs = L[]
   while self.more[]
     xs.add[self.next[]]
   return xs
-}
-
-Iter@repr = \. {
-  return "<Iter>"
 }
 
 Meta.extend[Val]

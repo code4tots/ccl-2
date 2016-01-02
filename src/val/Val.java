@@ -32,9 +32,11 @@ public abstract class Val {
 
   public static final HashMap<String, Val> MMVal = new Hmb()
       .put("name", Str.from("Val"))
-      .put(new BuiltinFunc("Val#str") {
+      .put(new BuiltinFunc("Val#__meta__") {
         public Val calli(Val self, ArrayList<Val> args) {
-          return self.call("repr", args);
+          Err.expectArglen(args, 1);
+          Val v = self.getMeta().get(args.get(0).as(Str.class, "arg").val);
+          return v == null ? Nil.val : v;
         }
       })
       .hm;
