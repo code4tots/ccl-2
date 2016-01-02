@@ -27,8 +27,6 @@ Val@__meta__
   # and returns an unbound value from the meta blob's attribute table,
   # or nil if none is found.
 
-Nil@repr
-
 Bool@repr
 
 Num@__add__
@@ -144,8 +142,7 @@ List@foldr = \f acc {
 List@fold = List@foldl
 
 List@cut = \start end {
-  if end is nil
-    end = self.len[]
+  end = end or self.len[]
 
   if start < 0
     start = start + self.len[]
