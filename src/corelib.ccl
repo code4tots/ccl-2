@@ -245,6 +245,20 @@ Iter@list = \. {
   return xs
 }
 
+GLOBAL@range = \start /end. {
+  state = M['i', start]
+
+  more = \. end is not nil and state['i'] < end
+
+  next = \{
+    val = state['i']
+    state['i'] = val + 1
+    return val
+  }
+
+  return Iter[more, next]
+}
+
 Meta.extend[Val]
 Nil.extend[Val]
 Bool.extend[Val]
