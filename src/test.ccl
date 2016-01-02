@@ -154,4 +154,10 @@ assert[xs == L[0, 1, 2, 3, 4], xs]
 xs = range[0].zip[range[1, 3]].list[]
 assert[xs == L[L[0, 1], L[1, 2]], xs]
 
+xs = L['a', 'b'].iter[].enum[].list[]
+assert[xs == L[L['a', 0], L['b', 1]], xs]
+
+xs = L[2, 3, 4].iter[].take[2].list[]
+assert[xs == L[2, 3], xs]
+
 print["*** All tests pass! ***"]

@@ -279,6 +279,11 @@ Iter@zip = \iter {
   return Iter[\.state['more'], next]
 }
 
+Iter@enum = \. self.zip[range[0]]
+
+Iter@take = \n.
+  self.enum[].takeWhile[\xi. xi[1] < n].map[\xi. xi[0]]
+
 Iter@do = \f {
   while self.more[]
     f[self.next[]]

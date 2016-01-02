@@ -111,10 +111,11 @@ public class Evaluator extends AstVisitor<Val> {
   }
 
   public Val visitGetAttribute(Ast.GetAttribute node) {
-    Val v = visit(node.owner).as(Blob.class, "self").attrs.get(node.name);
+    Val owner = visit(node.owner);
+    Val v = owner.as(Blob.class, "self").attrs.get(node.name);
     if (v == null)
       throw new Err(
-          "No attribute '" + node.name + "' for type " + v.getMetaName());
+          "No attribute '" + node.name + "' for type " + owner.getMetaName());
     return v;
   }
 
