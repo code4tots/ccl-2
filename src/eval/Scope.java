@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.HashMap;
 
 public final class Scope {
@@ -35,6 +36,9 @@ public final class Scope {
   public Val eval(Ast ast) { return new Evaluator(this).visit(ast); }
 
   private static final Scope GLOBAL = new Scope(null)
+      .put("nil", Nil.val)
+      .put("true", Bool.tru)
+      .put("false", Bool.fal)
       .put(Val.MMMeta)
       .put(Val.MMVal)
       .put(Nil.MM)
@@ -53,6 +57,24 @@ public final class Scope {
       .put(new BuiltinFunc("L") {
         public Val calli(Val self, ArrayList<Val> args) {
           return List.from(args);
+        }
+      })
+      .put(new BuiltinFunc("M") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          if (args.size()%2 != 0)
+            throw new Err(
+                "'M' requires an even number of arguments, but got " +
+                args.size());
+
+          HashMap<Val, Val> attrs = new HashMap<Val, Val>();
+          Iterator<Val> it = args.iterator();
+          while (it.hasNext()) {
+            Val key = it.next();
+            Val val = it.next();
+            attrs.put(key, val);
+          }
+
+          return new Map(attrs);
         }
       })
       .put(new BuiltinFunc("err") {

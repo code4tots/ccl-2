@@ -28,7 +28,11 @@ assert[-1 == 0-1]
 assert[L[1, 2, 3][1] == 2]
 assert[M[1, 2][1] == 2]
 
-IndexableTest = C["__name__", "IndexableTest", "__call__", \index. index + 3]
+# TODO: Figure out a nice syntax so that I don't have to
+# repeat the class name every time.
+IndexableTest = Meta["IndexableTest"]
+IndexableTest@__call__ = \index. index + 3
+
 indexable = new[IndexableTest]
 assert[indexable[5] == 8]
 
@@ -69,13 +73,13 @@ assert[x == 1]
 
 assert[if 1 == 0 false else true]
 
-MyClass = C[]
+MyClass = Meta["MyClass"]
 x = new[MyClass]
 x@x = 534
 assert[x@x == 534]
 
 f = \x{x+2}
-assert[f[2] == nil]
+assert[f[2] == nil, f[2]]
 
 f = \x{return x+2}
 assert[f[2] == 4]

@@ -30,22 +30,21 @@ public class Evaluator extends AstVisitor<Val> {
   }
 
   public Val visitBlock(Ast.Block node) {
-    Val val = Nil.val;
     for (int i = 0; i < node.body.size(); i++) {
-      val = visit(node.body.get(i));
+      Val val = visit(node.body.get(i));
       if (ret||br||cont) return val;
     }
-    return val;
+    return Nil.val;
   }
 
   public Val visitBreak(Ast.Break node) {
     br = true;
-    return null;
+    return Nil.val;
   }
 
   public Val visitContinue(Ast.Continue node) {
     cont = true;
-    return null;
+    return Nil.val;
   }
 
   // Statement or Expression
@@ -87,6 +86,8 @@ public class Evaluator extends AstVisitor<Val> {
 
   public Val visitCall(Ast.Call node) {
     Val owner = visit(node.owner);
+    if (owner == null)
+      throw new Err("FUBAR!");
     ArrayList<Val> args = new ArrayList<Val>();
     for (int i = 0; i < node.args.size(); i++)
       args.add(visit(node.args.get(i)));
@@ -94,9 +95,10 @@ public class Evaluator extends AstVisitor<Val> {
       args.addAll(visit(node.vararg).as(List.class, "vararg").val);
 
     try {
-      return (node.name.equals("__call__") && (owner instanceof Func)) ?
-          ((Func) owner).call(owner, args):
-          owner.call(node.name, args);
+      if (node.name.equals("__call__") && owner instanceof Func)
+        return ((Func) owner).call(owner, args);
+      else
+        return owner.call(node.name, args);
     }
     catch (final Err e) { e.add(node); throw e; }
     catch (final Throwable e) { throw new Err(e); }

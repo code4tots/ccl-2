@@ -22,6 +22,12 @@ public abstract class Val {
           return Nil.val;
         }
       })
+      .put(new BuiltinFunc("repr") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          return Str.from(
+              getMetaNameFromHashMap(self.as(Blob.class, "self").attrs));
+        }
+      })
       .hm;
 
   public static final HashMap<String, Val> MMVal = new Hmb()
@@ -34,9 +40,12 @@ public abstract class Val {
       .hm;
 
   public abstract HashMap<String, Val> getMeta();
-  public final String getMetaName() {
-    Val name = getMeta().get("name");
+  public static final String getMetaNameFromHashMap(HashMap<String, Val> m) {
+    Val name = m.get("name");
     return name == null ? "*unnamed*" : name.as(Str.class, "name").val;
+  }
+  public final String getMetaName() {
+    return getMetaNameFromHashMap(getMeta());
   }
   public final Val call(String name, Val... args) {
     return call(name, toArrayList(args));
@@ -54,8 +63,8 @@ public abstract class Val {
       return cls.cast(this);
     } catch (ClassCastException e) {
       throw new RuntimeException(
-          "Expected '" + name + "' to be " + getClass().getName() +
-          " but found " + cls.getName());
+          "Expected '" + name + "' to be " + cls.getName() +
+          " but found " + getClass().getName());
     }
   }
   public final boolean equals(Object other) {
@@ -66,6 +75,12 @@ public abstract class Val {
   }
   public final String toString() {
     return call("str").as(Str.class, "result of method str").val;
+  }
+  public final String repr() {
+    return call("repr").as(Str.class, "result of method repr").val;
+  }
+  public final int hashCode() {
+    return call("hash").as(Num.class, "result of method hash").val.intValue();
   }
 
   public abstract static class Wrap<T> extends Val {
@@ -81,7 +96,8 @@ public abstract class Val {
       return this;
     }
     public Hmb put(BuiltinFunc bf) {
-      return put(bf.name, bf);
+      String[] ss = bf.name.split("#");
+      return put(ss[ss.length-1], bf);
     }
   }
 

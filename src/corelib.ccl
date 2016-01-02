@@ -8,14 +8,16 @@
 
 # Bultins implemented natively
 
+# Truthiness cannot be overriden.
+# 'nil' and 'false' are false, and all
+# other values are true.
+
 L
 M
 err
 
-Nil@__eq__
 Nil@repr
 
-Bool@__eq__
 Bool@repr
 
 Num@__add__
@@ -53,7 +55,6 @@ Map@iter
 
 Func[]
 Func@apply
-Func@__eq__
 Func@repr
 
 Iter@more
@@ -72,6 +73,7 @@ Meta@__new__ = \name. {
   return meta
 }
 
+Val@__eq__ = \r. self is r
 Val@__ne__ = \r. not (self == r)
 Val@__le__ = \r. self < r or self == r
 Val@__ge__ = \r. not (self < r)

@@ -10,5 +10,6 @@ public final class Bool extends Val.Wrap<Boolean> {
   public static final Bool fal = new Bool(false);
 
   private Bool(Boolean val) { super(val); }
+  public static Bool from(Boolean val) { return val ? tru : fal; }
   public final HashMap<String, Val> getMeta() { return MM; }
 }
