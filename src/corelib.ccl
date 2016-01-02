@@ -66,9 +66,6 @@ Func[]
 Func@apply
 Func@repr
 
-Iter@more
-Iter@next
-
 """
 
 GLOBAL@assert = \cond /msg. if not cond err[msg or "assertion failed"]
