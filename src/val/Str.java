@@ -11,7 +11,7 @@ public final class Str extends Val.Wrap<String> {
           return Num.from(self.as(Str.class, "self").val.hashCode());
         }
       })
-      .put(new BuiltinFunc("__eq__") {
+      .put(new BuiltinFunc("Str#__eq__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           return args.get(0) instanceof Str ?
@@ -20,7 +20,7 @@ public final class Str extends Val.Wrap<String> {
               Bool.fal;
         }
       })
-      .put(new BuiltinFunc("__add__") {
+      .put(new BuiltinFunc("Str#__add__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           return Str.from(
@@ -28,7 +28,7 @@ public final class Str extends Val.Wrap<String> {
               args.get(0).as(Str.class, "argument").val);
         }
       })
-      .put(new BuiltinFunc("__mod__") {
+      .put(new BuiltinFunc("Str#__mod__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           String s = self.as(Str.class, "self").val;
@@ -39,7 +39,7 @@ public final class Str extends Val.Wrap<String> {
           return Str.from(String.format(s, arr));
         }
       })
-      .put(new BuiltinFunc("repr") {
+      .put(new BuiltinFunc("Str#repr") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
           String s = self.as(Str.class, "self").val;
