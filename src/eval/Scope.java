@@ -36,7 +36,7 @@ public final class Scope {
   public Val eval(Ast ast) {
     // TODO: Once Evaler is ready, uncomment following line.
     // return new Evaler(this).eval(ast);
-    return new Evaluator(this).visit(ast);
+    return new Evaluator(this).eval(ast);
   }
 
   private static final Scope GLOBAL = new Scope(null)

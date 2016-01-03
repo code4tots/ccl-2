@@ -11,6 +11,10 @@ public class Evaluator extends AstVisitor<Val> {
 
   public Evaluator(Scope scope) { this.scope = scope; }
 
+  public Val eval(Ast node) {
+    return visit(node);
+  }
+
   // Statement only
 
   public Val visitReturn(Ast.Return node) {
