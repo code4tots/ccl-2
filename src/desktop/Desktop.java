@@ -13,15 +13,13 @@ public class Desktop {
     Val.MODULE_REGISTRY.put("gui", Gui.MODULE);
   }
 
-  public static final String PATH_TO_CORELIB =
-      makePath(
-          System.getProperty("user.home"),
-          "git", "ccl", "mods", "corelib.ccl");
-
   public static final String PATH_TO_MODULES =
       makePath(
           System.getProperty("user.home"),
           "git", "ccl", "mods");
+
+  public static final String PATH_TO_CORELIB =
+      makePath(PATH_TO_MODULES, "corelib.ccl");
 
   public static final Scope DESKTOP_GLOBAL = new Scope()
       .put(new BuiltinFunc("print") {
