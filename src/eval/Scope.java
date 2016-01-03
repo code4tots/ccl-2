@@ -34,8 +34,6 @@ public final class Scope {
   }
 
   public Val eval(Ast ast) {
-    // TODO: Once Evaler is ready, uncomment following line.
-    // return new Evaler(this).eval(ast);
     return new Evaluator(this).eval(ast);
   }
 
