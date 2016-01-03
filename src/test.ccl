@@ -166,4 +166,7 @@ assert[xs == L[4], xs]
 xs = L[2, 3, 4].iter[].dropWhile[\x. x < 4].list[]
 assert[xs == L[4], xs]
 
+s = '%s + %s' % L[1, 2]
+assert[s == '1 + 2', s]
+
 print["*** All tests pass! ***"]

@@ -28,6 +28,17 @@ public final class Str extends Val.Wrap<String> {
               args.get(0).as(Str.class, "argument").val);
         }
       })
+      .put(new BuiltinFunc("__mod__") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          String s = self.as(Str.class, "self").val;
+          ArrayList<Val> aa = args.get(0).as(List.class, "argument").val;
+          Object[] arr = new Object[aa.size()];
+          for (int i = 0; i < aa.size(); i++)
+            arr[i] = aa.get(i);
+          return Str.from(String.format(s, arr));
+        }
+      })
       .put(new BuiltinFunc("repr") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
