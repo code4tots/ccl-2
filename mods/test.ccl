@@ -82,7 +82,7 @@ assert[x == 1]
 
 assert[if 1 == 0 false else true]
 
-MyClass = Meta["MyClass"]
+MyClass = Meta["test#MyClass"]
 x = new[MyClass]
 x@x = 534
 assert[x@x == 534]
@@ -168,5 +168,8 @@ assert[xs == L[4], xs]
 
 s = '%s + %s' % L[1, 2]
 assert[s == '1 + 2', s]
+
+t = import['import_test']
+assert[t@message == 'hi', t@message]
 
 print["*** All tests pass! ***"]

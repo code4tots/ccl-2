@@ -20,6 +20,12 @@ public final class Err extends RuntimeException {
     return sb.toString();
   }
 
+  public static <T> T notNull(T t) {
+    if (t == null)
+      throw new Err("Unexpected null pointer");
+    return t;
+  }
+
   public static void expectArgRange(ArrayList<Val> args, int min, int max) {
     if (args.size() < min || args.size() > max)
       throw new Err(

@@ -4,6 +4,9 @@ import java.util.Iterator;
 
 public abstract class Val {
 
+  public static final HashMap<String, Blob> MODULE_REGISTRY =
+      new HashMap<String, Blob>();
+
   public static final HashMap<String, Val> MMMeta = new Hmb()
       .put("name", Str.from("Meta"))
       .put(new BuiltinFunc("Meta#extend") {
@@ -39,6 +42,10 @@ public abstract class Val {
           return v == null ? Nil.val : v;
         }
       })
+      .hm;
+
+  public static final HashMap<String, Val> MMModule = new Hmb()
+      .put("name", Str.from("Module"))
       .hm;
 
   public abstract HashMap<String, Val> getMeta();
