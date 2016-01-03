@@ -1,3 +1,3 @@
 mkdir -p cls && \
-javac -Xlint src/*.java -d cls/ && \
-java -cp cls SimpleDesktop $1
+javac -Xlint -Xdiags:verbose src/*.java src/*/*.java -d cls/ && \
+java -cp cls Desktop $1

@@ -8,67 +8,94 @@
 
 # Bultins implemented natively
 
-Nil@__eq__
-Nil@__repr__
+# Truthiness cannot be overriden.
+# 'nil' and 'false' are false, and all
+# other values are true.
 
-Bool@__eq__
-Bool@__repr__
+L
+  # Creates a 'List' instance of its arguments.
 
-Num@__pos__
-Num@__neg__
+M
+  # Expects an even number of arguments.
+  # Creates a 'Map' instance.
+
+err
+  # Expects a single string argument and throws an err.
+
+Val@__meta__
+  # expects a single string argument
+  # and returns an unbound value from the meta blob's attribute table,
+  # or nil if none is found.
+
+Bool@repr
+
 Num@__add__
 Num@__sub__
 Num@__mul__
 Num@__div__
 Num@__mod__
 Num@__eq__
-Num@__repr__
+Num@__lt__
+Num@repr
 
 Str@__add__
 Str@__mod__ # string format like in Python.
 Str@__eq__
-Str@__repr__
+Str@__lt__
+Str@repr
 Str@len
-Str[]
-Str[]=
+Str@__call__ # getitem
 
 List@add
 List@pop
 List@__eq__
-List@__repr__
+List@repr
 List@len
-List[]
-List[]=
+List@__call__ # getitem
+List@__setitem__
+List@iter
 
 Map@__eq__
-Map@__repr__
+Map@repr
 Map@len
 Map[]
 Map[]=
-Map@keys
-Map@vals
+Map@iter
 
 Func[]
 Func@apply
-Func@__eq__
-Func@__repr__
+Func@repr
 
 """
 
-MetaBlob@__call__ = \*args. self@__new__[*args]
+GLOBAL@assert = \cond /msg. if not cond err[msg or "assertion failed"]
+GLOBAL@R = \arg. arg.repr[]
+GLOBAL@S = \arg. arg.str[]
 
+Meta@__call__ = \*args. self@__new__[*args]
+Meta@__new__ = \name. {
+  meta = new[Meta]
+  meta@name = name
+  return meta
+}
+
+Val@repr = \.
+  '<' + (self.__meta__['name'] or 'unknown') + ' instance>'
+Val@__eq__ = \r. self is r
 Val@__ne__ = \r. not (self == r)
 Val@__le__ = \r. self < r or self == r
 Val@__ge__ = \r. not (self < r)
 Val@__gt__ = \r. not (self < r or self == r)
-Val@__str__ = \. self.__repr__[]
-Val@str = \. self.__str__[]
-Val@repr = \. self.__repr__[]
+Val@str = \. self.repr[]
+
+Nil@repr = \. 'nil'
+
+Bool@repr = \. if self then 'true' else 'false'
 
 Num@__pos__ = \. self
 Num@__neg__ = \. 0 - self
 
-Str@__str__ = \. self
+Str@str = \. self
 
 List@map = \f {
   i = 0
@@ -112,8 +139,7 @@ List@foldr = \f acc {
 List@fold = List@foldl
 
 List@cut = \start end {
-  if end is nil
-    end = self.len[]
+  end = end or self.len[]
 
   if start < 0
     start = start + self.len[]
@@ -137,40 +163,192 @@ List@cut = \start end {
 
 List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
 
-List@iter = \ {
-  list = self
-  iter = Iter[\{
-    val = list[self@i]
-    self@i = self@i + 1
-    if self@i >= list.len[]
-      self@done = true
-    return val
-  }]
-  iter@i = 0
-  return iter
+GLOBAL@Iter = Meta['Iter']
+
+Iter@__new__ = \more next {
+  self = new[Iter]
+  self@more = more
+  self@next = next
+  return self
 }
 
-GLOBAL@Iter = C["__name__", "Iter"]
-
-Iter@__new__ = \f {
-  iter = new[Iter]
-  iter@done = false
-  iter@next = f
-  return iter
-}
-
+# 'more' and 'next' are the core methods of Iter.
+# Subclasses will probably want to override just these methods.
+Iter@more = \. self@more.apply[self, L[]]
 Iter@next = \. self@next.apply[self, L[]]
 
-Iter@done = \. self@done
+Iter@iter = \. self
 
-Iter@list = \ {
+# TODO: Come up with a more elegant way to implement user
+# defined iterators. This might mean implementing something
+# like generators in Python.
+# If I am going to go the generator route, that is going to be
+# bit of effort, and if not done carefully, could really
+# complicate things.
+# I'm pretty happy with the level of cleanliness in 'Evaluator.java'.
+# The main issue with generators is that I need to be able to suspend
+# evaluation to come back to on a 'yield'.
+# I don't want to implement generators until I have a clean elegant way
+# of implementing the evaluator.
+# work.
+Iter@map = \f {
+  src = self
+  return Iter[
+    \. src.more[],
+    \. f[src.next[]]
+  ]
+}
+
+# Yea it's unfortunate. Having generators could really make the
+# following a lot more elegant.
+Iter@filter = \f {
+  src = self
+  state = M['more', true, 'cur', nil]
+
+  next = \. {
+
+    more = false
+    while src.more[] {
+      x = src.next[]
+      if f[x] {
+        cur = x
+        more = true
+        break
+      }
+    }
+
+    last = state['cur']
+
+    state['more'] = more
+    if more then state['cur'] = cur
+
+    return last
+  }
+
+  next[]
+
+  return Iter[\. state['more'], next]
+}
+
+Iter@takeWhile = \f {
+  src = self
+  state = M['more', true, 'cur', nil]
+
+  next = \. {
+    last = state['cur']
+    x = src.next[]
+
+    if not f[x]
+      state['more'] = false
+    else
+      state['cur'] = x
+
+    return last
+  }
+
+  next[]
+
+  return Iter[\.state['more'], next]
+}
+
+Iter@drop = \n {
+  src = self
+  range[0, n].do[\.src.next[]]
+  return self
+}
+
+Iter@dropWhile = \f {
+  src = self
+  state = M['more', true, 'cur', nil]
+
+  next = \. {
+    last = state['cur']
+    if src.more[]
+      state['cur'] = src.next[]
+    else
+      state['more'] = false
+    return last
+  }
+
+  found = false
+
+  while not found and self.more[] {
+    state['cur'] = self.next[]
+    if not f[state['cur']]
+      found = true
+  }
+
+  if not found
+    state['more'] = false
+
+  return Iter[\.state['more'], next]
+}
+
+# TODO:
+# There seems to be a lot of boilerplate here
+# when instantiating Iter...
+# Think of an elegant solution that gets rid of
+# all this boilerplate without being ugly.
+Iter@zip = \iter {
+  src = self
+  state = M['more', true, 'cur', nil]
+
+  next = \. {
+    last = state['cur']
+
+    if src.more[] and iter.more[]
+      state['cur'] = L[src.next[], iter.next[]]
+    else
+      state['more'] = false
+
+    return last
+  }
+
+  next[]
+
+  return Iter[\.state['more'], next]
+}
+
+Iter@enum = \. self.zip[range[0]]
+
+Iter@take = \n.
+  self.enum[].takeWhile[\xi. xi[1] < n].map[\xi. xi[0]]
+
+Iter@do = \f {
+  while self.more[]
+    f[self.next[]]
+}
+
+Iter@list = \. {
   xs = L[]
-  while not self.done[]
+  while self.more[]
     xs.add[self.next[]]
   return xs
 }
 
-MetaBlob.extend[Val]
+GLOBAL@range = \start /end /step. {
+  state = M['i', start]
+
+  step = step or 1
+
+  if step == 0
+    err['range step may not be zero']
+
+  more =
+    if end is nil      \. true
+    else if step > 0   \. state['i'] < end
+    else               \. state['i'] > end
+
+  next = \{
+    val = state['i']
+    state['i'] = val + step
+    return val
+  }
+
+  return Iter[more, next]
+}
+
+Meta.extend[Val]
 Nil.extend[Val]
 Bool.extend[Val]
 Num.extend[Val]
@@ -179,3 +357,4 @@ List.extend[Val]
 Map.extend[Val]
 Func.extend[Val]
 Iter.extend[Val]
+BuiltinIter.extend[Iter]
