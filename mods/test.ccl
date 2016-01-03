@@ -172,4 +172,7 @@ assert[s == '1 + 2', s]
 t = import['import_test']
 assert[t@message == 'hi', t@message]
 
+gui = import['gui']
+gui@test[]
+
 print["*** All tests pass! ***"]

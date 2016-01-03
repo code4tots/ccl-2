@@ -9,6 +9,10 @@ import java.io.File;
 
 public class Desktop {
 
+  static {
+    Val.MODULE_REGISTRY.put("gui", Gui.MODULE);
+  }
+
   public static final String PATH_TO_CORELIB =
       makePath(
           System.getProperty("user.home"),
@@ -82,5 +86,4 @@ public class Desktop {
   public static Ast.Module readModule(String path) {
     return new Parser(readFile(path), path).parse();
   }
-
 }
