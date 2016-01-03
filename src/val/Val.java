@@ -108,6 +108,13 @@ public abstract class Val {
       String[] ss = bf.name.split("#");
       return put(ss[ss.length-1], bf);
     }
+    public Hmb put(HashMap<String,Val> bf) {
+      Val name = bf.get("name");
+      if (name == null)
+        throw new Err("Blob HashMap doesn't have a name!");
+      String[] ss = name.as(Str.class, "FUBAR").val.split("#");
+      return put(ss[ss.length-1], new Blob(Val.MMMeta, bf));
+    }
   }
 
   public static ArrayList<Val> toArrayList(Val... args) {

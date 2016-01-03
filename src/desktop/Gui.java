@@ -22,6 +22,7 @@ public class Gui {
               return Nil.val;
             }
           })
+          .put(Window.MM)
           .hm
       );
 }

@@ -24,8 +24,10 @@ public final class Scope {
     return put(bf.name, bf);
   }
   public Scope put(HashMap<String,Val> bf) {
-    return put(
-        bf.get("name").as(Str.class, "FUBAR").val, new Blob(Val.MMMeta, bf));
+    Val name = bf.get("name");
+    if (name == null)
+      throw new Err("Blob HashMap doesn't have a name!");
+    return put(name.as(Str.class, "FUBAR").val, new Blob(Val.MMMeta, bf));
   }
 
   /* package-private */ Scope put(Blob m) {

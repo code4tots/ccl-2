@@ -1,0 +1,3 @@
+gui = import['gui']
+
+window = gui@Window[].dim[600, 300]
