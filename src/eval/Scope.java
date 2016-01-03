@@ -33,7 +33,11 @@ public final class Scope {
     return put(m.attrs.get("name").as(Str.class, "FUBAR").val, m);
   }
 
-  public Val eval(Ast ast) { return new Evaluator(this).visit(ast); }
+  public Val eval(Ast ast) {
+    // TODO: Once Evaler is ready, uncomment following line.
+    // return new Evaler(this).eval(ast);
+    return new Evaluator(this).visit(ast);
+  }
 
   private static final Scope GLOBAL = new Scope(null)
       .put("nil", Nil.val)
