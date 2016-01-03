@@ -5,12 +5,12 @@ public abstract class Func extends Val implements Traceable {
 
   public static final HashMap<String, Val> MM = new Hmb()
       .put("name", Str.from("Func"))
-      .put(new BuiltinFunc("__call__") {
+      .put(new BuiltinFunc("Func#__call__") {
         public Val calli(Val self, ArrayList<Val> args) {
           return self.as(Func.class, "self").call(self, args);
         }
       })
-      .put(new BuiltinFunc("apply") {
+      .put(new BuiltinFunc("Func#apply") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 2);
           Val s = args.get(0);
