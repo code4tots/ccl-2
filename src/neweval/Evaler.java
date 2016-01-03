@@ -8,15 +8,21 @@ public class Evaler extends AstVisitor<Void> {
   private final ArrayList<Ast> todoStack = new ArrayList<Ast>();
   private final ArrayList<Integer> indexStack = new ArrayList<Integer>();
   private final ArrayList<Val> valStack = new ArrayList<Val>();
-  public boolean ret = false, yld = false, br = false, cont = false;
+  public boolean
+      started = false, ret = false, yld = false, br = false, cont = false;
 
   public Evaler(Scope scope) {
     this.scope = scope;
     push(Nil.val);
   }
 
-  public Val resume() {
+  public Val eval(Ast node) {
+    started = true;
+    push(node, 0);
+    return resume();
+  }
 
+  private Val resume() {
     while (!ret && !yld) {
       Ast node = todoStack.remove(todoStack.size()-1);
       // TODO: Clean this up. This feels a bit like a dirty hack because it
@@ -292,9 +298,13 @@ public class Evaler extends AstVisitor<Void> {
       push(node.owner, 0);
       break;
     default:
-      Val owner = pop();
-      owner.as(Blob.class, "self").attrs.put(node.name, peek());
-      throw new Err("FUBAR: " + index);
+      try {
+        Val owner = pop();
+        owner.as(Blob.class, "self").attrs.put(node.name, peek());
+        throw new Err("FUBAR: " + index);
+      }
+      catch (final Err e) { e.add(node); throw e; }
+      catch (final Throwable e) { throw new Err(e); }
     }
     return null;
   }
