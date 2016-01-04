@@ -1,3 +1,9 @@
+"""gui_test.ccl
+"""
+
 gui = import['gui']
 
 window = gui@Window[].dim[600, 300]
+assert[window.dim[] == L[600, 300], window.dim[]]
+
+print['*** guit_tests finished ***']

@@ -21,6 +21,9 @@ public class Desktop {
   public static final String PATH_TO_CORELIB =
       makePath(PATH_TO_MODULES, "corelib.ccl");
 
+  public static final String PATH_TO_CORELIB_GUI =
+      makePath(PATH_TO_MODULES, "corelib_gui.ccl");
+
   public static final Scope DESKTOP_GLOBAL = new Scope()
       .put(new BuiltinFunc("print") {
         public Val calli(Val self, ArrayList<Val> args) {
@@ -48,6 +51,7 @@ public class Desktop {
   public static void main(String[] args) {
     try {
       new Scope(DESKTOP_GLOBAL).eval(readModule(PATH_TO_CORELIB));
+      new Scope(DESKTOP_GLOBAL).eval(readModule(PATH_TO_CORELIB_GUI));
       new Scope(DESKTOP_GLOBAL).eval(readModule(args[0]));
     } catch (final Err e) {
       System.out.println(e.toString() + e.getTraceString());
