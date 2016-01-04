@@ -198,4 +198,7 @@ assert[s == L['hi', 'hi'], s]
 s = re[r'(h(\w))'].find['hi hi hi', 3, 5]
 assert[s == L['hi', 'hi', 'i'], s]
 
+s = re[r'x'].find['yyy']
+assert[s is nil, s]
+
 print["*** All command line tests pass! ***"]
