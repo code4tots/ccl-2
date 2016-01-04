@@ -31,5 +31,5 @@ public abstract class Func extends Val implements Traceable {
     catch (final Err e) { e.add(this); throw e; }
     catch (final Throwable e) { throw new Err(e); }
   }
-  public abstract Val calli(Val self, ArrayList<Val> args);
+  protected abstract Val calli(Val self, ArrayList<Val> args);
 }
