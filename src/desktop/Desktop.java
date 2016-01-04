@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.io.IOException;
 import java.io.FileReader;
 import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.io.File;
 
 public class Desktop {
@@ -46,6 +48,25 @@ public class Desktop {
           return Err.notNull(Val.MODULE_REGISTRY.get(name));
         }
       })
+      .put(new BuiltinFunc("read") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArgRange(args, 0, 1);
+          String path =
+              args.size() == 0 ?
+              "<stdin>":
+              args.get(0).as(Str.class, "arg").val;
+          Reader reader;
+          try {
+            reader =
+                args.size() == 0 ?
+                new InputStreamReader(System.in):
+                new FileReader(path);
+          } catch (IOException e) {
+            throw new Err(e);
+          }
+          return Str.from(readFile(reader, path));
+        }
+      })
       ;
 
   public static void main(String[] args) {
@@ -67,8 +88,18 @@ public class Desktop {
   }
 
   public static String readFile(String path) {
+    Reader r;
     try {
-      BufferedReader reader = new BufferedReader(new FileReader(path));
+      r = new FileReader(path);
+    } catch (IOException e) {
+      throw new Err(e);
+    }
+    return readFile(r, path);
+  }
+
+  public static String readFile(Reader unBufferedreader, String path) {
+    try {
+      BufferedReader reader = new BufferedReader(unBufferedreader);
       String line = null;
       StringBuilder sb = new StringBuilder();
       String separator = System.getProperty("line.separator");
@@ -80,8 +111,7 @@ public class Desktop {
 
       return sb.toString();
     } catch (IOException e) {
-      throw new Err(
-          "Exception while reading " + path + ": " + e.toString());
+      throw new Err(e);
     }
   }
 
