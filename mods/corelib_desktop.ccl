@@ -2,6 +2,18 @@
 
 # Builtins implemented natively
 
+write[content, /path]
+  # Writes content to file at path.
+  # If path is nil, writes to stdout.
+
+read[/path]
+  # Reads content from file at path.
+  # If path is nil, reads from stdin.
+
+gui
+  # Must be imported (e.g. gui = import['gui'])
+  # Module for simple gui stuff.
+
 gui@Window
   # Window type.
   # Instantiating creates a 
@@ -51,3 +63,5 @@ gui@TextPaneModel@add
 gui@TextPaneModel@insert
 
 """
+
+GLOBAL@print = \content /path. write[content.str[] + '\n', path]

@@ -5,8 +5,10 @@ import java.util.Iterator;
 import java.io.IOException;
 import java.io.FileReader;
 import java.io.BufferedReader;
+import java.io.PrintWriter;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.Writer;
 import java.io.File;
 
 public class Desktop {
@@ -27,9 +29,31 @@ public class Desktop {
       makePath(PATH_TO_MODULES, "corelib_desktop.ccl");
 
   public static final Scope DESKTOP_GLOBAL = new Scope()
-      .put(new BuiltinFunc("print") {
+      .put(new BuiltinFunc("write") {
         public Val calli(Val self, ArrayList<Val> args) {
-          System.out.println(args.get(0));
+          Err.expectArgRange(args, 1, 2);
+
+          String content = args.get(0).toString();
+          String path =
+              args.size() > 1 && args.get(1) != Nil.val ?
+              args.get(1).as(Str.class, "argument 1").val:
+              "<stdout>";
+
+          PrintWriter writer;
+          try {
+            writer =
+                args.size() > 1 && args.get(1) != Nil.val ?
+                new PrintWriter(path, "UTF-8"):
+                new PrintWriter(System.out);
+          } catch (IOException e) {
+            throw new Err(e);
+          }
+
+          writer.print(content);
+
+          if (args.size() > 1)
+            writer.close();
+
           return args.get(0);
         }
       })

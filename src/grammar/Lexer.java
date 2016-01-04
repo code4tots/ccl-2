@@ -68,6 +68,10 @@ public final class Lexer {
                 "Finish your string escapes");
           switch (ch()) {
           case '\\': sb.append('\\'); break;
+          case 'n': sb.append('\n'); break;
+          case 't': sb.append('\t'); break;
+          case '"': sb.append('\"'); break;
+          case '\'': sb.append('\''); break;
           default: throw new SyntaxError(
               makeToken(pos, "ERR"), 
               "Invalid string escape " + Character.toString(ch()));
