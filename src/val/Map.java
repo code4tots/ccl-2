@@ -48,6 +48,21 @@ public final class Map extends Val.Wrap<HashMap<Val, Val>> {
               args.get(0), args.get(1));
         }
       })
+      .put(new BuiltinFunc("Map#has") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          return Bool.from(self.as(Map.class, "self").val.get(
+              args.get(0)) != null);
+        }
+      })
+      .put(new BuiltinFunc("Map#rm") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          Val result = self.as(Map.class, "self").val.remove(
+              args.get(0));
+          return result == null ? Nil.val : result;
+        }
+      })
       .put(new BuiltinFunc("Map#__eq__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);

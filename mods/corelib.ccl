@@ -56,6 +56,8 @@ Map@len
 Map@__call__
 Map@__setitem__
 Map@iter
+Map@has
+Map@rm
 
 Func@__call__
 Func@apply
