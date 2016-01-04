@@ -73,6 +73,6 @@ public final class List extends Val.Wrap<ArrayList<Val>> {
   public static List from(ArrayList<Val> s) { return new List(s); }
   public static List from(Val... args) { return from(toArrayList(args)); }
 
-  public List(ArrayList<Val> val) { super(val); }
+  private List(ArrayList<Val> val) { super(val); }
   public final HashMap<String, Val> getMeta() { return MM; }
 }

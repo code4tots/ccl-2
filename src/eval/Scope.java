@@ -53,6 +53,7 @@ public final class Scope {
       .put(Map.MM)
       .put(Func.MM)
       .put(BuiltinIter.MM)
+      .put(Regex.MM)
       .put(new BuiltinFunc("new") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
@@ -79,7 +80,7 @@ public final class Scope {
             attrs.put(key, val);
           }
 
-          return new Map(attrs);
+          return Map.from(attrs);
         }
       })
       .put(new BuiltinFunc("err") {

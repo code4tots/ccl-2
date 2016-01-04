@@ -66,6 +66,6 @@ public final class Num extends Val.Wrap<Double> {
 
   public static Num from(Double s) { return new Num(s); }
   public static Num from(Integer s) { return new Num(s.doubleValue()); }
-  public Num(Double val) { super(val); }
+  private Num(Double val) { super(val); }
   public final HashMap<String, Val> getMeta() { return MM; }
 }

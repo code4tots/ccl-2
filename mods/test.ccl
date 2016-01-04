@@ -172,4 +172,22 @@ assert[s == '1 + 2', s]
 t = import['import_test']
 assert[t@message == 'hi', t@message]
 
+s = re[r'hi'].repl['hi hi', 'there']
+assert[s == 'there there', s]
+
+s = re[r'hi'].repl['hi hi', 'there', 3]
+assert[s == 'hi there', s]
+
+s = re[r'hi'].repl['hi hi hi', 'there', 3, 5]
+assert[s == 'hi there hi', s]
+
+s = re[r'hi'].find['hi hi hi', 3, 5]
+assert[s == L['hi'], s]
+
+s = re[r'(hi)'].find['hi hi hi', 3, 5]
+assert[s == L['hi', 'hi'], s]
+
+s = re[r'(h(\w))'].find['hi hi hi', 3, 5]
+assert[s == L['hi', 'hi', 'i'], s]
+
 print["*** All command line tests pass! ***"]

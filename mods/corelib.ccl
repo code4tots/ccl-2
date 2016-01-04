@@ -1,4 +1,4 @@
-"""corelib.ccl
+r"""corelib.ccl
 
 A lot of the basic utilities can be implemented in the language itself.
 This should make porting easier if I choose to do so in the future.
@@ -53,19 +53,45 @@ List@iter
 Map@__eq__
 Map@repr
 Map@len
-Map[]
-Map[]=
+Map@__call__
+Map@__setitem__
 Map@iter
 
-Func[]
+Func@__call__
 Func@apply
 Func@repr
+
+# TODO: implement this
+Regex@match[initial_string, \start, \end]
+  # Expects a string to match and optionally an index to start
+  # matching at.
+  # Returns a MatchData instance or nil if no match was found.
+
+# TODO: MatchData
+# TODO: Maybe think of better abstractions. I really like
+# Java's solution of having 'Pattern', 'Matcher' and 'MatchResult'.
+# I think I like it better than what Ruby does with MatchData
+# that I'm copying here. Think about this.
+
+Regex@str
+  # Returns the pattern string used to define this regex.
+
+Regex@repl[initial_string, replacement_string, \start, \end]
+  # Returns a string where all matching substring of initial_string
+  # is replaced by replacement_string.
+
+Regex@find[initial_string, \start, \end]
+  # Looks for a match in the range start...end of initial_string,
+  # and returns a list of groups on the first match that is found.
+  # Returns nil if no match is found.
 
 """
 
 GLOBAL@assert = \cond /msg. if not cond err[msg or "assertion failed"]
 GLOBAL@R = \arg. arg.repr[]
 GLOBAL@S = \arg. arg.str[]
+
+GLOBAL@re = \pattern. Regex[pattern]
 
 Meta@__call__ = \*args. self@__new__[*args]
 Meta@__new__ = \name. {
@@ -343,6 +369,9 @@ GLOBAL@range = \start /end /step. {
   return Iter[more, next]
 }
 
+Regex@repr = \. 're[' + self.str[] + ']'
+Regex@hash = \. self.str[].hash[]
+
 Meta.extend[Val]
 Nil.extend[Val]
 Bool.extend[Val]
@@ -353,3 +382,4 @@ Map.extend[Val]
 Func.extend[Val]
 Iter.extend[Val]
 BuiltinIter.extend[Iter]
+Regex.extend[Val]

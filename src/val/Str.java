@@ -59,6 +59,6 @@ public final class Str extends Val.Wrap<String> {
       .hm;
 
   public static Str from(String s) { return new Str(s); }
-  public Str(String val) { super(val); }
+  private Str(String val) { super(val); }
   public final HashMap<String, Val> getMeta() { return MM; }
 }
