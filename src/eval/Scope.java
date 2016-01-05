@@ -90,6 +90,27 @@ public final class Scope {
               .call("str").as(Str.class, "result of method str").val);
         }
       })
+      .put(new BuiltinFunc("go") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          final Val f = args.get(0);
+          new Thread() {
+            public void run() {
+              Evaluator.call(f, "__call__", new ArrayList<Val>());
+            }
+          }.start();
+          return Nil.val;
+        }
+      })
+      .put(new BuiltinFunc("sleep") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          int millisec = args.get(0).as(Num.class, "arg").val.intValue();
+          try { Thread.sleep(millisec); }
+          catch (InterruptedException e) { throw new Err(e); }
+          return Nil.val;
+        }
+      })
       ;
   static {
     GLOBAL.put("GLOBAL", new Blob(new HashMap<String, Val>(), GLOBAL.table));

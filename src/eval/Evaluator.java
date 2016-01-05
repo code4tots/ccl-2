@@ -88,6 +88,13 @@ public class Evaluator extends AstVisitor<Val> {
         node.token, node.args, node.optargs, node.vararg, node.body, scope);
   }
 
+  public static Val call(Val owner, String name, ArrayList<Val> args) {
+    if (name.equals("__call__") && owner instanceof Func)
+      return ((Func) owner).call(owner, args);
+    else
+      return owner.call(name, args);
+  }
+
   public Val visitCall(Ast.Call node) {
     Val owner = visit(node.owner);
     if (owner == null)
@@ -99,10 +106,7 @@ public class Evaluator extends AstVisitor<Val> {
       args.addAll(visit(node.vararg).as(List.class, "vararg").val);
 
     try {
-      if (node.name.equals("__call__") && owner instanceof Func)
-        return ((Func) owner).call(owner, args);
-      else
-        return owner.call(node.name, args);
+      return call(owner, node.name, args);
     }
     catch (final Err e) { e.add(node); throw e; }
     catch (final Throwable e) { throw new Err(e); }
