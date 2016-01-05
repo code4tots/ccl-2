@@ -106,6 +106,10 @@ public final class Scope {
           // threads are currently running, e.g. Swing could be running
           // in the background ready to queue a task for me at some point
           // in the future.
+
+          // TODO: Don't use a new thread per goroutine.
+          // Of course though, that is going to take more work as e.g.
+          // I would also want to be able to suspend the evaluator.
           new Thread() {
             public void run() {
               Evaluator.call(f, "__call__", new ArrayList<Val>());
