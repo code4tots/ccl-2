@@ -105,9 +105,7 @@ public class Evaluator extends AstVisitor<Val> {
     if (node.vararg != null)
       args.addAll(visit(node.vararg).as(List.class, "vararg").val);
 
-    try {
-      return call(owner, node.name, args);
-    }
+    try { return call(owner, node.name, args); }
     catch (final Err e) { e.add(node); throw e; }
     catch (final Throwable e) { throw new Err(e); }
   }
