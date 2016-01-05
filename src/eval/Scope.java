@@ -54,6 +54,7 @@ public final class Scope {
       .put(Func.MM)
       .put(BuiltinIter.MM)
       .put(Regex.MM)
+      .put(Channel.MM)
       .put(new BuiltinFunc("new") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);

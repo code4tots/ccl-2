@@ -201,15 +201,12 @@ assert[s == L['hi', 'hi', 'i'], s]
 s = re[r'x'].find['yyy']
 assert[s is nil, s]
 
-# The following could potentially become a flaky test.
-# Feel free to comment out this thread test if it does.
-
-# ***  Start of thread test ***
-x = L[]
-go[\. x.add[5]]
-assert[x == L[]]
-sleep[50]
-assert[x == L[5], x]
-# *** End of thread test ***
+# Thread/channel test.
+ch = Channel[]
+go[\. {
+  sleep[100]
+  ch.put[5]
+}]
+assert[(x = ch.take[]) == 5, x]
 
 print["*** All command line tests pass! ***"]
