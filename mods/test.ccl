@@ -201,7 +201,7 @@ assert[s == L['hi', 'hi', 'i'], s]
 s = re[r'x'].find['yyy']
 assert[s is nil, s]
 
-# Thread/channel test.
+# Goroutine/channel test.
 ch = Channel[]
 go[\. {
   sleep[100]
