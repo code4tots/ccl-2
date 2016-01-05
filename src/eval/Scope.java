@@ -94,6 +94,17 @@ public final class Scope {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           final Val f = args.get(0);
+          // TODO: Run this on a thread pool.
+          // Setting up a threadpool itself is pretty simple, but
+          // the problem with threadpools is that it keeps the process
+          // alive even when there is nothing to run, which I think
+          // could be seen as counterintuitive behavior.
+          // So moving towards a threadpool involves the additional work
+          // of making sure to close all threads when there is nothing to
+          // do. This should also keep in mind that even if none of my
+          // threads are currently running, e.g. Swing could be running
+          // in the background ready to queue a task for me at some point
+          // in the future.
           new Thread() {
             public void run() {
               Evaluator.call(f, "__call__", new ArrayList<Val>());
