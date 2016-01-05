@@ -3,6 +3,13 @@ r"""corelib.ccl
 A lot of the basic utilities can be implemented in the language itself.
 This should make porting easier if I choose to do so in the future.
 
+# TODO: Make builtin 'Map' operations optional, implemented using List
+# so programs can still function even if the underlying environment
+# does not have a native 'Map' implementation.
+
+# TODO: Backup 'Regex' implementation for when native environment doesn't
+# support regular expressions.
+
 # Bultins implemented natively
 
 # Truthiness cannot be overriden.
