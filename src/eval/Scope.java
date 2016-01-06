@@ -100,6 +100,7 @@ public final class Scope {
           return Nil.val;
         }
       })
+      // TODO: 'select'.
       .put(new BuiltinFunc("sleep") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
