@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.HashMap;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public final class Scope {
   public final HashMap<String, Val> table;
@@ -94,27 +96,7 @@ public final class Scope {
       .put(new BuiltinFunc("go") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
-          final Val f = args.get(0);
-          // TODO: Run this on a thread pool.
-          // Setting up a threadpool itself is pretty simple, but
-          // the problem with threadpools is that it keeps the process
-          // alive even when there is nothing to run, which I think
-          // could be seen as counterintuitive behavior.
-          // So moving towards a threadpool involves the additional work
-          // of making sure to close all threads when there is nothing to
-          // do. This should also keep in mind that even if none of my
-          // threads are currently running, e.g. Swing could be running
-          // in the background ready to queue a task for me at some point
-          // in the future.
-
-          // TODO: Don't use a new thread per goroutine.
-          // Of course though, that is going to take more work as e.g.
-          // I would also want to be able to suspend the evaluator.
-          new Thread() {
-            public void run() {
-              Evaluator.call(f, "__call__", new ArrayList<Val>());
-            }
-          }.start();
+          Evaluator.go(args.get(0));
           return Nil.val;
         }
       })
@@ -128,7 +110,16 @@ public final class Scope {
         }
       })
       ;
+
   static {
     GLOBAL.put("GLOBAL", new Blob(new HashMap<String, Val>(), GLOBAL.table));
+  }
+
+  private static class SelectEntry {
+    public final int index;
+    public final Val val;
+    public SelectEntry(int index, Val val) {
+      this.index = index; this.val = val;
+    }
   }
 }

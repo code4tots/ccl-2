@@ -6,6 +6,23 @@
 import java.util.ArrayList;
 
 public class Evaluator extends AstVisitor<Val> {
+
+  // Start something like a goroutine from golang.
+  // Right now, to keep implementation simple I just spawn a thread,
+  // but you shouldn't count on it. Potentially, this could use a threadpool,
+  // move these around in various threads like in go, etc.
+  public static void go(final Val f) {
+    new Thread() {
+      public void run() {
+        call(f, "__call__", new ArrayList<Val>());
+      }
+    }.start();
+  }
+
+  public static void go(Runnable r) {
+    new Thread(r).start();
+  }
+
   public final Scope scope;
   public boolean ret = false, br = false, cont = false;
 
