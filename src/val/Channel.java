@@ -15,21 +15,29 @@ public class Channel extends Val.Wrap<LinkedBlockingQueue<Val>> {
       .put(new BuiltinFunc("put") {
         public Val calli(Val self, ArrayList<Val> args)  {
           Err.expectArglen(args, 1);
-          try { self.as(Channel.class, "self").val.put(args.get(0)); }
-          catch (InterruptedException e) { throw new Err(e); }
+          self.as(Channel.class, "self").put(args.get(0));
           return self;
         }
       })
       .put(new BuiltinFunc("take") {
         public Val calli(Val self, ArrayList<Val> args)  {
           Err.expectArglen(args, 0);
-          try { return self.as(Channel.class, "self").val.take(); }
-          catch (InterruptedException e) { throw new Err(e); }
+          return self.as(Channel.class, "self").take();
         }
       })
       .hm;
 
   public Channel() { super(new LinkedBlockingQueue<Val>()); }
+
+  public void put(Val v) {
+    try { val.put(v); }
+    catch (InterruptedException e) { throw new Err(e); }
+  }
+
+  public Val take() {
+    try { return val.take(); }
+    catch (InterruptedException e) { throw new Err(e); }
+  }
 
   public HashMap<String, Val> getMeta() { return MM; }
 
