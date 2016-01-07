@@ -26,15 +26,57 @@ public class Window extends Val {
           return getInstance();
         }
       })
-      // 'put' and 'take' methods to imitate Channel.
-      .put(new BuiltinFunc("gui#Window#put") {
+      .put(new BuiltinFunc("gui#Window#dim") {
         public Val calli(Val self, ArrayList<Val> args) {
-          Err.expectArglen(args, 1);
-          self.as(Window.class, "self").commandChannel.put(args.get(0));
+          Err.expectArglens(args, 0, 2);
+          Window win = self.as(Window.class, "self");
+          if (args.size() == 0) {
+            Dimension[] dimptr = new Dimension[1];
+            invokeAndWait(new Runnable() {
+              public void run() {
+                dimptr[0] = win.panel.getPreferredSize();
+              }
+            });
+            return List.from(
+                Num.from(dimptr[0].width),
+                Num.from(dimptr[0].height));
+          } else {
+            final int width = args.get(0).as(
+                Num.class, "arg 0 (width)").val.intValue();
+            final int height = args.get(1).as(
+                Num.class, "arg 1 (height)").val.intValue();
+            win.resize(width, height);
+            return self;
+          }
+        }
+      })
+      .put(new BuiltinFunc("gui#Window#text") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 4);
+          Window win = self.as(Window.class, "self");
+          String text = args.get(0).as(Str.class, "arg 0").val;
+          final int x = args.get(1).as(
+              Num.class, "arg 1 (x)").val.intValue();
+          final int y = args.get(2).as(
+              Num.class, "arg 2 (y)").val.intValue();
+          final int fontsize = args.get(2).as(
+              Num.class, "arg 3 (font size)").val.intValue();
+
+          Graphics2D g = win.image.createGraphics();
+          g.setColor(Color.BLACK);
+          g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, fontsize));
+          g.drawString(text, x, y);
+          System.out.println("Drawing text");
+          g.dispose();
+
+          if (win.autoflush)
+            win.flush();
+
           return self;
         }
       })
-      .put(new BuiltinFunc("gui#Window#take") {
+      // Take the next availble event.
+      .put(new BuiltinFunc("gui#Window#event") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
           return self.as(Window.class, "self").eventChannel.take();
@@ -42,20 +84,17 @@ public class Window extends Val {
       })
       .hm;
 
-  private final Frame frame;
-
-  // Commands issued from CCL to Frame.
-  // CCL code should never read from commandChannel.
-  private final Channel commandChannel;
-
-  // Events reported by Frame to CCL.
-  // CCL code should never write to eventChannel.
-  private final Channel eventChannel;
-
   // 'Window' is a singleton. I would have multiple, except
   // when any one of them closes, everyone is going to close.
   // TODO: Consider making them available anyway.
   private static Window instance = null;
+
+  private final Channel eventChannel;
+  private final JFrame frame;
+  private final JPanel panel;
+  private volatile BufferedImage image =
+      new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+  private boolean autoflush = true;
 
   public static Window getInstance() {
     if (instance == null)
@@ -67,89 +106,88 @@ public class Window extends Val {
     if (instance != null)
       throw new Err("Tried to create multiple instances of Window");
 
-    this.commandChannel = new Channel();
     this.eventChannel = new Channel();
-    this.frame = new Frame(commandChannel, eventChannel);
+
+    final JFrame[] frameptr = new JFrame[1];
+    final JPanel[] panelptr = new JPanel[1];
+    invokeAndWait(new Runnable() {
+      public void run() {
+        JFrame frame = frameptr[0] = new JFrame();
+        JPanel panel = panelptr[0] = new JPanel() {
+          public static final long serialVersionUID = 42L;
+          public void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            g.drawImage(image, 0, 0, null);
+          }
+        };
+        frame.add(panel);
+        frame.addWindowListener(new WindowListener() {
+          public void windowActivated(WindowEvent e) {}
+          public void windowDeactivated(WindowEvent e) {}
+          public void windowDeiconified(WindowEvent e) {}
+          public void windowIconified(WindowEvent e) {}
+          public void windowOpened(WindowEvent e) {}
+          public void windowClosing(WindowEvent e) {
+            // We could poison the commandChannel here, but
+            // it's unnecessary since our defualt close operation
+            // is EXiT_ON_CLOSE.
+            // Furthermore, poison here, the end of the processing
+            // thread will call close again, making this code be
+            // run twice.
+            // commandChannel.put(Nil.val);
+          }
+          public void windowClosed(WindowEvent e) {}
+        });
+        // I think only using DISPOSE_ON_CLOSE leaves around
+        // some other swing threads for a second or two keeping
+        // this alive.
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setVisible(true);
+      }
+    });
+    this.frame = frameptr[0];
+    this.panel = panelptr[0];
   }
 
   public HashMap<String, Val> getMeta() { return MM; }
 
-  // All native Java gui code should live here.
-  // The 'Window' class is just a thin 'Val' wrapper around this class.
-  private static final class Frame {
-
-    private final Channel commandChannel;
-    private final Channel eventChannel;
-
-    private final JFrame frame;
-    private final JPanel panel;
-
-    public Frame(
-        final Channel commandChannel,
-        final Channel eventChannel) {
-      this.commandChannel = commandChannel;
-      this.eventChannel = eventChannel;
-
-      final JFrame[] frameptr = new JFrame[1];
-      final JPanel[] panelptr = new JPanel[1];
-      invokeAndWait(new Runnable() {
-        public void run() {
-          JFrame frame = frameptr[0] = new JFrame();
-          JPanel panel = panelptr[0] = new JPanel();
-          frame.addWindowListener(new WindowListener() {
-            public void windowActivated(WindowEvent e) {}
-            public void windowDeactivated(WindowEvent e) {}
-            public void windowDeiconified(WindowEvent e) {}
-            public void windowIconified(WindowEvent e) {}
-            public void windowOpened(WindowEvent e) {}
-            public void windowClosing(WindowEvent e) {
-              // We could poison the commandChannel here, but
-              // it's unnecessary since our defualt close operation
-              // is EXiT_ON_CLOSE.
-              // Furthermore, poison here, the end of the processing
-              // thread will call close again, making this code be
-              // run twice.
-              // commandChannel.put(Nil.val);
-            }
-            public void windowClosed(WindowEvent e) {}
-          });
-          // I think only using DISPOSE_ON_CLOSE leaves around
-          // some other swing threads for a second or two keeping
-          // this alive.
-          frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-          frame.setVisible(true);
-        }
-      });
-      frame = frameptr[0];
-      panel = panelptr[0];
-      // Spawn the command processing thread.
-      // This is where we read commands issued by CCL code and relay it to
-      // native gui.
-      Evaluator.go(new Runnable() {
-        public void run() {
-          Val cmd;
-          // Keep on extracting events until you find the poison pill.
-          while ((cmd = commandChannel.take()) != Nil.val) {
-            try {
-              // TODO: Perform command.
-              System.out.println("Received command: " + cmd.toString());
-            } catch (Throwable e) {
-              // I can't die dammit! If I do, CCL code will no longer be able
-              // to talk to the GUI!
-              // TODO: Consider the alternatives.
-              System.out.println(e);
-            }
-          }
-          frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
-        }
-      });
+  public void resize(final int width, final int height) {
+    if (width > image.getWidth() || height > image.getHeight()) {
+      BufferedImage newImage = new BufferedImage(
+          2 * width + 1,
+          2 * height + 1,
+          BufferedImage.TYPE_INT_ARGB);
+      Graphics2D g = newImage.createGraphics();
+      g.drawImage(image, 0, 0, null);
+      g.dispose();
+      // This assignment is atomic.
+      image = newImage;
     }
-
-    private static void invokeAndWait(Runnable r) {
-      try { SwingUtilities.invokeAndWait(r); }
-      catch (InterruptedException e) { throw new Err(e); }
-      catch (InvocationTargetException e) { throw new Err(e); }
-    }
+    invokeAndWait(new Runnable() {
+      public void run() {
+        panel.setPreferredSize(new Dimension(width, height));
+        frame.pack();
+      }
+    });
   }
 
+  public void flush() {
+    panel.repaint();
+    System.out.println("Done flushing");
+  }
+
+  private static void invokeAndWait(Runnable r) {
+    try { SwingUtilities.invokeAndWait(r); }
+    catch (InterruptedException e) { throw new Err(e); }
+    catch (InvocationTargetException e) { throw new Err(e); }
+  }
+
+  public static BufferedImage copy(BufferedImage image) {
+    BufferedImage newImage = new BufferedImage(
+        image.getWidth(), image.getHeight(), image.getType());
+    Graphics2D g = newImage.createGraphics();
+    g.drawImage(image, 0, 0, null);
+    g.dispose();
+    return newImage;
+  }
 }

@@ -64,4 +64,8 @@ gui@TextPaneModel@insert
 
 """
 
+gui = import['gui']
+
 GLOBAL@print = \content /path. write[content.str[] + '\n', path]
+
+gui@Window.extend[Val]

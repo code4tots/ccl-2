@@ -46,4 +46,15 @@ public final class Err extends RuntimeException {
           "Expected at least " + len + " arguments but found only " +
           args.size() + " arguments.");
   }
+
+  public static void expectArglens(ArrayList<Val> args, int... lens) {
+    for (int i = 0; i < lens.length; i++)
+      if (args.size() == lens[i])
+        return;
+    StringBuilder sb = new StringBuilder("Expected ");
+    for (int i = 0; i < lens.length-1; i++)
+      sb.append(lens[i] + " or ");
+    sb.append(lens[lens.length-1] + " arguments but found " + args.size());
+    throw new Err(sb.toString());
+  }
 }

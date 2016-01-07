@@ -3,18 +3,15 @@
 
 gui = import['gui']
 
-ch = Channel[]
-ch.put[nil]
-
 window = gui@Window[]
 window2 = gui@Window[]
 
-print['about to put into nil']
+assert[window == window2]
 
-# This closes the window and exits the program.
-# window.put[nil]
+window.dim[500, 500]
 
-window.put['blarg']
-window.put[nil]
+assert[window.dim[] == L[500, 500], window.dim[]]
+
+window.text['hi', 50, 50, 20]
 
 print["*** gui_test's main thread finished ***"]
