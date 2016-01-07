@@ -33,27 +33,24 @@ public class Desktop {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArgRange(args, 1, 2);
 
-          String content = args.get(0).toString();
-          String path =
-              args.size() > 1 && args.get(1) != Nil.val ?
-              args.get(1).as(Str.class, "argument 1").val:
-              "<stdout>";
+          // Special case when printing to STDOUT.
+          if (args.size() == 1 || args.get(1) == Nil.val)
+            System.out.print(args.get(0));
 
-          PrintWriter writer;
-          try {
-            writer =
-                args.size() > 1 && args.get(1) != Nil.val ?
-                new PrintWriter(path, "UTF-8"):
-                new PrintWriter(System.out);
-          } catch (IOException e) {
-            throw new Err(e);
-          }
+          else {
+            // Here, we know that we are going to open a file.
 
-          writer.print(content);
+            // TODO: Test this better.
+            String content = args.get(0).toString();
+            String path = args.get(1).as(Str.class, "argument 1").val;
 
-          if (args.size() > 1)
+            PrintWriter writer;
+            try { writer = new PrintWriter(path, "UTF-8"); }
+            catch (IOException e) { throw new Err(e); }
+
+            writer.print(content);
             writer.close();
-
+          }
           return args.get(0);
         }
       })
