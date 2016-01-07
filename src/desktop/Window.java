@@ -4,9 +4,14 @@ import java.lang.reflect.InvocationTargetException;
 import javax.swing.SwingUtilities;
 import javax.swing.JFrame;
 import javax.swing.JComponent;
+import java.awt.image.BufferedImage;
 import java.awt.Dimension;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Font;
+import java.awt.event.ComponentListener;
+import java.awt.event.ComponentEvent;
 
 public class Window extends Val {
   public static final HashMap<String, Val> MM = new Hmb()
@@ -70,6 +75,18 @@ public class Window extends Val {
           }
         }
       })
+      .put(new BuiltinFunc("gui#Window#drawText") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 4);
+          Window w = self.as(Window.class, "self");
+          String text = args.get(0).as(Str.class, "arg 0").val;
+          int x = args.get(1).as(Num.class, "arg 1 (x)").val.intValue();
+          int y = args.get(2).as(Num.class, "arg 2 (y)").val.intValue();
+          int size = args.get(3).as(Num.class, "arg 3 (size)").val.intValue();
+          w.panel.drawText(text, x, y, size);
+          return self;
+        }
+      })
       .hm;
 
   // WARNING: The 'frame' member should never be touched outside the event
@@ -89,13 +106,51 @@ public class Window extends Val {
   // but why enforce abstractions here? I figure I could do that in the
   // language itself.
   // If performance really becomes an issue, I'll worry about it then.
-  private static final class Panel extends JComponent {
+  private static final class Panel extends JComponent implements ComponentListener {
     public static final long serialVersionUID = 42L;
+
+    // TODO: Worry about consequences of concurrency.
+    // TODO: Worry about screens bigger than 4k x 4k.
+    private final BufferedImage image =
+        new BufferedImage(4000, 4000, BufferedImage.TYPE_INT_ARGB);
+
+    public Panel() {
+      super();
+      addComponentListener(this);
+    }
+
     public void paintComponent(Graphics g) {
       super.paintComponent(g);
-      g.setColor(Color.red);
-      g.fillOval(0, 0, 50, 50);
+      g.drawImage(image, 0, 0, null);
     }
+
+    public void componentHidden(ComponentEvent e) {
+    }
+    public void componentMoved(ComponentEvent e) {
+    }
+    public void componentResized(ComponentEvent e) {
+    }
+    public void componentShown(ComponentEvent e) {
+    }
+
+    public void drawText(String text, int x, int y, int fontsize) {
+      Graphics2D g = image.createGraphics();
+      g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, fontsize));
+      g.setColor(Color.black);
+      g.drawString(text, x, y);
+      // g.fillOval(0, 0, 50, 50);
+      g.dispose();
+      repaint();
+    }
+  }
+
+  private static BufferedImage copy(BufferedImage image) {
+    BufferedImage copy = new BufferedImage(
+        image.getWidth(), image.getHeight(), image.getType());
+    Graphics2D g = copy.createGraphics();
+    g.drawImage(image, 0, 0, null);
+    g.dispose();
+    return copy;
   }
 
   private static void invokeAndWait(Runnable r) {
