@@ -66,7 +66,6 @@ public class Window extends Val {
           g.setColor(Color.BLACK);
           g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, fontsize));
           g.drawString(text, x, y);
-          System.out.println("Drawing text");
           g.dispose();
 
           if (win.autoflush)
@@ -173,7 +172,6 @@ public class Window extends Val {
 
   public void flush() {
     panel.repaint();
-    System.out.println("Done flushing");
   }
 
   private static void invokeAndWait(Runnable r) {
