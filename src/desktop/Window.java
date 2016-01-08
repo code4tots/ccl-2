@@ -59,11 +59,12 @@ public class Window extends Val {
               Num.class, "arg 1 (x)").val.intValue();
           final int y = args.get(2).as(
               Num.class, "arg 2 (y)").val.intValue();
-          final int fontsize = args.get(2).as(
+          final int fontsize = args.get(3).as(
               Num.class, "arg 3 (font size)").val.intValue();
 
           Graphics2D g = win.image.createGraphics();
           g.setColor(Color.BLACK);
+          System.out.println("fontsize = " + fontsize);
           g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, fontsize));
           g.drawString(text, x, y);
           g.dispose();
@@ -136,6 +137,18 @@ public class Window extends Val {
             // commandChannel.put(Nil.val);
           }
           public void windowClosed(WindowEvent e) {}
+        });
+        panel.addMouseListener(new MouseListener() {
+          public void mouseClicked(MouseEvent e) {
+            eventChannel.put(List.from(
+                Str.from("click"),
+                Num.from(e.getX()),
+                Num.from(e.getY())));
+          }
+          public void mouseEntered(MouseEvent e) {}
+          public void mouseExited(MouseEvent e) {}
+          public void mousePressed(MouseEvent e) {}
+          public void mouseReleased(MouseEvent e) {}
         });
         // I think only using DISPOSE_ON_CLOSE leaves around
         // some other swing threads for a second or two keeping

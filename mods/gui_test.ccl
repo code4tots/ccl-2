@@ -14,4 +14,11 @@ assert[window.dim[] == L[500, 500], window.dim[]]
 
 window.text['hi', 50, 50, 20]
 
+window.text['hoi', 50, 70, 20]
+
+event = window.event[]
+print['Received event: ' + event.str[]]
+
+window.text['clicked!', 50, 90, 20]
+
 print["*** gui_test's main thread finished ***"]
