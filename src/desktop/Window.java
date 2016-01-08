@@ -31,15 +31,9 @@ public class Window extends Val {
           Err.expectArglens(args, 0, 2);
           Window win = self.as(Window.class, "self");
           if (args.size() == 0) {
-            Dimension[] dimptr = new Dimension[1];
-            invokeAndWait(new Runnable() {
-              public void run() {
-                dimptr[0] = win.panel.getPreferredSize();
-              }
-            });
             return List.from(
-                Num.from(dimptr[0].width),
-                Num.from(dimptr[0].height));
+                Num.from(win.width),
+                Num.from(win.height));
           } else {
             final int width = args.get(0).as(
                 Num.class, "arg 0 (width)").val.intValue();
@@ -64,7 +58,6 @@ public class Window extends Val {
 
           Graphics2D g = win.image.createGraphics();
           g.setColor(Color.BLACK);
-          System.out.println("fontsize = " + fontsize);
           g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, fontsize));
           g.drawString(text, x, y);
           g.dispose();
@@ -73,6 +66,13 @@ public class Window extends Val {
             win.flush();
 
           return self;
+        }
+      })
+      .put(new BuiltinFunc("gui#Window#clear") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          self.as(Window.class, "self").clear();
+          return Nil.val;
         }
       })
       // Take the next availble event.
@@ -95,6 +95,8 @@ public class Window extends Val {
   private volatile BufferedImage image =
       new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
   private boolean autoflush = true;
+
+  private volatile int width = 1, height = 1;
 
   public static Window getInstance() {
     if (instance == null)
@@ -150,6 +152,16 @@ public class Window extends Val {
           public void mousePressed(MouseEvent e) {}
           public void mouseReleased(MouseEvent e) {}
         });
+        panel.addComponentListener(new ComponentListener() {
+          public void componentHidden(ComponentEvent e) {}
+          public void componentMoved(ComponentEvent e) {}
+          public void componentResized(ComponentEvent e) {
+            width = panel.getWidth();
+            height = panel.getHeight();
+          }
+          public void componentShown(ComponentEvent e) {}
+        });
+        panel.setBackground(Color.WHITE);
         // I think only using DISPOSE_ON_CLOSE leaves around
         // some other swing threads for a second or two keeping
         // this alive.
@@ -179,12 +191,23 @@ public class Window extends Val {
       public void run() {
         panel.setPreferredSize(new Dimension(width, height));
         frame.pack();
+        Window.this.width = panel.getWidth();
+        Window.this.height = panel.getHeight();
       }
     });
   }
 
   public void flush() {
     panel.repaint();
+  }
+
+  public void clear() {
+    Graphics2D g = image.createGraphics();
+    g.setBackground(Color.WHITE);
+    g.clearRect(0, 0, image.getWidth(), image.getHeight());
+    g.dispose();
+    if (autoflush)
+      flush();
   }
 
   private static void invokeAndWait(Runnable r) {
