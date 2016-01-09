@@ -210,4 +210,3 @@ go[\. {
 assert[(x = ch.take[]) == 5, x]
 
 print["*** All command line tests pass! ***"]
-
