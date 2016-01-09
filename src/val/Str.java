@@ -39,6 +39,23 @@ public final class Str extends Val.Wrap<String> {
           return Str.from(String.format(s, arr));
         }
       })
+      .put(new BuiltinFunc("Str#split") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          String[] strs = self.as(Str.class, "self").val.split(
+              args.get(0).as(Str.class, "arg").val);
+          ArrayList<Val> ss = new ArrayList<Val>();
+          for (int i = 0; i < strs.length; i++)
+            ss.add(Str.from(strs[i]));
+          return List.from(ss);
+        }
+      })
+      .put(new BuiltinFunc("Str#trim") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return Str.from(self.as(Str.class, "self").val.trim());
+        }
+      })
       .put(new BuiltinFunc("Str#repr") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);

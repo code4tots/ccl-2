@@ -209,4 +209,29 @@ go[\. {
 }]
 assert[(x = ch.take[]) == 5, x]
 
+lines = r"""
+a
+b cd
+""".lines[]
+
+assert[lines == L['', 'a', 'b cd']]
+
+words = r"""
+a
+b cd
+
+""".words[]
+
+assert[words == L['', 'a', 'b', 'cd'], words]
+
+
+words = r"""
+a
+b cd
+
+""".trim[].words[]
+
+assert[words == L['a', 'b', 'cd'], words]
+
+
 print["*** All command line tests pass! ***"]

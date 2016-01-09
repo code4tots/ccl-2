@@ -127,6 +127,11 @@ Num@__neg__ = \. 0 - self
 
 Str@str = \. self
 
+# TODO: Backup implementation of Str@split
+
+Str@words = \. self.split[r'\s+']
+Str@lines = \. self.split[r'\n+']
+
 List@map = \f {
   i = 0
   xs = L[]
