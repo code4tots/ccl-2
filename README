@@ -1,6 +1,20 @@
+Sanity (CCL - Cackle)
+=====================
+
+Simple programming language with an object model a lot like Lua's.
+
+Usage: ./run.sh <path_to_ccl_script>
+
 
 src/
-  Where all the code I write is
+  Where all the Java code for the interpreter is.
 
 cls/
   Generated Java class files.
+
+mods/
+  Sanity library modules.
+
+dream/
+  I have a dream of a programming language.
+  It is full of seductive zero cost compile time optimizations.
