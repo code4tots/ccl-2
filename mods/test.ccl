@@ -233,6 +233,8 @@ b cd
 
 assert[words == L['a', 'b', 'cd'], words]
 
+assert[(x = '5'.int[]) == 5, x]
+
 math = import['math']
 nCr = math@nCr
 

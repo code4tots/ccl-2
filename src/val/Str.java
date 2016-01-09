@@ -1,5 +1,6 @@
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.math.BigInteger;
 
 public final class Str extends Val.Wrap<String> {
 
@@ -54,6 +55,12 @@ public final class Str extends Val.Wrap<String> {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
           return Str.from(self.as(Str.class, "self").val.trim());
+        }
+      })
+      .put(new BuiltinFunc("Str#int") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return Num.from(new BigInteger(self.as(Str.class, "self").val));
         }
       })
       .put(new BuiltinFunc("Str#repr") {

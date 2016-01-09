@@ -47,6 +47,7 @@ Str@__lt__
 Str@repr
 Str@len
 Str@__call__ # getitem
+Str@int
 
 List@add
 List@pop
