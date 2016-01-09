@@ -35,14 +35,14 @@ public final class List extends Val.Wrap<ArrayList<Val>> {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
           return self.as(List.class, "self").val.get(
-              args.get(0).as(Num.class, "index").val.intValue());
+              args.get(0).as(Num.class, "index").asIndex());
         }
       })
       .put(new BuiltinFunc("List#__setitem__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 2);
           return self.as(List.class, "self").val.set(
-              args.get(0).as(Num.class, "index").val.intValue(),
+              args.get(0).as(Num.class, "index").asIndex(),
               args.get(1));
         }
       })

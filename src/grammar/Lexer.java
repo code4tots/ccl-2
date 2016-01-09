@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.math.BigInteger;
 
 public final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
@@ -96,11 +97,15 @@ public final class Lexer {
       while (isdigit())
         pos++;
       if (!seenDot && startsWith(".")) {
+        seenDot = true;
         pos++;
         while (isdigit())
           pos++;
       }
-      return makeToken(start, "NUM", Double.valueOf(cut(start)));
+      if (seenDot)
+        return makeToken(start, "FLT", Double.valueOf(cut(start)));
+      else
+        return makeToken(start, "INT", new BigInteger(cut(start)));
     } else {
       pos = start;
     }

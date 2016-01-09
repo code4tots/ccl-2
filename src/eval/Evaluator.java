@@ -76,7 +76,11 @@ public class Evaluator extends AstVisitor<Val> {
 
   // Expression only
 
-  public Val visitNum(Ast.Num node) {
+  public Val visitInt(Ast.Int node) {
+    return Num.from(node.val);
+  }
+
+  public Val visitFlt(Ast.Flt node) {
     return Num.from(node.val);
   }
 

@@ -106,7 +106,7 @@ public final class Scope {
       .put(new BuiltinFunc("sleep") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
-          int millisec = args.get(0).as(Num.class, "arg").val.intValue();
+          int millisec = args.get(0).as(Num.class, "arg").asIndex();
           try { Thread.sleep(millisec); }
           catch (InterruptedException e) { throw new Err(e); }
           return Nil.val;

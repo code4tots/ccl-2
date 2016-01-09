@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.math.BigInteger;
 
 public final class Parser {
   public final Lexer lexer;
@@ -215,18 +216,12 @@ public final class Parser {
     if (at("+")) {
       Token token = next();
       Ast node = parsePrefixExpression();
-      if (node instanceof Ast.Num)
-        return new Ast.Num(token, ((Ast.Num) node).val);
-      else
-        return new Ast.Call(token, node, "__pos__");
+      return new Ast.Call(token, node, "__pos__");
     }
     if (at("-")) {
       Token token = next();
       Ast node = parsePrefixExpression();
-      if (node instanceof Ast.Num)
-        return new Ast.Num(token, -((Ast.Num) node).val);
-      else
-        return new Ast.Call(token, node, "__neg__");
+      return new Ast.Call(token, node, "__neg__");
     }
     if (at("not")) {
       Token token = next();
@@ -312,9 +307,14 @@ public final class Parser {
       return new Ast.Str(token, (String) token.value);
     }
 
-    if (at("NUM")) {
+    if (at("FLT")) {
       Token token = next();
-      return new Ast.Num(token, (Double) token.value);
+      return new Ast.Flt(token, (Double) token.value);
+    }
+
+    if (at("INT")) {
+      Token token = next();
+      return new Ast.Int(token, (BigInteger) token.value);
     }
 
     if (at("ID")) {
@@ -367,7 +367,8 @@ public final class Parser {
       return new Ast.If(token, cond, body, other);
     }
 
-    throw new SyntaxError(peek(), "Expected expression");
+    throw new SyntaxError(
+        peek(), "Expected expression but found " + peek().type);
   }
 
   public static String filespecToName(String filespec) {

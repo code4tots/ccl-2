@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.math.BigInteger;
 
 public abstract class Ast implements Traceable {
 
@@ -70,14 +71,24 @@ public abstract class Ast implements Traceable {
   }
 
   // Expression only
-  public static final class Num extends Ast {
-    public final Double val;
-    public Num(Token token, Double val) {
+  public static final class Int extends Ast {
+    public final BigInteger val;
+    public Int(Token token, BigInteger val) {
       super(token);
       this.val = val;
     }
     public <T> T accept(AstVisitor<T> visitor) {
-      return visitor.visitNum(this);
+      return visitor.visitInt(this);
+    }
+  }
+  public static final class Flt extends Ast {
+    public final Double val;
+    public Flt(Token token, Double val) {
+      super(token);
+      this.val = val;
+    }
+    public <T> T accept(AstVisitor<T> visitor) {
+      return visitor.visitFlt(this);
     }
   }
   public static final class Str extends Ast {

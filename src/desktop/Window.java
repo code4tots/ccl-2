@@ -36,9 +36,9 @@ public class Window extends Val {
                 Num.from(win.height));
           } else {
             final int width = args.get(0).as(
-                Num.class, "arg 0 (width)").val.intValue();
+                Num.class, "arg 0 (width)").asIndex();
             final int height = args.get(1).as(
-                Num.class, "arg 1 (height)").val.intValue();
+                Num.class, "arg 1 (height)").asIndex();
             win.resize(width, height);
             return self;
           }
@@ -50,11 +50,11 @@ public class Window extends Val {
           Window win = self.as(Window.class, "self");
           String text = args.get(0).as(Str.class, "arg 0").val;
           final int x = args.get(1).as(
-              Num.class, "arg 1 (x)").val.intValue();
+              Num.class, "arg 1 (x)").asIndex();
           final int y = args.get(2).as(
-              Num.class, "arg 2 (y)").val.intValue();
+              Num.class, "arg 2 (y)").asIndex();
           final int fontsize = args.get(3).as(
-              Num.class, "arg 3 (font size)").val.intValue();
+              Num.class, "arg 3 (font size)").asIndex();
 
           Graphics2D g = win.image.createGraphics();
           g.setColor(Color.BLACK);

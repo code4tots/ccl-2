@@ -12,7 +12,8 @@ public abstract class AstVisitor<T> {
   public abstract T visitIf(Ast.If node);
 
   // Expression only
-  public abstract T visitNum(Ast.Num node);
+  public abstract T visitInt(Ast.Int node);
+  public abstract T visitFlt(Ast.Flt node);
   public abstract T visitStr(Ast.Str node);
   public abstract T visitName(Ast.Name node);
   public abstract T visitAssign(Ast.Assign node);

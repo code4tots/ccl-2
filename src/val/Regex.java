@@ -26,9 +26,9 @@ public final class Regex extends Val.Wrap<Pattern> {
           String init = args.get(0).as(Str.class, "argument 0").val;
           String repl = args.get(1).as(Str.class, "argument 1").val;
           int start = args.size() > 2 ?
-              args.get(2).as(Num.class, "argument 2").val.intValue(): 0;
+              args.get(2).as(Num.class, "argument 2").asIndex(): 0;
           int end = args.size() > 3 ?
-              args.get(3).as(Num.class, "argument 3").val.intValue():
+              args.get(3).as(Num.class, "argument 3").asIndex():
               init.length();
           Matcher m = p.matcher(init);
           StringBuffer sb = new StringBuffer();
@@ -48,9 +48,9 @@ public final class Regex extends Val.Wrap<Pattern> {
           Pattern p = self.as(Regex.class, "self").val;
           String init = args.get(0).as(Str.class, "argument 0").val;
           int start = args.size() > 1 ?
-              args.get(1).as(Num.class, "argument 1").val.intValue(): 0;
+              args.get(1).as(Num.class, "argument 1").asIndex(): 0;
           int end = args.size() > 2 ?
-              args.get(2).as(Num.class, "argument 2").val.intValue():
+              args.get(2).as(Num.class, "argument 2").asIndex():
               init.length();
           Matcher m = p.matcher(init);
           m.region(start, end);

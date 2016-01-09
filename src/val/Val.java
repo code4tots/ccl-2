@@ -89,7 +89,7 @@ public abstract class Val {
     return call("repr").as(Str.class, "result of method repr").val;
   }
   public final int hashCode() {
-    return call("hash").as(Num.class, "result of method hash").val.intValue();
+    return call("hash").as(Num.class, "result of method hash").asIndex();
   }
 
   public abstract static class Wrap<T> extends Val {
