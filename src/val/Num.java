@@ -32,6 +32,27 @@ public abstract class Num extends Val {
               args.get(0).as(Num.class, "argument"));
         }
       })
+      .put(new BuiltinFunc("Num#__mul__") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          return self.as(Num.class, "self").mul(
+              args.get(0).as(Num.class, "argument"));
+        }
+      })
+      .put(new BuiltinFunc("Num#__div__") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          return self.as(Num.class, "self").div(
+              args.get(0).as(Num.class, "argument"));
+        }
+      })
+      .put(new BuiltinFunc("Num#__mod__") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          return self.as(Num.class, "self").mod(
+              args.get(0).as(Num.class, "argument"));
+        }
+      })
       .put(new BuiltinFunc("Num#__eq__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
