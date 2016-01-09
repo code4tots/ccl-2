@@ -1,0 +1,18 @@
+nCr = \n k {
+  assert[n >= 0 and k >= 0 and k <= n, L[n, k]]
+
+  # nCr[n, k] = nCr[n, n - k]
+  if 2 * k > n
+    return nCr[n, n - k]
+
+  # nCr[n, k] = nCr[n-1, k-1] * n / k
+  x = 1
+  i = n - k + 1
+  j = 1
+  while j <= k {
+    x = x * i / j
+    i = i + 1
+    j = j + 1
+  }
+  return x
+}

@@ -233,5 +233,14 @@ b cd
 
 assert[words == L['a', 'b', 'cd'], words]
 
+math = import['math']
+nCr = math@nCr
+
+assert[(r = nCr[0, 0]) == 1, r]
+assert[(r = nCr[4, 4]) == 1, r]
+assert[(r = nCr[4, 0]) == 1, r]
+assert[(r = nCr[4, 2]) == 6, r]
+assert[(r = nCr[5, 2]) == 10, r]
+assert[(r = nCr[5, 3]) == 10, r]
 
 print["*** All command line tests pass! ***"]
