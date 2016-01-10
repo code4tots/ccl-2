@@ -162,6 +162,8 @@ List@map = \f {
   return xs
 }
 
+List@splat = \f. f[*self]
+
 List@filter = \f {
   i = 0
   xs = L[]
