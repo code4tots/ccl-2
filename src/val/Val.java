@@ -42,6 +42,12 @@ public abstract class Val {
           return v == null ? Nil.val : v;
         }
       })
+      .put(new BuiltinFunc("Val#hash") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return Num.from(System.identityHashCode(self));
+        }
+      })
       .hm;
 
   public static final HashMap<String, Val> MMModule = new Hmb()
