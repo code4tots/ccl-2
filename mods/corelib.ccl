@@ -222,6 +222,8 @@ List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
 
 List@last = \. self[self.len[] - 1]
 
+Map@keys = \. self.iter[].map[\kv. kv[0]]
+
 GLOBAL@Iter = Meta['Iter']
 
 Iter@__new__ = \more next {
