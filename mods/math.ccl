@@ -1,5 +1,8 @@
 nCr = \n k {
-  assert[n >= 0 and k >= 0 and k <= n, L[n, k]]
+  assert[n >= 0 and k >= 0, L[n, k]]
+
+  if k > n
+    return 0
 
   # nCr[n, k] = nCr[n, n - k]
   if 2 * k > n
