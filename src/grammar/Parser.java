@@ -336,7 +336,8 @@ public final class Parser {
       return expr;
     }
 
-    if (at("\\")) {
+    if (at("\\") || at("\\\\")) {
+      boolean newScope = at("\\");
       Token token = next();
       ArrayList<String> args = new ArrayList<String>();
       String vararg = null;
@@ -353,7 +354,7 @@ public final class Parser {
         vararg = (String) expect("ID").value;
       consume(".");
       Ast body = parseStatement();
-      return new Ast.Function(token, args, optargs, vararg, body);
+      return new Ast.Function(token, args, optargs, vararg, body, newScope);
     }
 
     if (at("if")) {

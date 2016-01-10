@@ -9,22 +9,24 @@ public final class UserFunc extends Func {
   public final ArrayList<String> optargs;
   public final String vararg;
   public final Ast body;
+  public final boolean newScope;
   public final Scope scope;
   public UserFunc(
       Token token, ArrayList<String> args, ArrayList<String> optargs,
-      String vararg, Ast body, Scope scope) {
+      String vararg, Ast body, boolean newScope, Scope scope) {
     this.token = token;
     this.args = args;
     this.optargs = optargs;
     this.vararg = vararg;
     this.body = body;
+    this.newScope = newScope;
     this.scope = scope;
   }
   public final String getTraceMessage() {
     return "\nin user function defined in " + token.getLocationString();
   }
   public final Val calli(Val self, ArrayList<Val> args) {
-    Scope scope = new Scope(this.scope);
+    Scope scope = newScope ? new Scope(this.scope) : this.scope;
     scope.put("self", self);
     if (vararg == null) {
       if (optargs.size() == 0)

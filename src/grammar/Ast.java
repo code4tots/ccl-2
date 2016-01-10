@@ -128,14 +128,17 @@ public abstract class Ast implements Traceable {
     public final ArrayList<String> optargs;
     public final String vararg;
     public final Ast body;
+    public final boolean newScope;
     public Function(
         Token token, ArrayList<String> args,
-        ArrayList<String> optargs, String vararg, Ast body) {
+        ArrayList<String> optargs, String vararg, Ast body,
+        boolean newScope) {
       super(token);
       this.args = args;
       this.optargs = optargs;
       this.vararg = vararg;
       this.body = body;
+      this.newScope = newScope;
     }
     public <T> T accept(AstVisitor<T> visitor) {
       return visitor.visitFunction(this);

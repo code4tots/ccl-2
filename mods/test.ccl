@@ -240,6 +240,10 @@ assert['hi'.len[] == 2, 'hi'.len[]]
 
 assert[(xs = 'hi'.iter[].list[]) == L['h', 'i'], xs]
 
+x = 4
+(\\. x = 3)[]
+assert[x == 3, x]
+
 math = import['math']
 nCr = math@nCr
 
