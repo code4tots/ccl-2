@@ -253,6 +253,9 @@ L[L[1, 2, 3]].iter[].splat[\\a b c {
 }].do[]
 assert[flag]
 
+assert[(r = max[1, 2, 3]) == 3, r]
+assert[(r = min[1, 2, 3]) == 1, r]
+
 
 math = import['math']
 nCr = math@nCr

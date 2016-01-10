@@ -103,6 +103,12 @@ GLOBAL@S = \arg. arg.str[]
 
 GLOBAL@re = \pattern. Regex[pattern]
 
+GLOBAL@max = \*args.
+  args.reduce[\a b. if a > b then a else b]
+
+GLOBAL@min = \*args.
+  args.reduce[\a b. if a < b then a else b]
+
 Meta@__call__ = \*args. self@__new__[*args]
 Meta@__new__ = \name. {
   meta = new[Meta]
