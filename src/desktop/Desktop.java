@@ -17,16 +17,7 @@ public class Desktop {
     Val.MODULE_REGISTRY.put("gui", Gui.MODULE);
   }
 
-  public static final String PATH_TO_MODULES =
-      makePath(
-          System.getProperty("user.home"),
-          "git", "ccl", "mods");
-
-  public static final String PATH_TO_CORELIB =
-      makePath(PATH_TO_MODULES, "corelib.ccl");
-
-  public static final String PATH_TO_CORELIB_DESKTOP =
-      makePath(PATH_TO_MODULES, "corelib_desktop.ccl");
+  public static String PATH_TO_MODULES = null;
 
   public static final Scope DESKTOP_GLOBAL = new Scope()
       .put(new BuiltinFunc("write") {
@@ -92,9 +83,14 @@ public class Desktop {
 
   public static void main(String[] args) {
     try {
+      PATH_TO_MODULES = makePath(args[0], "mods");
+      final String PATH_TO_CORELIB = makePath(PATH_TO_MODULES, "corelib.ccl");
+      final String PATH_TO_CORELIB_DESKTOP =
+          makePath(PATH_TO_MODULES, "corelib_desktop.ccl");
+
       new Scope(DESKTOP_GLOBAL).eval(readModule(PATH_TO_CORELIB));
       new Scope(DESKTOP_GLOBAL).eval(readModule(PATH_TO_CORELIB_DESKTOP));
-      new Scope(DESKTOP_GLOBAL).eval(readModule(args[0]));
+      new Scope(DESKTOP_GLOBAL).eval(readModule(args[1]));
     } catch (final Err e) {
       System.out.println(e.toString() + e.getTraceString());
       throw e;
