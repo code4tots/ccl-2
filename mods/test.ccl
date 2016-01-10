@@ -238,6 +238,8 @@ assert[(x = '5'.int[]) == 5, x]
 assert['hi'[1] == 'i', 'hi'[1]]
 assert['hi'.len[] == 2, 'hi'.len[]]
 
+assert[(xs = 'hi'.iter[].list[]) == L['h', 'i'], xs]
+
 math = import['math']
 nCr = math@nCr
 

@@ -133,6 +133,20 @@ Str@str = \. self
 Str@words = \. self.split[r'\s+']
 Str@lines = \. self.split[r'\n+']
 
+Str@iter = \ {
+  str = self
+  i = L[0]
+
+  return Iter[
+    \. i[0] < str.len[],
+    \. {
+      c = str[i[0]]
+      i[0] = i[0] + 1
+      return c
+    }
+  ]
+}
+
 List@map = \f {
   i = 0
   xs = L[]
