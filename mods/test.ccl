@@ -266,6 +266,8 @@ assert[(x = L[7, 8, 9].last[]) == 9, x]
 
 assert[(x = M[1, 2].keys[].list[]) == L[1], x]
 
+assert[(x = L['1', '3', '2'].ints[]) == L[1, 3, 2], x]
+
 math = import['math']
 nCr = math@nCr
 

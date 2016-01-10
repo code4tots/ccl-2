@@ -152,6 +152,8 @@ Str@iter = \ {
   ]
 }
 
+List@ints = \. self.map[\x. x.int[]]
+
 List@map = \f {
   i = 0
   xs = L[]
