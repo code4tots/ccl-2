@@ -235,6 +235,9 @@ assert[words == L['a', 'b', 'cd'], words]
 
 assert[(x = '5'.int[]) == 5, x]
 
+assert['hi'[1] == 'i', 'hi'[1]]
+assert['hi'.len[] == 2, 'hi'.len[]]
+
 math = import['math']
 nCr = math@nCr
 

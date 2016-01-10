@@ -12,6 +12,19 @@ public final class Str extends Val.Wrap<String> {
           return Num.from(self.as(Str.class, "self").val.hashCode());
         }
       })
+      .put(new BuiltinFunc("Str#len") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return Num.from(self.as(Str.class, "self").val.length());
+        }
+      })
+      .put(new BuiltinFunc("Str#__call__") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          return Str.from(self.as(Str.class, "self").val.charAt(
+              args.get(0).as(Num.class, "index").asIndex()));
+        }
+      })
       .put(new BuiltinFunc("Str#__eq__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
@@ -83,6 +96,7 @@ public final class Str extends Val.Wrap<String> {
       .hm;
 
   public static Str from(String s) { return new Str(s); }
+  public static Str from(char s) { return from(String.valueOf(s)); }
   private Str(String val) { super(val); }
   public final HashMap<String, Val> getMeta() { return MM; }
 }
