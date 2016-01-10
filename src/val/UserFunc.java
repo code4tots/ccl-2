@@ -26,8 +26,11 @@ public final class UserFunc extends Func {
     return "\nin user function defined in " + token.getLocationString();
   }
   public final Val calli(Val self, ArrayList<Val> args) {
-    Scope scope = newScope ? new Scope(this.scope) : this.scope;
-    scope.put("self", self);
+    Scope scope = this.scope;
+    if (newScope) {
+      scope = new Scope(this.scope);
+      scope.put("self", self);
+    }
     if (vararg == null) {
       if (optargs.size() == 0)
         Err.expectArglen(args, args.size());

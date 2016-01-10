@@ -134,14 +134,13 @@ Str@words = \. self.split[r'\s+']
 Str@lines = \. self.split[r'\n+']
 
 Str@iter = \ {
-  str = self
-  i = L[0]
+  i = 0
 
   return Iter[
-    \. i[0] < str.len[],
-    \. {
-      c = str[i[0]]
-      i[0] = i[0] + 1
+    \\. i < self.len[],
+    \\. {
+      c = self[i]
+      i = i + 1
       return c
     }
   ]
@@ -242,24 +241,24 @@ Iter@iter = \. self
 # of implementing the evaluator.
 # work.
 Iter@map = \f {
-  src = self
   return Iter[
-    \. src.more[],
-    \. f[src.next[]]
+    \\. self.more[],
+    \\. f[self.next[]]
   ]
 }
 
 # Yea it's unfortunate. Having generators could really make the
 # following a lot more elegant.
 Iter@filter = \f {
-  src = self
-  state = M['more', true, 'cur', nil]
+  more = true
+  cur = nil
 
-  next = \. {
+  next = \\. {
 
+    last = cur
     more = false
-    while src.more[] {
-      x = src.next[]
+    while self.more[] {
+      x = self.next[]
       if f[x] {
         cur = x
         more = true
@@ -267,71 +266,65 @@ Iter@filter = \f {
       }
     }
 
-    last = state['cur']
-
-    state['more'] = more
-    if more then state['cur'] = cur
-
     return last
   }
 
   next[]
 
-  return Iter[\. state['more'], next]
+  return Iter[\\. more, next]
 }
 
 Iter@takeWhile = \f {
-  src = self
-  state = M['more', true, 'cur', nil]
+  more = true
+  cur = nil
 
-  next = \. {
-    last = state['cur']
-    x = src.next[]
+  next = \\. {
+    last = cur
+    x = self.next[]
 
     if not f[x]
-      state['more'] = false
+      more = false
     else
-      state['cur'] = x
+      cur = x
 
     return last
   }
 
   next[]
 
-  return Iter[\.state['more'], next]
+  return Iter[\\.more, next]
 }
 
 Iter@drop = \n {
-  src = self
-  range[0, n].do[\.src.next[]]
+  range[0, n].do[\\.self.next[]]
   return self
 }
 
 Iter@dropWhile = \f {
-  src = self
-  state = M['more', true, 'cur', nil]
+  more = true
+  cur = nil
 
-  next = \. {
-    last = state['cur']
-    if src.more[]
-      state['cur'] = src.next[]
+  next = \\. {
+    last = cur
+    if self.more[]
+      cur = self.next[]
     else
-      state['more'] = false
+      more = false
     return last
   }
 
   found = false
 
   while not found and self.more[] {
-    state['cur'] = self.next[]
-    if not f[state['cur']]
+    cur = self.next[]
+    if not f[cur]
       found = true
   }
 
   if not found
-    state['more'] = false
+    more = false
 
-  return Iter[\.state['more'], next]
+  return Iter[\\.more, next]
 }
 
 # TODO:
@@ -340,23 +333,23 @@ Iter@dropWhile = \f {
 # Think of an elegant solution that gets rid of
 # all this boilerplate without being ugly.
 Iter@zip = \iter {
-  src = self
-  state = M['more', true, 'cur', nil]
+  more = true
+  cur = nil
 
-  next = \. {
-    last = state['cur']
+  next = \\. {
+    last = cur
 
-    if src.more[] and iter.more[]
-      state['cur'] = L[src.next[], iter.next[]]
+    if self.more[] and iter.more[]
+      cur = L[self.next[], iter.next[]]
     else
-      state['more'] = false
+      more = false
 
     return last
   }
 
   next[]
 
-  return Iter[\.state['more'], next]
+  return Iter[\\.more, next]
 }
 
 Iter@enum = \. self.zip[range[0]]
@@ -377,7 +370,7 @@ Iter@list = \. {
 }
 
 GLOBAL@range = \start /end /step. {
-  state = M['i', start]
+  i = start
 
   step = step or 1
 
@@ -386,12 +379,12 @@ GLOBAL@range = \start /end /step. {
 
   more =
     if end is nil      \. true
-    else if step > 0   \. state['i'] < end
-    else               \. state['i'] > end
+    else if step > 0   \. i < end
+    else               \. i > end
 
-  next = \{
-    val = state['i']
-    state['i'] = val + step
+  next = \\{
+    val = i
+    i = val + step
     return val
   }
 
