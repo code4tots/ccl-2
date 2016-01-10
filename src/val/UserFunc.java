@@ -33,9 +33,9 @@ public final class UserFunc extends Func {
     }
     if (vararg == null) {
       if (optargs.size() == 0)
-        Err.expectArglen(args, args.size());
+        Err.expectArglen(args, this.args.size());
       else
-        Err.expectArgRange(args, args.size(), args.size() + optargs.size());
+        Err.expectArgRange(args, this.args.size(), this.args.size() + optargs.size());
     }
     else
       Err.expectMinArglen(args, args.size());

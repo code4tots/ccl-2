@@ -156,6 +156,9 @@ List@map = \f {
   return xs
 }
 
+List@splat = \f.
+  self.iter[].splat[f].do[]
+
 List@filter = \f {
   i = 0
   xs = L[]
@@ -247,6 +250,9 @@ Iter@map = \f {
   ]
 }
 
+Iter@splat = \f.
+  self.map[\item. f[*item]]
+
 # Yea it's unfortunate. Having generators could really make the
 # following a lot more elegant.
 Iter@filter = \f {
@@ -296,7 +302,7 @@ Iter@takeWhile = \f {
 }
 
 Iter@drop = \n {
-  range[0, n].do[\\.self.next[]]
+  range[0, n].do[\\_.self.next[]]
   return self
 }
 
@@ -357,7 +363,8 @@ Iter@enum = \. self.zip[range[0]]
 Iter@take = \n.
   self.enum[].takeWhile[\xi. xi[1] < n].map[\xi. xi[0]]
 
-Iter@do = \f {
+Iter@do = \/f {
+  f = f or \x.x
   while self.more[]
     f[self.next[]]
 }

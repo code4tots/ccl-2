@@ -29,22 +29,22 @@ public final class Err extends RuntimeException {
   public static void expectArgRange(ArrayList<Val> args, int min, int max) {
     if (args.size() < min || args.size() > max)
       throw new Err(
-          "Expected " + min + " to " + max + " arguments but found " +
-          args.size() + " arguments.");
+          "Expected " + min + " to " + max + " arguments but got " +
+          args.size() + ".");
   }
 
   public static void expectArglen(ArrayList<Val> args, int len) {
     if (args.size() != len)
       throw new Err(
-          "Expected " + len + " arguments but found " +
-          args.size() + " arguments.");
+          "Expected " + len + " arguments but got " +
+          args.size() + ".");
   }
 
   public static void expectMinArglen(ArrayList<Val> args, int len) {
     if (args.size() < len)
       throw new Err(
-          "Expected at least " + len + " arguments but found only " +
-          args.size() + " arguments.");
+          "Expected at least " + len + " arguments but got only " +
+          args.size() + ".");
   }
 
   public static void expectArglens(ArrayList<Val> args, int... lens) {
