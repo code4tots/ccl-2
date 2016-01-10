@@ -152,6 +152,18 @@ Str@iter = \ {
   ]
 }
 
+List@cat = \other {
+  other.iter[].do[\\item. self.add[item]]
+}
+
+List@__mul__ = \n {
+  xs = L[]
+  range[0, n].do[\\_ {
+    xs.cat[self]
+  }]
+  return xs
+}
+
 List@ints = \. self.map[\x. x.int[]]
 
 List@map = \f {
