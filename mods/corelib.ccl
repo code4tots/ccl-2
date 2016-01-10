@@ -156,9 +156,6 @@ List@map = \f {
   return xs
 }
 
-List@splat = \f.
-  self.iter[].splat[f].do[]
-
 List@filter = \f {
   i = 0
   xs = L[]
