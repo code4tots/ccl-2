@@ -220,6 +220,8 @@ List@cut = \start end {
 
 List@reduce = \f. self.cut[1, nil].fold[f, self[0]]
 
+List@last = \. self[self.len[] - 1]
+
 GLOBAL@Iter = Meta['Iter']
 
 Iter@__new__ = \more next {

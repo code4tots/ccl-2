@@ -262,6 +262,7 @@ assert[b == 5, b]
 assert[c == 6, c]
 assert[d == L[7, 8], d]
 
+assert[(x = L[7, 8, 9].last[]) == 9, x]
 
 math = import['math']
 nCr = math@nCr
