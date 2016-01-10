@@ -352,7 +352,11 @@ public final class Parser {
       }
       if (consume("*"))
         vararg = (String) expect("ID").value;
-      consume(".");
+      if (!consume(".") && !at("{"))
+        throw new SyntaxError(
+            peek(),
+            "Expected either a '.' or '{' to indicate " +
+            "the end of the argument list.");
       Ast body = parseStatement();
       return new Ast.Function(token, args, optargs, vararg, body, newScope);
     }
