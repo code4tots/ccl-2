@@ -278,6 +278,20 @@ assert[x * 3 == L[1, 2, 1, 2, 1, 2], x * 3]
 f = \a [b c]. L[a b c]
 assert[(x = f[1, L[2, 3]]) == L[1, 2, 3], x]
 
+let a, [b, c], /d, *e = L[1, L[2, 3], 4, 5, 6]
+assert[a == 1, a]
+assert[b == 2, b]
+assert[c == 3, c]
+assert[d == 4, d]
+assert[e == L[5, 6], e]
+
+let a, [b, c], /d, *e = L[1, L[2, 3]]
+assert[a == 1, a]
+assert[b == 2, b]
+assert[c == 3, c]
+assert[d is nil, d]
+assert[e == L[], e]
+
 
 math = import['math']
 nCr = math@nCr

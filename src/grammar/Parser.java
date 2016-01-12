@@ -360,6 +360,14 @@ public final class Parser {
       return new Ast.If(token, cond, body, other);
     }
 
+    if (at("let")) {
+      Token token = next();
+      Ast.Pattern pattern = parseListPattern();
+      expect("=");
+      Ast val = parseExpression();
+      return new Ast.Assign(token, pattern, val);
+    }
+
     throw new SyntaxError(
         peek(), "Expected expression but found " + peek().type);
   }

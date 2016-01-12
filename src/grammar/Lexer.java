@@ -3,7 +3,7 @@ import java.math.BigInteger;
 
 public final class Lexer {
   public static final ArrayList<String> KEYWORDS = toArrayList(
-      "and", "or", "xor", "return", "is", "super",
+      "and", "or", "xor", "return", "is", "super", "let",
       "if", "then", "else", "while", "not", "break", "continue");
   public static final ArrayList<String> SYMBOLS;
 
