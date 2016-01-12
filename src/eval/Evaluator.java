@@ -105,9 +105,7 @@ public class Evaluator extends AstVisitor<Val> {
   }
 
   public Val visitFunction(Ast.Function node) {
-    return new UserFunc(
-        node.token, node.args, node.optargs, node.vararg, node.body,
-        node.newScope, scope);
+    return new UserFunc(node, scope);
   }
 
   public static Val call(Val owner, String name, ArrayList<Val> args) {
