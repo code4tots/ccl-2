@@ -6,6 +6,31 @@ Simple programming language with an object model a lot like Lua's.
 Usage: ./run.sh <path_to_ccl_script>
 
 
+Goals
+-----
+
+  * Easy to implement and port to new platforms. This is accomplished by:
+    * using a very easy to parse syntax.
+    * very simple and flexible object model.
+    * pushing a lot of functionality into core libraries written in CCL.
+
+  * Easy desktop gui for
+    * making simple games
+    * making simple utilities
+    * designing a text editor
+
+  * Easy mobile gui (android/iOS) for
+    * making simple games really quick
+    * making simple apps and bodges
+
+  * Eventually, make the implementation fast enough for contests.
+
+
+Directory layout
+----------------
+
+TODO: Elaborate here.
+
 src/
   Where all the Java code for the interpreter is.
 
