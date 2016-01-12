@@ -23,6 +23,8 @@ Goals
     * making simple games really quick
     * making simple apps and bodges
 
+    * could probably port to iOS using Google's j2objc or something.
+
   * Eventually, make the implementation fast enough for contests.
 
 
