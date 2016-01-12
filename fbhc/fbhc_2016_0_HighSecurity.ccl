@@ -20,7 +20,7 @@ solve = \G {
 
   rows = L[]
 
-  G.iter[].splat[\\t b {
+  G.iter[].do[\\[t b] {
     if t {
       if top is nil
         rows.add[top = Row[]]
@@ -39,7 +39,7 @@ solve = \G {
       top.addNeighbor[bot]
       bot.addNeighbor[top]
     }
-  }].do[]
+  }]
 
   g = rows.len[]
 
