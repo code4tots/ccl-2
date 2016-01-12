@@ -339,26 +339,14 @@ public final class Parser {
     if (at("\\") || at("\\\\")) {
       boolean newScope = at("\\");
       Token token = next();
-      ArrayList<String> args = new ArrayList<String>();
-      String vararg = null;
-      while (at("ID")) {
-        args.add((String) expect("ID").value);
-        consume(",");
-      }
-      ArrayList<String> optargs = new ArrayList<String>();
-      while (consume("/")) {
-        optargs.add((String) expect("ID").value);
-        consume(",");
-      }
-      if (consume("*"))
-        vararg = (String) expect("ID").value;
+      Ast.ListPattern args = parseListPattern();
       if (!consume(".") && !at("{"))
         throw new SyntaxError(
             peek(),
             "Expected either a '.' or '{' to indicate " +
             "the end of the argument list.");
       Ast body = parseStatement();
-      return new Ast.Function(token, args, optargs, vararg, body, newScope);
+      return new Ast.Function(token, args, body, newScope);
     }
 
     if (at("if")) {
@@ -374,6 +362,32 @@ public final class Parser {
 
     throw new SyntaxError(
         peek(), "Expected expression but found " + peek().type);
+  }
+
+  public Ast.Pattern parsePattern() {
+    if (consume("[")) {
+      Ast.Pattern pattern = parseListPattern();
+      expect("]");
+      return pattern;
+    }
+    return new Ast.NamePattern((String) expect("ID").value);
+  }
+
+  public Ast.ListPattern parseListPattern() {
+    ArrayList<Ast.Pattern> args = new ArrayList<Ast.Pattern>();
+    while (at("ID") || at("[")) {
+      args.add(parsePattern());
+      consume(",");
+    }
+    ArrayList<Ast.Pattern> optargs = new ArrayList<Ast.Pattern>();
+    while (consume("/")) {
+      optargs.add(parsePattern());
+      consume(",");
+    }
+    String vararg = null;
+    if (consume("*"))
+      vararg = (String) expect("ID").value;
+    return new Ast.ListPattern(args, optargs, vararg);
   }
 
   public static String filespecToName(String filespec) {

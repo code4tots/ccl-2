@@ -4,6 +4,7 @@
 // TODO: Code defensively against messed up AST.
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class Evaluator extends AstVisitor<Val> {
 
@@ -21,6 +22,10 @@ public class Evaluator extends AstVisitor<Val> {
 
   public static void go(Runnable r) {
     new Thread(r).start();
+  }
+
+  public static void assign(Scope scope, Ast.Pattern pattern, Val val) {
+    new Assigner(scope).visit(pattern, val);
   }
 
   public final Scope scope;
@@ -177,5 +182,49 @@ public class Evaluator extends AstVisitor<Val> {
 
   public Val visitModule(Ast.Module node) {
     return visit(node.body);
+  }
+
+  // Pattern visitor
+  public static final class Assigner extends Ast.PatternVisitor<Val> {
+    public final Scope scope;
+    public Assigner(Scope scope) { this.scope = scope; }
+    public void visitNamePattern(Ast.NamePattern pattern, Val val) {
+      scope.put(pattern.name, val);
+    }
+    public void visitListPattern(Ast.ListPattern pattern, Val val) {
+      // TODO: Allow 'val' to be any iteratorable.
+      ArrayList<Val> args = val.as(List.class, "value to assign").val;
+      if (pattern.vararg == null) {
+        if (pattern.optargs.size() == 0)
+          Err.expectArglen(args, pattern.args.size());
+        else
+          Err.expectArgRange(
+              args, pattern.args.size(),
+              pattern.args.size() + pattern.optargs.size());
+      } else {
+        Err.expectMinArglen(args, args.size());
+      }
+
+      Iterator<Val> vit = args.iterator();
+      Iterator<Ast.Pattern> sit = pattern.args.iterator();
+
+      while (sit.hasNext())
+        visit(sit.next(), vit.next());
+
+      sit = pattern.optargs.iterator();
+
+      while (sit.hasNext() && vit.hasNext())
+        visit(sit.next(), vit.next());
+
+      while (sit.hasNext())
+        visit(sit.next(), Nil.val);
+
+      if (pattern.vararg != null) {
+        ArrayList<Val> va = new ArrayList<Val>();
+        while (vit.hasNext())
+          va.add(vit.next());
+        scope.put(pattern.vararg, List.from(va));
+      }
+    }
   }
 }
