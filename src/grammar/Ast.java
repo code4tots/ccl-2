@@ -112,11 +112,11 @@ public abstract class Ast implements Traceable {
     }
   }
   public static final class Assign extends Ast {
-    public final String name;
+    public final Pattern pattern;
     public final Ast val;
-    public Assign(Token token, String name, Ast val) {
+    public Assign(Token token, Pattern pattern, Ast val) {
       super(token);
-      this.name = name;
+      this.pattern = pattern;
       this.val = val;
     }
     public <T> T accept(AstVisitor<T> visitor) {

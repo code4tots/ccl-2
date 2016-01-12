@@ -105,7 +105,7 @@ public class Evaluator extends AstVisitor<Val> {
 
   public Val visitAssign(Ast.Assign node) {
     Val val = visit(node.val);
-    scope.put(node.name, val);
+    assign(scope, node.pattern, val);
     return val;
   }
 

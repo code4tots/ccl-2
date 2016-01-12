@@ -324,7 +324,7 @@ public final class Parser {
       if (at("=")) {
         token = next();
         Ast value = parseExpression();
-        return new Ast.Assign(token, name, value);
+        return new Ast.Assign(token, new Ast.NamePattern(name), value);
       } else {
         return new Ast.Name(token, name);
       }
