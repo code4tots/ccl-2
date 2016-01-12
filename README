@@ -28,6 +28,23 @@ Goals
   * Eventually, make the implementation fast enough for contests.
 
 
+TODO
+----
+
+  * Implement some sort of speed performance profiling.
+    * At function level -- so CCL users can see which
+      functions they wrote that are taking up a lot of time
+    * At 'Ast' level -- so I can get a better sense of
+      what is slow and what I might be able to speed up.
+
+    * These performance profiling probably don't have to be
+      too sophisticated. Just simple timing at entrance
+      and exit for function level should be good enough.
+      This is going to be a bit weird for functions that
+      recurse, but I think for the most part the data
+      will still be useful.
+
+
 Directory layout
 ----------------
 
