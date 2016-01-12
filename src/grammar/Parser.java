@@ -362,7 +362,7 @@ public final class Parser {
 
     if (at("let")) {
       Token token = next();
-      Ast.Pattern pattern = parseListPattern();
+      Ast.Pattern pattern = parsePattern();
       expect("=");
       Ast val = parseExpression();
       return new Ast.Assign(token, pattern, val);
