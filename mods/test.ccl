@@ -275,6 +275,10 @@ assert[x == L[1, 2, 3, 4], x]
 x = L[1, 2]
 assert[x * 3 == L[1, 2, 1, 2, 1, 2], x * 3]
 
+f = \a [b c]. L[a b c]
+assert[(x = f[1, L[2, 3]]) == L[1, 2, 3], x]
+
+
 math = import['math']
 nCr = math@nCr
 
