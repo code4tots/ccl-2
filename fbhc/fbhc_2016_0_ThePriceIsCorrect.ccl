@@ -1,0 +1,28 @@
+# https://github.com/math4tots/ccl
+# https://www.facebook.com/hackercup/problem/881509321917182/
+
+solve = \P B {
+  cum = L[0]
+  B.iter[].do[\b. cum.add[b + cum.last[]]]
+  total = 0
+  i = 0
+  j = 1
+  while i < B.len[] {
+    while j < cum.len[] and cum[j] - cum[i] <= P
+      j = j + 1
+    j = j - 1
+    total = total + j - i
+    i = i + 1
+  }
+  return total
+}
+
+lines = read[].lines[].iter[]
+
+T = lines.next[].int[]
+
+range[1, 1+T].do[\\t {
+  P = lines.next[].words[].map[\word. word.int[]][1]
+  B = lines.next[].words[].map[\word. word.int[]]
+  print['Case #%s: %s' % L[t, solve[P, B]]]
+}]

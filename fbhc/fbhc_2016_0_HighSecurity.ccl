@@ -1,0 +1,68 @@
+# https://github.com/math4tots/ccl
+# https://www.facebook.com/hackercup/problem/1527664744192390/
+
+Row = Meta['Row']
+Row.extend[Val]
+Row@__new__ = \. {
+  self = new[Row]
+  self@neighbors = M[]
+  self@size = 0
+  self@alreadyHelped = false
+  return self
+}
+Row@increment = \. self@size = self@size + 1
+Row@addNeighbor = \neighbor. self@neighbors[neighbor] = true
+
+solve = \G {
+
+  top = nil
+  bot = nil
+
+  rows = L[]
+
+  G.iter[].splat[\\t b {
+    if t {
+      if top is nil
+        rows.add[top = Row[]]
+
+      top.increment[]
+    } else top = nil
+
+    if b {
+      if bot is nil
+        rows.add[bot = Row[]]
+
+      bot.increment[]
+    } else bot = nil
+
+    if t and b {
+      top.addNeighbor[bot]
+      bot.addNeighbor[top]
+    }
+  }].do[]
+
+  g = rows.len[]
+
+  rows.iter[].do[\\row {
+    if row@size == 1 and row@neighbors.len[] == 1 and not row@alreadyHelped {
+      neighbor = row@neighbors.keys[].next[]
+      if not neighbor@alreadyHelped {
+        neighbor@alreadyHelped = true
+        g = g - 1
+      }
+    }
+  }]
+
+  return g
+}
+
+lines = read[].lines[].iter[]
+
+T = lines.next[].int[]
+
+range[1, 1+T].do[\\t {
+  lines.next[] # N
+  row1 = lines.next[].trim[].iter[].map[\c. c == '.']
+  row2 = lines.next[].trim[].iter[].map[\c. c == '.']
+  print['Case #%s: %s' % L[t, solve[row1.zip[row2].list[]]]]
+}]
