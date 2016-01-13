@@ -2,6 +2,7 @@ package com.ccl.val;
 
 import com.ccl.err.Err;
 import java.util.HashMap;
+import java.util.Iterator;
 
 public final class Map extends Val {
   public static Map from(HashMap<Val, Val> v) { return new Map(v); }
@@ -18,4 +19,5 @@ public final class Map extends Val {
   private Map(HashMap<Val, Val> val) { this.val = val; }
   public Meta getMeta() { return META; }
   public int hashCode() { return val.hashCode(); }
+  public Iterator<Val> iterator() { return val.keySet().iterator(); }
 }

@@ -7,4 +7,7 @@ public final class Meta extends BaseBlob {
   public Meta(String name) { this.name = name; }
   public Meta getMeta() { return META; }
   public int hashCode() { return identityHash(); }
+  // extends
+  public void exts(Meta m) {
+  }
 }
