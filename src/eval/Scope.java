@@ -112,6 +112,12 @@ public final class Scope {
           return Nil.val;
         }
       })
+      .put(new BuiltinFunc("time") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return Num.from(new java.util.Date().getTime());
+        }
+      })
       ;
 
   static {

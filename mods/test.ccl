@@ -303,4 +303,11 @@ assert[(r = nCr[4, 2]) == 6, r]
 assert[(r = nCr[5, 2]) == 10, r]
 assert[(r = nCr[5, 3]) == 10, r]
 
+# Pretty sure 'end' and 'start' here should not take a whole 1 second.
+# Also, we sleep for 1 millisecond to make sure end - start != 0
+start = time[]
+sleep[1]
+end = time[]
+assert[end - start > 0 and end - start < 1000, end - start]
+
 print["*** All command line tests pass! ***"]

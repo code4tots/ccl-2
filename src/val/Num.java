@@ -73,6 +73,7 @@ public abstract class Num extends Val {
 
   public static Num from(Double s) { return new Flt(s); }
   public static Num from(int s) { return Int.from(s); }
+  public static Num from(long s) { return Int.from(s); }
   public static Num from(BigInteger s) { return Int.from(s); }
   public final HashMap<String, Val> getMeta() { return MM; }
 
