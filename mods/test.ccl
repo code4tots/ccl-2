@@ -1,3 +1,5 @@
+startTime = time[]
+
 f = \ x. x + 1
 
 assert[f[5] == 6, f[5]]
@@ -310,4 +312,24 @@ sleep[1]
 end = time[]
 assert[end - start > 0 and end - start < 1000, end - start]
 
-print["*** All command line tests pass! ***"]
+endTime = time[]
+
+print[
+  "*** All command line tests passed in ~%s seconds ***" %
+  L[(endTime - startTime) / 1000.]]
+
+r"""
+
+# Seems to take ~2.5 sec on late 2013 27" iMac.
+
+a = time[]
+print['start time %s' % L[a]]
+
+print['sum = %s' % L[range[0, 1000000].list[].reduce[\a b. a + b]]]
+
+b = time[]
+print['end time %s' % L[b]]
+
+print['%s sec' % L[(b - a) / 1000.]]
+
+"""
