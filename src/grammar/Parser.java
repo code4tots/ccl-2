@@ -79,7 +79,7 @@ public final class Parser {
     if (at("continue"))
       return new Ast.Continue(next());
 
-    return parseExpression();
+    return new Ast.ExpressionStatement(peek(), parseExpression());
   }
   public Ast parseExpression() {
     return parseOrExpression();

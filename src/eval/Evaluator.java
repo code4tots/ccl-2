@@ -73,6 +73,9 @@ public class Evaluator extends AstVisitor<Val> {
     return Nil.val;
   }
 
+  public Val visitExpressionStatement(Ast.ExpressionStatement node) {
+    return visit(node.expr);
+  }
   // Statement or Expression
 
   public Val visitIf(Ast.If node) {

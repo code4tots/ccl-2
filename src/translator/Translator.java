@@ -10,6 +10,9 @@ public final class Translator extends AstVisitor<Void> {
   public Void visitBlock(Ast.Block node) { return null; }
   public Void visitBreak(Ast.Break node) { return null; }
   public Void visitContinue(Ast.Continue node) { return null; }
+  public Void visitExpressionStatement(Ast.ExpressionStatement node) {
+    return null;
+  }
 
   // Statement or Expression
   public Void visitIf(Ast.If node) { return null; }

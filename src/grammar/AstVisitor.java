@@ -7,6 +7,7 @@ public abstract class AstVisitor<T> {
   public abstract T visitBlock(Ast.Block node);
   public abstract T visitBreak(Ast.Break node);
   public abstract T visitContinue(Ast.Continue node);
+  public abstract T visitExpressionStatement(Ast.ExpressionStatement node);
 
   // Statement or Expression
   public abstract T visitIf(Ast.If node);

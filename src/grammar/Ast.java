@@ -54,6 +54,16 @@ public abstract class Ast implements Traceable {
       return visitor.visitContinue(this);
     }
   }
+  public static final class ExpressionStatement extends Ast {
+    public final Ast expr;
+    public ExpressionStatement(Token token, Ast expr) {
+      super(token);
+      this.expr = expr;
+    }
+    public <T> T accept(AstVisitor<T> visitor) {
+      return visitor.visitExpressionStatement(this);
+    }
+  }
 
   // Statement or Expression
   public static final class If extends Ast {
