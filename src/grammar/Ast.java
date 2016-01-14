@@ -58,12 +58,15 @@ public abstract class Ast implements Traceable {
   // Statement or Expression
   public static final class If extends Ast {
     public final Ast cond, body, other;
+    public final boolean expr;
     public If(
-        Token token, Ast cond, Ast body, Ast other) {
+        Token token, Ast cond, Ast body, Ast other,
+        boolean expr) {
       super(token);
       this.cond = cond;
       this.body = body;
       this.other = other;
+      this.expr = expr;
     }
     public <T> T accept(AstVisitor<T> visitor) {
       return visitor.visitIf(this);
