@@ -1,3 +1,5 @@
+import sys
+
 class Source(object):
   def __init__(self, filespec, string):
     self.filespec = filespec
@@ -174,7 +176,7 @@ def tuplify(x):
   raise Exception(type(x))
 
 class Module(Ast):
-  attrs = ['stmts']
+  attrs = ['name', 'body']
 
 class ImportStatement(Ast):
   attrs = ['name']
@@ -236,6 +238,14 @@ class NamePattern(Ast):
 class ListPattern(Ast):
   attrs = ['args', 'opts', 'vararg']
 
+def module_name_from_filespec(filespec):
+  name = filespec.split('/')[-1]
+  if name.endswith('.ccl'):
+    name = name[:-len('.ccl')]
+  if not all(c.isalnum() or c == '_' for c in name):
+    raise Exception('Invalid module name: ' + name)
+  return name
+
 class Parser(object):
   def __init__(self, source):
     self.source = source
@@ -268,7 +278,10 @@ class Parser(object):
     stmts = []
     while not self.at('EOF'):
       stmts.append(self.parseStatement())
-    return Module(token, stmts)
+    return Module(
+      token,
+      module_name_from_filespec(token.source.filespec),
+      BlockStatement(token, stmts))
 
   def parseStatement(self):
     if self.at('if'):
@@ -412,7 +425,7 @@ class Parser(object):
 def parse(source):
   return Parser(source).parseModule()
 
-dat = tuplify(parse(Source('<test>', r"""
+dat = tuplify(parse(Source('test.ccl', r"""
 
 if a or b {
   print[c]
@@ -421,5 +434,64 @@ if a or b {
 
 """)))
 
-assert dat == ('Module', [('IfStatement', ('LogicalOrExpression', ('NameExpression', 'a'), ('NameExpression', 'b')), ('BlockStatement', [('ExpressionStatement', ('FunctionCallExpression', ('NameExpression', 'print'), [('NameExpression', 'c')], None)), ('ExpressionStatement', ('MethodCallExpression', ('NameExpression', 'd'), 'call', [('NameExpression', 'e')], 'f'))]), None)]), dat
+assert dat == ('Module', 'test', ('BlockStatement', [('IfStatement', ('LogicalOrExpression', ('NameExpression', 'a'), ('NameExpression', 'b')), ('BlockStatement', [('ExpressionStatement', ('FunctionCallExpression', ('NameExpression', 'print'), [('NameExpression', 'c')], None)), ('ExpressionStatement', ('MethodCallExpression', ('NameExpression', 'd'), 'call', [('NameExpression', 'e')], 'f'))]), None)])), dat
+
+class Translator(object):
+
+  def translate(self, modules):
+    return r"""package com.ccl;
+
+public class Modules extends Runtime {
+
+  public static void main(String[] args) {
+    import_%s();
+  }%s
+}
+""" % (
+    modules[0].name,
+    ''.join(self.visit(m) for m in modules).replace('\n', '\n  '))
+
+  def visit(self, node):
+    return getattr(self, 'visit' + type(node).__name__)(node)
+
+  def visitModule(self, node):
+    return r"""
+
+private static Blob module_{name} = null;
+public static Value import_{name}() {{
+  if (module_{name} == null) {{
+    module_{name} = newModuleScope();
+    run_{name}(module_{name});
+  }}
+  return module_{name};
+}}
+private static void run_{name}(Blob scope) {{
+  Value condition;{body}
+}}""".format(name=node.name, body=self.visit(node.body).replace('\n', '\n  '))
+
+  def visitBlockStatement(self, node):
+    if node.stmts:
+      return '\n{%s}' % ''.join(
+        self.visit(s) for s in node.stmts).replace('\n', '\n  ')
+    else:
+      return ''
+
+def translate(modules):
+  return Translator().translate(modules)
+
+def translate_files(filepaths):
+  modules = []
+  for filepath in filepaths:
+    with open(filepath) as f:
+      contents = f.read()
+    modules.append(parse(Source(filepath, contents)))
+  return translate(modules)
+
+if __name__ == '__main__':
+  if len(sys.argv) < 2:
+    print('usage: %s <main_module> <library_modules...>' % sys.argv[0])
+    exit(1)
+  contents = translate_files(sys.argv[1:])
+  with open('Modules.java', 'w') as f:
+    f.write(contents)
 
