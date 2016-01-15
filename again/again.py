@@ -1,3 +1,4 @@
+# python again.py test.ccl *.ccl && javac *.java
 import sys
 
 class Source(object):
@@ -481,7 +482,11 @@ def translate(modules):
 
 def translate_files(filepaths):
   modules = []
+  seen = set()
   for filepath in filepaths:
+    if filepath in seen:
+      continue
+    seen.add(filepath)
     with open(filepath) as f:
       contents = f.read()
     modules.append(parse(Source(filepath, contents)))
