@@ -1,4 +1,4 @@
-# python again.py test.ccl *.ccl && javac *.java
+# python again.py test.ccl *.ccl && javac *.java -d cls && java -cp cls com.ccl.Modules
 import sys
 
 class Source(object):
@@ -247,6 +247,9 @@ def module_name_from_filespec(filespec):
     raise Exception('Invalid module name: ' + name)
   return name
 
+def sanitize_string(s):
+  return '"%s"' % s.replace('\\', '\\\\')
+
 class Parser(object):
   def __init__(self, source):
     self.source = source
@@ -458,24 +461,40 @@ public class Modules extends Runtime {
   def visitModule(self, node):
     return r"""
 
-private static Blob module_{name} = null;
+private static Scope module_{name} = null;
 public static Value import_{name}() {{
   if (module_{name} == null) {{
-    module_{name} = newModuleScope();
+    module_{name} = new Scope(GLOBAL);
     run_{name}(module_{name});
   }}
   return module_{name};
 }}
-private static void run_{name}(Blob scope) {{
+private static void run_{name}(Scope scope) {{
   Value condition;{body}
 }}""".format(name=node.name, body=self.visit(node.body).replace('\n', '\n  '))
 
   def visitBlockStatement(self, node):
     if node.stmts:
-      return '\n{%s}' % ''.join(
+      return '\n{%s\n}' % ''.join(
         self.visit(s) for s in node.stmts).replace('\n', '\n  ')
     else:
       return ''
+
+  def visitExpressionStatement(self, node):
+    return '\n' + self.visit(node.expr) + ';'
+
+  def visitFunctionCallExpression(self, node):
+    vararg = 'null' if node.vararg is None else self.visit(node.vararg)
+    return '%s.call(nil, new Value[]{%s}, %s)' % (
+      self.visit(node.f),
+      ', '.join(self.visit(a) for a in node.args),
+      vararg)
+
+  def visitStringExpression(self, node):
+    return 'Str.from(' + sanitize_string(node.val) + ')'
+
+  def visitNameExpression(self, node):
+    return 'scope.getvar("%s")' % node.name
 
 def translate(modules):
   return Translator().translate(modules)
