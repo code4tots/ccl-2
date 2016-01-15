@@ -10,8 +10,35 @@ class Token(object):
     self.type = type_
     self.value = value
 
-SYMBOLS = {'=', '\\', '\\\\', '+', '-', '*', '/', '%'}
-KEYWORDS = {'return', 'if', 'else', 'while', 'break', 'continue'}
+  def line_number(self):
+    return self.source.string.count('\n', 0, self.i) + 1
+
+  def column_number(self):
+    return self.i - self.source.string.rfind('\n', 0, self.i)
+
+  def line(self):
+    start = self.source.string.rfind('\n', 0, self.i) + 1
+    end = self.source.string.find('\n', self.i)
+    if end == -1:
+      end = len(self.source.string)
+    return self.source.string[start:end]
+
+class Err(Exception):
+  def __init__(self, token, message):
+    super(Err, self).__init__(
+        message + '\n on line %d in %s\n%s\n%s' % (
+          token.line_number(),
+          token.source.filespec,
+          token.line(),
+          ' ' * (token.column_number()-1) + '*'))
+    self.token = token
+
+SYMBOLS = {
+  '=', '\\', '\\\\', '.', '$', '/', '*', ',',
+  '{', '}', '(', ')', '[', ']'}
+KEYWORDS = {
+  'return', 'if', 'else', 'while', 'break', 'continue',
+  'import', 'and', 'or'}
 
 def lex(source):
   s = source.string
@@ -43,7 +70,9 @@ def lex(source):
       i += len(quote)
       while not s.startswith(quote, i):
         if i >= len(s):
-          raise Exception('Unterminated string literal')
+          raise Err(
+            Token(source, j, 'ERR'),
+            'Unterminated string literal')
         i += 2 if s[i] == '\\' else 1
       i += len(quote)
       toks.append(Token(source, j, 'STRING', eval(s[j:i])))
@@ -52,6 +81,8 @@ def lex(source):
     # int and float
     seen_dot = False
     seen_digit = False
+    if i < len(s) and s[i] == '-':
+      i += 1
     while i < len(s) and s[i].isdigit():
       seen_digit = True
       i += 1
@@ -79,7 +110,7 @@ def lex(source):
       if name in KEYWORDS:
         toks.append(Token(source, j, name))
       else:
-        toks.append(Token(source, j, 'ID', name))
+        toks.append(Token(source, j, 'NAME', name))
       continue
 
     # symbol
@@ -93,8 +124,9 @@ def lex(source):
     # err
     while i < len(s) and not s[i].isspace():
       i += 1
-    raise Exception('Invalid token: ' + s[j:i])
+    raise Err(Token(source, j, 'ERR'), 'Invalid token: ' + s[j:i])
 
+  toks.append(Token(source, i, 'EOF'))
   return toks
 
 pairs = [(token.type, token.value) for token in lex(Source('<test>', """
@@ -103,14 +135,291 @@ pairs = [(token.type, token.value) for token in lex(Source('<test>', """
 6.60
 hi
 return
-*
+=
+-5.0
 """))]
 
 assert pairs == [
   ('STRING', 'hi'),
   ('INT', 55),
   ('FLOAT', 6.6),
-  ('ID', 'hi'),
+  ('NAME', 'hi'),
   ('return', None),
+  ('=', None),
+  ('FLOAT', -5.0),
+  ('EOF', None),
 ], pairs
+
+ln = lex(Source('<test>', "hi\nthere"))[0].line_number()
+assert ln == 1, ln
+
+class Ast(object):
+  def __init__(self, token, *args):
+    attrs = type(self).attrs
+    if len(attrs) != len(args):
+      raise Err(token, 'Expected %d args, but got %d' % (
+        len(attrs), len(args)))
+    for name, value in zip(attrs, args):
+      setattr(self, name, value)
+
+def tuplify(x):
+  if isinstance(x, (str, type(None))):
+    return x
+  elif isinstance(x, list):
+    return [tuplify(y) for y in x]
+  elif isinstance(x, Ast):
+    return (
+      (type(x).__name__,) +
+      tuple(tuplify(getattr(x, attr)) for attr in type(x).attrs))
+  raise Exception(type(x))
+
+class Module(Ast):
+  attrs = ['stmts']
+
+class ImportStatement(Ast):
+  attrs = ['name']
+
+class IfStatement(Ast):
+  attrs = ['cond', 'body', 'other']
+
+class WhileStatement(Ast):
+  attrs = ['cond', 'body']
+
+class BreakStatement(Ast):
+  attrs = []
+
+class ContinueStatement(Ast):
+  attrs = []
+
+class BlockStatement(Ast):
+  attrs = ['stmts']
+
+class ReturnStatement(Ast):
+  attrs = ['expr']
+
+class ExpressionStatement(Ast):
+  attrs = ['expr']
+
+class IntExpression(Ast):
+  attrs = ['val']
+
+class FloatExpression(Ast):
+  attrs = ['val']
+
+class StringExpression(Ast):
+  attrs = ['val']
+
+class NameExpression(Ast):
+  attrs = ['name']
+
+class AssignExpression(Ast):
+  attrs = ['pattern', 'expr']
+
+class FunctionExpression(Ast):
+  attrs = ['scoped', 'pattern', 'body']
+
+class FunctionCallExpression(Ast):
+  attrs = ['f', 'args', 'vararg']
+
+class MethodCallExpression(Ast):
+  attrs = ['self', 'name', 'args', 'vararg']
+
+class LogicalOrExpression(Ast):
+  attrs = ['left', 'right']
+
+class LogicalAndExpression(Ast):
+  attrs = ['left', 'right']
+
+class NamePattern(Ast):
+  attrs = ['name']
+
+class ListPattern(Ast):
+  attrs = ['args', 'opts', 'vararg']
+
+class Parser(object):
+  def __init__(self, source):
+    self.source = source
+    self.tokens = lex(source)
+    self.i = 0
+
+  def peek(self):
+    return self.tokens[self.i]
+
+  def at(self, type_):
+    return (
+      self.peek().type in type_ if isinstance(type_, tuple) else
+      self.peek().type == type_)
+
+  def next(self):
+    self.i += 1
+    return self.tokens[self.i-1]
+
+  def consume(self, type_):
+    if self.at(type_):
+      return self.next()
+
+  def expect(self, type_):
+    if not self.at(type_):
+      raise Err(self.peek(), 'Expected %s' % type_)
+    return self.next()
+
+  def parseModule(self):
+    token = self.peek()
+    stmts = []
+    while not self.at('EOF'):
+      stmts.append(self.parseStatement())
+    return Module(token, stmts)
+
+  def parseStatement(self):
+    if self.at('if'):
+      token = self.next()
+      cond = self.parseExpression()
+      body = self.parseStatement()
+      other = self.parseStatement() if self.consume('else') else None
+      return IfStatement(token, cond, body, other)
+    elif self.at('while'):
+      token = self.next()
+      cond = self.parseExpression()
+      body = self.parseStatement()
+      return WhileStatement(token, cond, body)
+    elif self.at('break'):
+      return BreakStatement(self.next())
+    elif self.at('continue'):
+      return ContinueStatement(self.next())
+    elif self.at('{'):
+      token = self.next()
+      stmts = []
+      while not self.consume('}'):
+        stmts.append(self.parseStatement())
+      return BlockStatement(token, stmts)
+    elif self.at('return'):
+      token = self.next()
+      expr = self.parseExpression()
+      return ReturnStatement(token, expr)
+    else:
+      token = self.peek()
+      expr = self.parseExpression()
+      return ExpressionStatement(token, expr)
+
+  def parseExpression(self):
+    return self.parseLogicalOrExpression()
+
+  def parseLogicalOrExpression(self):
+    left = self.parseLogicalAndExpression()
+    while self.at('or'):
+      token = self.next()
+      right = self.parseLogicalAndExpression()
+      left = LogicalOrExpression(token, left, right)
+    return left
+
+  def parseLogicalAndExpression(self):
+    left = self.parsePostfixExpression()
+    while self.at('and'):
+      token = self.next()
+      right = self.parsePostfixExpression()
+      left = LogicalAndExpression(token, left, right)
+    return left
+
+  def parsePostfixExpression(self):
+    expr = self.parsePrimaryExpression()
+    while True:
+      if self.at('.'):
+        token = self.next()
+        name = self.expect('NAME').value
+        if self.at('['):
+          args, vararg = self.parseArguments()
+          expr = MethodCallExpression(token, expr, name, args, vararg)
+        elif self.at('='):
+          val = self.parseExpression()
+          expr = SetAttributeExpression(token, expr, name, val)
+        else:
+          expr = GetAttributeExpression(token, expr, name)
+      elif self.at('['):
+        token = self.peek()
+        args, vararg = self.parseArguments()
+        expr = FunctionCallExpression(token, expr, args, vararg)
+      else:
+        break
+    return expr
+
+  def parsePrimaryExpression(self):
+    token = self.peek()
+    if self.at('INT'):
+      return IntExpression(token, self.next().value)
+    if self.at('FLOAT'):
+      return FloatExpression(token, self.next().value)
+    if self.at('STRING'):
+      return StringExpression(token, self.next().value)
+    if self.at('NAME'):
+      name = self.next().value
+      if self.consume('='):
+        return AssignExpression(
+          token, NamePattern(token, name), self.parseExpression())
+      else:
+        return NameExpression(token, name)
+    if self.consume('$'):
+      pattern = self.parsePattern()
+      self.expect('=')
+      expr = self.parseExpression()
+      return AssignExpression(pattern, expr)
+    if self.at(('\\', '\\\\')):
+      scoped = self.next().type == '\\\\'
+      pattern = self.parsePatterns(token)
+      if self.consume('.'):
+        expr = self.parseExpression()
+        body = ReturnStatement(token, expr)
+      else:
+        if self.peek().type != '{':
+          raise Err(
+            self.peek(),
+            "Expected '{' or '.' to indicate end of argument list.")
+        body = self.parseStatement()
+      return FunctionExpression(token, scoped, pattern, body)
+    raise Err(token, "Expected expression")
+
+  def parseArguments(self):
+    self.expect('[')
+    args = []
+    vararg = None
+    while not self.consume(']'):
+      if self.consume('*'):
+        vararg = self.expect('NAME').value
+        self.expect(']')
+        break
+      else:
+        args.append(self.parseExpression())
+        self.consume(',')
+    return args, vararg
+
+  def parsePatterns(self, token):
+    args = []
+    while self.at(('NAME', '[')):
+      args.append(self.parsePattern())
+    opts = []
+    while self.consume('/'):
+      opts.append(self.expect('NAME').value)
+    vararg = None
+    if self.consume('*'):
+      vararg = self.expect('NAME').value
+    return ListPattern(token, args, opts, vararg)
+
+  def parsePattern(self):
+    if self.at('['):
+      return self.parsePattern(self.next())
+    else:
+      return NamePattern(self.expect('NAME').value)
+
+def parse(source):
+  return Parser(source).parseModule()
+
+dat = tuplify(parse(Source('<test>', r"""
+
+if a or b {
+  print[c]
+  d.call[e, *f]
+}
+
+""")))
+
+assert dat == ('Module', [('IfStatement', ('LogicalOrExpression', ('NameExpression', 'a'), ('NameExpression', 'b')), ('BlockStatement', [('ExpressionStatement', ('FunctionCallExpression', ('NameExpression', 'print'), [('NameExpression', 'c')], None)), ('ExpressionStatement', ('MethodCallExpression', ('NameExpression', 'd'), 'call', [('NameExpression', 'e')], 'f'))]), None)]), dat
 
