@@ -215,8 +215,7 @@ lines = r"""
 a
 b cd
 """.lines[]
-
-assert[lines == L['', 'a', 'b cd']]
+assert[lines == L['', 'a', 'b cd'], lines]
 
 words = r"""
 a

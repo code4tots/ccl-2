@@ -137,7 +137,7 @@ Str@str = \. self
 # TODO: Backup implementation of Str@split
 
 Str@words = \. self.split[r'\s+']
-Str@lines = \. self.split[r'\n+']
+Str@lines = \. self.split[r'\r*\n+'] # TODO: Think about '\r'
 
 Str@iter = \ {
   i = 0
