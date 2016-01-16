@@ -6,21 +6,30 @@ import java.util.Iterator;
 
 public class ProfilingEvaluator extends Evaluator {
 
-  private static final HashMap<String, Long> times =
+  private static final HashMap<String, Long> totals =
+      new HashMap<String, Long>();
+
+  private static final HashMap<String, Long> reps =
       new HashMap<String, Long>();
 
   public static synchronized void record(String name, long time) {
-    Long total = times.get(name);
+    Long total = totals.get(name);
     if (total == null)
-      times.put(name, total = Long.valueOf(0));
+      totals.put(name, Long.valueOf(time));
     else
-      times.put(name, total + time);
+      totals.put(name, total + time);
+
+    Long rep = reps.get(name);
+    if (rep == null)
+      reps.put(name, Long.valueOf(1));
+    else
+      reps.put(name, rep + 1);
   }
 
   private static ArrayList<HashMap.Entry<String, Long>> getSortedResults() {
     ArrayList<HashMap.Entry<String, Long>> results =
         new ArrayList<HashMap.Entry<String, Long>>();
-    Iterator<HashMap.Entry<String, Long>> it = times.entrySet().iterator();
+    Iterator<HashMap.Entry<String, Long>> it = totals.entrySet().iterator();
     while (it.hasNext())
       results.add(it.next());
     Collections.sort(results, new Comparator<HashMap.Entry<String, Long>>() {
@@ -28,7 +37,8 @@ public class ProfilingEvaluator extends Evaluator {
         return this == other;
       }
       public int compare(HashMap.Entry<String, Long> a, HashMap.Entry<String, Long> b) {
-        return a.getValue().compareTo(b.getValue());
+        return Double.valueOf(a.getValue() / reps.get(a.getKey()).doubleValue()).compareTo(
+            b.getValue() / reps.get(b.getKey()).doubleValue());
       }
     });
     return results;
@@ -43,8 +53,19 @@ public class ProfilingEvaluator extends Evaluator {
       for (int i = 0; i < 25 - entry.getKey().length(); i++)
         sb.append(" ");
       sb.append(" -> ");
+      sb.append("average (nanosec) = ");
+      String dat = Long.valueOf(entry.getValue() / reps.get(entry.getKey())).toString();
+      sb.append(dat);
+      for (int i = 0; i < 15 - dat.length(); i++)
+        sb.append(" ");
+      sb.append("reptitions = ");
+      dat = reps.get(entry.getKey()).toString();
+      sb.append(dat);
+      for (int i = 0; i < 8 - dat.length(); i++)
+        sb.append(" ");
+      sb.append(" total (millisec) = ");
       sb.append(entry.getValue() / 1000000.0);
-      sb.append(" milliseconds\n");
+      sb.append("\n");
     }
     return sb.toString();
   }

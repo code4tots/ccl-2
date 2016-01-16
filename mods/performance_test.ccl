@@ -10,6 +10,18 @@ while i < 1000000 {
 end = time[]
 
 print['total = %s' % L[total]]
+print['elapsed time = %s ms' % L[end - start]]
 
+start = time[]
 
+total = 0.0
+i = 0
+while i < 1000000 {
+  total =  total + (i + 0.0)
+  i = i + 1
+}
+
+end = time[]
+
+print['total = %s' % L[total]]
 print['elapsed time = %s ms' % L[end - start]]
