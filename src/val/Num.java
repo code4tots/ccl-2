@@ -169,7 +169,7 @@ public abstract class Num extends Val {
     protected Bool lt(Flt n) {
       // TODO: This has a chance of creating weird precision bugs.
       // Figure something better out here.
-      return Bool.from(n.val.doubleValue() < n.val);
+      return Bool.from(n.val.doubleValue() < val.doubleValue());
     }
   }
 

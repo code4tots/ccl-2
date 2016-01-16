@@ -294,6 +294,7 @@ assert[c == 3, c]
 assert[d is nil, d]
 assert[e == L[], e]
 
+assert[0.0 < 1]
 
 math = import['math']
 nCr = math@nCr
