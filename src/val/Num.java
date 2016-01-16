@@ -12,6 +12,12 @@ public abstract class Num extends Val {
           return self.as(Num.class, "self").hash();
         }
       })
+      .put(new BuiltinFunc("Num#int") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 0);
+          return self.as(Num.class, "self").toInt();
+        }
+      })
       .put(new BuiltinFunc("Num#repr") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
@@ -109,6 +115,8 @@ public abstract class Num extends Val {
   protected abstract Bool eq(Flt n);
   protected abstract Bool lt(Flt n);
 
+  protected abstract Int toInt();
+
   private static final class Int extends Num {
 
     public static Int from(BigInteger val) {
@@ -171,6 +179,8 @@ public abstract class Num extends Val {
       // Figure something better out here.
       return Bool.from(n.val.doubleValue() < val.doubleValue());
     }
+
+    protected Int toInt() { return this; }
   }
 
   private static final class Flt extends Num {
@@ -221,5 +231,7 @@ public abstract class Num extends Val {
     protected Num mod(Flt n) { return Flt.from(n.val % val); }
     protected Bool eq(Flt n) { return Bool.from(n.val == val); }
     protected Bool lt(Flt n) { return Bool.from(n.val < val); }
+
+    protected Int toInt() { return Int.from(val.longValue()); }
   }
 }
