@@ -37,13 +37,15 @@ public final class Scope {
     return put(m.attrs.get("name").as(Str.class, "FUBAR").val, m);
   }
 
-  // public Val eval(Ast ast) {
-  //   return new Evaluator(this).eval(ast);
-  // }
-
   public Val eval(Ast ast) {
-    return new ProfilingEvaluator(this).eval(ast);
+    return new Evaluator(this).eval(ast);
   }
+
+  // TODO: Consider adding a flag to decide on which evaluator to
+  // use.
+  // public Val eval(Ast ast) {
+  //   return new ProfilingEvaluator(this).eval(ast);
+  // }
 
   private static final Scope GLOBAL = new Scope(null)
       .put("nil", Nil.val)
