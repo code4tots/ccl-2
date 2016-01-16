@@ -1,5 +1,5 @@
 public abstract class AstVisitor<T> {
-  public final T visit(Ast node) { return node.accept(this); }
+  public T visit(Ast node) { return node.accept(this); }
 
   // Statement only
   public abstract T visitReturn(Ast.Return node);

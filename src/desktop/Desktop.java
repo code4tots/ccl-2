@@ -95,6 +95,7 @@ public class Desktop {
       System.out.println(e.toString() + e.getTraceString());
       throw e;
     }
+    System.out.println(ProfilingEvaluator.getResultSummary());
   }
 
   public static String makePath(String start, String... args) {
