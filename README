@@ -59,9 +59,14 @@ cls/
 mods/
   Sanity library modules.
 
-dream/
-  I have a dream of a programming language.
-  It is full of seductive zero cost compile time optimizations.
+experiments/
+  Various things I've experimented with that aren't necessarily included in
+  the language proper.
+
+fbhc/
+  Solve facebook hackercup problems to test performance and language
+  usability.
+
 
 
 Design
