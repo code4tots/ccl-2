@@ -188,7 +188,7 @@ public class Evaluator extends AstVisitor<Val> {
   }
 
   // Pattern visitor
-  public static final class Assigner extends Ast.PatternVisitor<Val> {
+  private static final class Assigner extends Ast.PatternVisitor<Val> {
     public final Scope scope;
     public Assigner(Scope scope) { this.scope = scope; }
     public void visitNamePattern(Ast.NamePattern pattern, Val val) {
