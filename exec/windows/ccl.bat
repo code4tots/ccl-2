@@ -9,5 +9,5 @@ java -cp %root%\cls Desktop %root% %1
 goto :eof
 
 :usage
-@echo Usage: %0 ^<main_module^>
+@echo Usage: %0 ^<path_to_module^>
 exit /B 1
