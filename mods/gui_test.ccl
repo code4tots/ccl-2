@@ -27,13 +27,18 @@ window.text['clicked!', 50, 90]
 
 print["*** gui_test's main thread finished ***"]
 
-window.color[255]
-assert[(r = window.color[]) == 255, r]
+colors = L[gui@RED, gui@BLUE, gui@GREEN]
+
+window.color[gui@RED]
+assert[(r = window.color[]) == gui@RED, r]
 
 while true {
-  event = window.event[]
-  window.clear[]
-  window.text['Width  = ' + window.dim[][0].str[], 50, 70]
-  window.text['Height = ' + window.dim[][1].str[], 50, 90]
-  window.text['Got: ' + event.str[], 50, 50]
+  colors.iter[].do[\\color {
+    window.color[color]
+    event = window.event[]
+    window.clear[]
+    window.text['Width  = ' + window.dim[][0].str[], 50, 70]
+    window.text['Height = ' + window.dim[][1].str[], 50, 90]
+    window.text['Got: ' + event.str[], 50, 50]
+  }]
 }

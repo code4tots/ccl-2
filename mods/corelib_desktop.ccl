@@ -68,4 +68,8 @@ gui = import['gui']
 
 GLOBAL@print = \content /path. write[content.str[] + '\n', path]
 
+gui@BLUE = 255
+gui@GREEN = 255 * 256
+gui@RED = 255 * 256 * 256
+
 gui@Window.extend[Val]

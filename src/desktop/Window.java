@@ -63,8 +63,6 @@ public class Window extends Val {
           if (args.size() == 0) {
             return Num.from(win.color.getRGB() & 0xFFFFFF);
           } else {
-            System.out.println("setting color to : " + 
-              args.get(0).as(Num.class, "color").asIndex());
             win.color =
                 new Color(args.get(0).as(Num.class, "color").asIndex());
             return self;
