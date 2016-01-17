@@ -12,21 +12,28 @@ window.dim[500, 500]
 
 assert[window.dim[] == L[500, 500], window.dim[]]
 
-window.text['hi', 50, 50, 20]
+window.fontsize[20]
 
-window.text['hoi', 50, 70, 20]
+window.text['hi', 50, 50]
+
+window.text['hoi', 50, 70]
+
+assert[(r = window.fontsize[]) == 20, r]
 
 event = window.event[]
 print['Received event: ' + event.str[]]
 
-window.text['clicked!', 50, 90, 20]
+window.text['clicked!', 50, 90]
 
 print["*** gui_test's main thread finished ***"]
+
+window.color[255]
+assert[(r = window.color[]) == 255, r]
 
 while true {
   event = window.event[]
   window.clear[]
-  window.text['Width  = ' + window.dim[][0].str[], 50, 70, 20]
-  window.text['Height = ' + window.dim[][1].str[], 50, 90, 20]
-  window.text['Got: ' + event.str[], 50, 50, 20]
+  window.text['Width  = ' + window.dim[][0].str[], 50, 70]
+  window.text['Height = ' + window.dim[][1].str[], 50, 90]
+  window.text['Got: ' + event.str[], 50, 50]
 }

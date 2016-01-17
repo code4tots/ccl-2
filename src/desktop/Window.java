@@ -44,21 +44,46 @@ public class Window extends Val {
           }
         }
       })
+      .put(new BuiltinFunc("gui#Window#fontsize") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglens(args, 0, 1);
+          Window win = self.as(Window.class, "self");
+          if (args.size() == 0) {
+            return Num.from(win.fontsize);
+          } else {
+            win.fontsize = args.get(0).as(Num.class, "fontsize").asIndex();
+            return self;
+          }
+        }
+      })
+      .put(new BuiltinFunc("gui#Window#color") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglens(args, 0, 1);
+          Window win = self.as(Window.class, "self");
+          if (args.size() == 0) {
+            return Num.from(win.color.getRGB() & 0xFFFFFF);
+          } else {
+            System.out.println("setting color to : " + 
+              args.get(0).as(Num.class, "color").asIndex());
+            win.color =
+                new Color(args.get(0).as(Num.class, "color").asIndex());
+            return self;
+          }
+        }
+      })
       .put(new BuiltinFunc("gui#Window#text") {
         public Val calli(Val self, ArrayList<Val> args) {
-          Err.expectArglen(args, 4);
+          Err.expectArglen(args, 3);
           Window win = self.as(Window.class, "self");
           String text = args.get(0).as(Str.class, "arg 0").val;
           final int x = args.get(1).as(
               Num.class, "arg 1 (x)").asIndex();
           final int y = args.get(2).as(
               Num.class, "arg 2 (y)").asIndex();
-          final int fontsize = args.get(3).as(
-              Num.class, "arg 3 (font size)").asIndex();
 
           Graphics2D g = win.image.createGraphics();
-          g.setColor(Color.BLACK);
-          g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, fontsize));
+          g.setColor(win.color);
+          g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, win.fontsize));
           g.drawString(text, x, y);
           g.dispose();
 
@@ -94,6 +119,8 @@ public class Window extends Val {
   private final JPanel panel;
   private volatile BufferedImage image =
       new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+  private Color color = Color.BLACK;
+  private int fontsize = 12;
   private boolean autoflush = true;
 
   private volatile int width = 1, height = 1;
