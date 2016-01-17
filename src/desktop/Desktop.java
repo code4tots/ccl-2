@@ -93,7 +93,11 @@ public class Desktop {
       new Scope(DESKTOP_GLOBAL).eval(readModule(args[1]));
     } catch (final Err e) {
       System.out.println(e.toString() + e.getTraceString());
-      throw e;
+      e.printStackTrace();
+      System.exit(1);
+    } catch (final Throwable e) {
+      e.printStackTrace();
+      System.exit(1);
     }
     // System.out.println(ProfilingEvaluator.getResultSummary());
   }

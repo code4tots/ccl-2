@@ -15,7 +15,16 @@ public class Evaluator extends AstVisitor<Val> {
   public static void go(final Val f) {
     new Thread() {
       public void run() {
-        call(f, "__call__", new ArrayList<Val>());
+        try {
+          call(f, "__call__", new ArrayList<Val>());
+        } catch (final Err e) {
+          System.out.println(e.toString() + e.getTraceString());
+          e.printStackTrace();
+          System.exit(1);
+        } catch (final Throwable e) {
+          e.printStackTrace();
+          System.exit(1);
+        }
       }
     }.start();
   }
