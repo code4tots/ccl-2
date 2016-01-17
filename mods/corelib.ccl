@@ -110,9 +110,11 @@ GLOBAL@min = \*args.
   args.reduce[\a b. if a < b then a else b]
 
 Meta@__call__ = \*args. self@__new__[*args]
-Meta@__new__ = \name. {
+Meta@__new__ = \name *bases. {
   meta = new[Meta]
   meta@name = name
+  if 0 < bases.len[]
+    bases.iter[].do[\base. meta.extend[base]]
   return meta
 }
 
