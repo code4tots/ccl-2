@@ -142,6 +142,7 @@ public class Window extends Val {
         });
         panel.addMouseListener(new MouseListener() {
           public void mouseClicked(MouseEvent e) {
+            System.out.println("Mouse clicked");
             eventChannel.put(List.from(
                 Str.from("click"),
                 Num.from(e.getX()),
@@ -149,8 +150,12 @@ public class Window extends Val {
           }
           public void mouseEntered(MouseEvent e) {}
           public void mouseExited(MouseEvent e) {}
-          public void mousePressed(MouseEvent e) {}
-          public void mouseReleased(MouseEvent e) {}
+          public void mousePressed(MouseEvent e) {
+            System.out.println("Mouse pressed");
+          }
+          public void mouseReleased(MouseEvent e) {
+            System.out.println("Mouse released");
+          }
         });
         panel.addComponentListener(new ComponentListener() {
           public void componentHidden(ComponentEvent e) {}

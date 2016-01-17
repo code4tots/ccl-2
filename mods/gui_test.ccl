@@ -29,4 +29,5 @@ while true {
   window.text['Width  = ' + window.dim[][0].str[], 50, 70, 20]
   window.text['Height = ' + window.dim[][1].str[], 50, 90, 20]
   window.text['Got: ' + event.str[], 50, 50, 20]
+  print['clicked!']
 }
