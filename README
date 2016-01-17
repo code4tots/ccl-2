@@ -59,13 +59,16 @@ cls/
 mods/
   Sanity library modules.
 
-experiments/
-  Various things I've experimented with that aren't necessarily included in
-  the language proper.
+misc/
+  Miscellaneous things that aren't actually part of running CCL programs.
 
-fbhc/
-  Solve facebook hackercup problems to test performance and language
-  usability.
+  experiments/
+    Various things I've experimented with that aren't necessarily included in
+    the language proper.
+
+  fbhc/
+    Solve facebook hackercup problems to test performance and language
+    usability.
 
 
 Design
