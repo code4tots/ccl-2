@@ -2,7 +2,10 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 
+// Leaky BlockingQueue.
 public class Channel extends Val.Wrap<LinkedBlockingQueue<Val>> {
+
+  public final int MAX_QUEUE_SIZE = 10;
 
   public static final HashMap<String, Val> MM = new Hmb()
       .put("name", Str.from("Channel"))
@@ -27,15 +30,29 @@ public class Channel extends Val.Wrap<LinkedBlockingQueue<Val>> {
       })
       .hm;
 
+  private int size = 0;
+
   public Channel() { super(new LinkedBlockingQueue<Val>()); }
 
   public void put(Val v) {
-    try { val.put(v); }
+    try {
+      synchronized(this) {
+        size++;
+        while (size > MAX_QUEUE_SIZE) {
+          val.remove();
+          size--;
+        }
+      }
+      val.put(v);
+    }
     catch (InterruptedException e) { throw new Err(e); }
   }
 
   public Val take() {
-    try { return val.take(); }
+    try {
+      synchronized(this) { size--; }
+      return val.take();
+    }
     catch (InterruptedException e) { throw new Err(e); }
   }
 
