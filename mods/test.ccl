@@ -295,6 +295,10 @@ assert[e == L[], e]
 
 assert[0.0 < 1]
 
+# Test floordiv behavior
+assert[0.5 == 0.5]
+assert[1/2 == 0.5, 1/2]
+
 math = import['math']
 nCr = math@nCr
 

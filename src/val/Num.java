@@ -52,6 +52,13 @@ public abstract class Num extends Val {
               args.get(0).as(Num.class, "argument"));
         }
       })
+      .put(new BuiltinFunc("Num#__floordiv__") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 1);
+          return self.as(Num.class, "self").floordiv(
+              args.get(0).as(Num.class, "argument"));
+        }
+      })
       .put(new BuiltinFunc("Num#__mod__") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 1);
@@ -92,6 +99,7 @@ public abstract class Num extends Val {
   protected abstract Num sub(Num n);
   protected abstract Num mul(Num n);
   protected abstract Num div(Num n);
+  protected abstract Num floordiv(Num n);
   protected abstract Num mod(Num n);
   protected abstract Bool eq(Num n);
   protected abstract Bool lt(Num n);
@@ -103,6 +111,7 @@ public abstract class Num extends Val {
   protected abstract Num sub(Int n);
   protected abstract Num mul(Int n);
   protected abstract Num div(Int n);
+  protected abstract Num floordiv(Int n);
   protected abstract Num mod(Int n);
   protected abstract Bool eq(Int n);
   protected abstract Bool lt(Int n);
@@ -111,6 +120,7 @@ public abstract class Num extends Val {
   protected abstract Num sub(Flt n);
   protected abstract Num mul(Flt n);
   protected abstract Num div(Flt n);
+  protected abstract Num floordiv(Flt n);
   protected abstract Num mod(Flt n);
   protected abstract Bool eq(Flt n);
   protected abstract Bool lt(Flt n);
@@ -142,6 +152,7 @@ public abstract class Num extends Val {
     protected Num sub(Num n) { return n.sub(this); }
     protected Num mul(Num n) { return n.mul(this); }
     protected Num div(Num n) { return n.div(this); }
+    protected Num floordiv(Num n) { return n.floordiv(this); }
     protected Num mod(Num n) { return n.mod(this); }
     protected Bool eq(Num n) { return n.eq(this); }
     protected Bool lt(Num n) { return n.lt(this); }
@@ -149,7 +160,10 @@ public abstract class Num extends Val {
     protected Num add(Int n) { return Int.from(n.val.add(val)); }
     protected Num sub(Int n) { return Int.from(n.val.subtract(val)); }
     protected Num mul(Int n) { return Int.from(n.val.multiply(val)); }
-    protected Num div(Int n) { return Int.from(n.val.divide(val)); }
+    protected Num div(Int n) {
+      return Flt.from(n.val.doubleValue() / val.doubleValue());
+    }
+    protected Num floordiv(Int n) { return Int.from(n.val.divide(val)); }
     protected Num mod(Int n) { return Int.from(n.val.mod(val)); }
     protected Bool eq(Int n) { return Bool.from(n.val.equals(val)); }
     protected Bool lt(Int n) { return Bool.from(n.val.compareTo(val) < 0); }
@@ -165,6 +179,9 @@ public abstract class Num extends Val {
     }
     protected Num div(Flt n) {
       return Flt.from(n.val.doubleValue() / val.doubleValue());
+    }
+    protected Num floordiv(Flt n) {
+      return Int.from((long) (n.val.doubleValue() / val.doubleValue()));
     }
     protected Num mod(Flt n) {
       return Flt.from(n.val.doubleValue() % val.doubleValue());
@@ -198,6 +215,7 @@ public abstract class Num extends Val {
     protected Num sub(Num n) { return n.sub(this); }
     protected Num mul(Num n) { return n.mul(this); }
     protected Num div(Num n) { return n.div(this); }
+    protected Num floordiv(Num n) { return n.floordiv(this); }
     protected Num mod(Num n) { return n.mod(this); }
     protected Bool eq(Num n) { return n.eq(this); }
     protected Bool lt(Num n) { return n.lt(this); }
@@ -214,6 +232,9 @@ public abstract class Num extends Val {
     protected Num div(Int n) {
       return Flt.from(n.val.doubleValue() / val);
     }
+    protected Num floordiv(Int n) {
+      return Int.from((long) (n.val.doubleValue() / val));
+    }
     protected Num mod(Int n) {
       return Flt.from(n.val.doubleValue() % val);
     }
@@ -228,8 +249,9 @@ public abstract class Num extends Val {
     protected Num sub(Flt n) { return Flt.from(n.val - val); }
     protected Num mul(Flt n) { return Flt.from(n.val * val); }
     protected Num div(Flt n) { return Flt.from(n.val / val); }
+    protected Num floordiv(Flt n) { return Int.from((long) (n.val / val)); }
     protected Num mod(Flt n) { return Flt.from(n.val % val); }
-    protected Bool eq(Flt n) { return Bool.from(n.val == val); }
+    protected Bool eq(Flt n) { return Bool.from(n.val.equals(val)); }
     protected Bool lt(Flt n) { return Bool.from(n.val < val); }
 
     protected Int toInt() { return Int.from(val.longValue()); }
