@@ -198,6 +198,12 @@ public final class Parser {
         node = new Ast.Call(token, node, "__div__", right);
         continue;
       }
+      if (at("//")) {
+        Token token = next();
+        Ast right = parsePrefixExpression();
+        node = new Ast.Call(token, node, "__floordiv__", right);
+        continue;
+      }
       if (at("%")) {
         Token token = next();
         Ast right = parsePrefixExpression();
