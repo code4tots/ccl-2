@@ -1,0 +1,44 @@
+# Text editor in CCL
+
+# Imports
+gui = import['gui']
+
+# Logic
+
+"""
+Draw given lines of text onto canvas starting from startline.
+
+  canvas: any object that supports
+
+    fontsize[]
+    dim[]
+    text[]
+
+  lines: a list of strings
+
+  startline: integer
+
+"""
+drawText = \canvas lines startline {
+  fontsize = canvas.fontsize[]
+  let [width, height] = canvas.dim[]
+
+  linenos = range[startline, min[lines.len[], startline+height//fontsize]]
+
+  linenos.enum[].do[\\[ln, i] {
+    canvas.text[lines[ln], 0, fontsize + fontsize * i]
+  }]
+}
+
+# Create window and start event loop
+window = gui@Window[]
+
+window.dim[500, 500]
+
+window.fontsize[20]
+drawText[window, L["hello", "world", "line 3"], 1]
+
+while true {
+  event = L[window.event[]]
+  print[event]
+}
