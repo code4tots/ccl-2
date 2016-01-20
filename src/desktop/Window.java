@@ -16,6 +16,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 public class Window extends Val {
   public static final HashMap<String, Val> MM = new Hmb()
@@ -186,6 +188,20 @@ public class Window extends Val {
           }
           public void componentShown(ComponentEvent e) {}
         });
+        panel.addKeyListener(new KeyListener() {
+          public void keyTyped(KeyEvent e) {}
+          public void keyPressed(KeyEvent e) {
+            eventChannel.put(List.from(
+                Str.from("press"),
+                Num.from(e.getKeyCode())));
+          }
+          public void keyReleased(KeyEvent e) {
+            eventChannel.put(List.from(
+                Str.from("release"),
+                Num.from(e.getKeyCode())));
+          }
+        });
+        panel.setFocusable(true);
         panel.setBackground(Color.WHITE);
         // I think only using DISPOSE_ON_CLOSE leaves around
         // some other swing threads for a second or two keeping
