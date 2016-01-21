@@ -19,3 +19,16 @@ nCr = \n k {
   }
   return x
 }
+
+_gcd = \a b {
+  while b != 0 {
+    t = b
+    b = a % b
+    a = t
+  }
+  return a
+}
+
+gcd = \x *xs {
+  return xs.foldl[_gcd, x]
+}

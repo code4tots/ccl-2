@@ -314,6 +314,14 @@ assert[(r = nCr[4, 2]) == 6, r]
 assert[(r = nCr[5, 2]) == 10, r]
 assert[(r = nCr[5, 3]) == 10, r]
 
+gcd = math@gcd
+
+assert[(g = gcd[6]) == 6, g]
+assert[(g = gcd[3, 6]) == 3, g]
+assert[(g = gcd[3, 6, 9]) == 3, g]
+assert[(g = gcd[12, 6, 9]) == 3, g]
+assert[(g = gcd[1071, 462]) == 21, g]
+
 # Pretty sure 'end' and 'start' here should not take a whole 1 second.
 # Also, we sleep for 1 millisecond to make sure end - start != 0
 start = time[]
