@@ -32,3 +32,13 @@ _gcd = \a b {
 gcd = \x *xs {
   return xs.foldl[_gcd, x]
 }
+
+factorial = \n {
+  result = 1
+  i = 2
+  while i <= n {
+    result = result * i
+    i = i + 1
+  }
+  return result
+}

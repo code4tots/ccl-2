@@ -322,6 +322,13 @@ assert[(g = gcd[3, 6, 9]) == 3, g]
 assert[(g = gcd[12, 6, 9]) == 3, g]
 assert[(g = gcd[1071, 462]) == 21, g]
 
+factorial = math@factorial
+
+assert[(f = factorial[0]) == 1, f]
+assert[(f = factorial[1]) == 1, f]
+assert[(f = factorial[2]) == 2, f]
+assert[(f = factorial[6]) == 720, f]
+
 # Pretty sure 'end' and 'start' here should not take a whole 1 second.
 # Also, we sleep for 1 millisecond to make sure end - start != 0
 start = time[]
