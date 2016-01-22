@@ -12,6 +12,10 @@ window.dim[500, 500]
 
 assert[window.dim[] == L[500, 500], window.dim[]]
 
+window.color[gui@BLUE]
+window.rect[200, 200, 50, 50]
+window.color[gui@BLACK]
+
 window.fontsize[20]
 
 window.text['hi', 50, 50]
@@ -40,5 +44,8 @@ while true {
     window.text['Width  = ' + window.dim[][0].str[], 50, 70]
     window.text['Height = ' + window.dim[][1].str[], 50, 90]
     window.text['Got: ' + event.str[], 50, 50]
+
+    window.color[gui@BLUE]
+    window.rect[200, 200, 50, 50]
   }]
 }

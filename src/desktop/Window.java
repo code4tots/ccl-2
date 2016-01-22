@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import javax.swing.SwingUtilities;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.Dimension;
 import java.awt.Color;
@@ -85,6 +86,30 @@ public class Window extends Val {
           g.setColor(win.color);
           g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, win.fontsize));
           g.drawString(text, x, y);
+          g.dispose();
+
+          if (win.autoflush)
+            win.flush();
+
+          return self;
+        }
+      })
+      .put(new BuiltinFunc("gui#Window#rect") {
+        public Val calli(Val self, ArrayList<Val> args) {
+          Err.expectArglen(args, 4);
+          Window win = self.as(Window.class, "self");
+          final int x = args.get(0).as(
+              Num.class, "arg 0 (x)").asIndex();
+          final int y = args.get(1).as(
+              Num.class, "arg 1 (y)").asIndex();
+          final int width = args.get(2).as(
+              Num.class, "arg 2 (width)").asIndex();
+          final int height = args.get(3).as(
+              Num.class, "arg 3 (height)").asIndex();
+
+          Graphics2D g = win.image.createGraphics();
+          g.setColor(win.color);
+          g.fill(new Rectangle2D.Double(x, y, width, height));
           g.dispose();
 
           if (win.autoflush)
