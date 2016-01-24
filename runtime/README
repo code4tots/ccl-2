@@ -25,20 +25,20 @@ Language spec:
     INT value
     FLOAT value
     STR value
-    FUNC make_scope pattern body
-    FIND name
-    CALL ... END vararg
-    CALLM method_name ... END vararg
-    ASSIGN pattern value
-    IF cond body other
+    FUNC make_scope args body
+    FIND name "message"
+    CALLM method_name ... END [vararg] "message"
+    ASSIGN pattern value "message"
+    IFE cond body other
     OR left right
     AND left right
+    IMPORT name "message"
 
   Statement:
     WHILE cond body
     BREAK
     CONTINUE
-    IF cond body other
+    IFS cond body other
     BLOCK ... END
     RET expr
     EXPR expr
