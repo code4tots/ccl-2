@@ -5,6 +5,17 @@ Simple programming language with an object model a lot like Lua's.
 
 Usage: ./run.sh <path_to_ccl_script>
 
+Design Philosophy
+-----------------
+
+  * Design is easy, but good design is hard.
+    * Try to refrain from coming up with radically new language designs.
+      * I will on ocassion break this guideline when I have a feature idea
+        for which I think I understand the trade offs and consequences
+        well enough. (e.g. function call syntax)
+    * Cherry pick features that I understand well from other languages.
+      * Pick out good features from other languages, but also
+      * pick features such that collectively they play well with each other.
 
 Goals
 -----
