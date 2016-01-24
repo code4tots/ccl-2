@@ -27,7 +27,7 @@ Language spec:
     STR value
     FUNC make_scope args body
     FIND name "message"
-    CALLM method_name ... END [vararg] "message"
+    CALLM method_name ... END vararg "message"
     ASSIGN pattern value "message"
     IFE cond body other
     OR left right

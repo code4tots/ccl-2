@@ -109,5 +109,38 @@ public static final class Import extends Expression {
 }
 
 public abstract static class Statement extends Ast {}
+public static final class While extends Statement {
+  public final Expression cond;
+  public final Statement body;
+  public While(Expression cond, Statement body) {
+    this.cond = cond;
+    this.body = body;
+  }
+}
+public static final class Break extends Statement {}
+public static final class Continue extends Statement {}
+public static final class Ifs extends Statement {
+  public final Expression cond;
+  public final Statement body, other;
+  public Ifs(Expression cond, Statement body, Statement other) {
+    this.cond = cond;
+    this.body = body;
+    this.other = other;
+  }
+}
+public static final class Block extends Statement {
+  public final ArrayList<Statement> stmts;
+  public Block(ArrayList<Statement> stmts) {
+    this.stmts = stmts;
+  }
+}
+public static final class Ret extends Statement {
+  public final Expression expr;
+  public Ret(Expression expr) { this.expr = expr; }
+}
+public static final class Expr extends Statement {
+  public final Expression expr;
+  public Expr(Expression expr) { this.expr = expr; }
+}
 
 }
