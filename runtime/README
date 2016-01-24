@@ -26,13 +26,13 @@ Language spec:
     FLOAT value
     STR value
     FUNC make_scope args body
-    FIND name "message"
-    CALLM method_name ... END vararg "message"
-    ASSIGN pattern value "message"
+    FIND name message END
+    CALLM method_name ... END vararg message END
+    ASSIGN pattern value message END
     IFE cond body other
     OR left right
     AND left right
-    IMPORT name "message"
+    IMPORT name alias message END
 
   Statement:
     WHILE cond body
