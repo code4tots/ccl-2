@@ -3,8 +3,9 @@ package com.ccl.runtime;
 import java.util.ArrayList;
 import java.math.BigInteger;
 
-public abstract class Ast {
+public abstract class Runtime {
 
+public abstract static class Ast {}
 public abstract static class Pattern extends Ast {}
 public static final class List extends Pattern {
   public final ArrayList<Pattern> args;
