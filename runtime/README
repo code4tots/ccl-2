@@ -12,3 +12,33 @@ Stack traces will no longer show lines, but like Java, just indicate what file y
 Portability will be facilitated by a simpler intermediate language.
 
 The intermediate language will still be 'higher level' than bytecode like Java.
+
+Actually this intermediate language is semantically equivalent to the original language. Just meant to make language easier to port by having a simpler grammar.
+
+Language spec:
+
+  Pattern:
+    LIST ... END ... END vararg
+    NAME name
+
+  Expression:
+    INT value
+    FLOAT value
+    STR value
+    FUNC make_scope pattern body
+    FIND name
+    CALL ... END vararg
+    CALLM method_name ... END vararg
+    ASSIGN pattern value
+    IF cond body other
+    OR left right
+    AND left right
+
+  Statement:
+    WHILE cond body
+    BREAK
+    CONTINUE
+    IF cond body other
+    BLOCK ... END
+    RET expr
+    EXPR expr
