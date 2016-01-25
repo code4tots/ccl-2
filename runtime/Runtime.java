@@ -3,9 +3,22 @@ package com.ccl;
 import java.util.ArrayList;
 import java.math.BigInteger;
 
+// javac -d . *.java && java -cp . com.ccl.Runtime
 public final class Runtime {
 
+// Run all tests
+public static void main(String[] args) {
+  testAst();
+}
+
 /// Ast
+public static void testAst() {
+  // TODO: I really should do better testing here.
+  parse("test.ccl");
+  parse(
+    "test.ccl " +
+    "Expr Int 5");
+}
 public abstract static class Ast {}
 public abstract static class Pattern extends Ast {}
 public static final class List extends Pattern {
