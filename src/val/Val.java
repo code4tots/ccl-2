@@ -14,9 +14,9 @@ public abstract class Val {
           HashMap<String, Val> m = self.as(Blob.class, "self").attrs;
           for (int i = 0; i < args.size(); i++) {
             HashMap<String, Val> h = args.get(i).as(Blob.class, "args").attrs;
-            Iterator<HashMap.Entry<String, Val>> it = h.entrySet().iterator();
+            Iterator<java.util.Map.Entry<String, Val>> it = h.entrySet().iterator();
             while (it.hasNext()) {
-              HashMap.Entry<String, Val> e = it.next();
+              java.util.Map.Entry<String, Val> e = it.next();
               if (m.get(e.getKey()) == null) {
                 m.put(e.getKey(), e.getValue());
               }

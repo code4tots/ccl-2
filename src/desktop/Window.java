@@ -166,8 +166,8 @@ public class Window extends Val {
     final JPanel[] panelptr = new JPanel[1];
     invokeAndWait(new Runnable() {
       public void run() {
-        JFrame frame = frameptr[0] = new JFrame();
-        JPanel panel = panelptr[0] = new JPanel() {
+        final JFrame frame = frameptr[0] = new JFrame();
+        final JPanel panel = panelptr[0] = new JPanel() {
           public static final long serialVersionUID = 42L;
           public void paintComponent(Graphics g) {
             super.paintComponent(g);

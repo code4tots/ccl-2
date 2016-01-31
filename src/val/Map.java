@@ -16,15 +16,15 @@ public final class Map extends Val.Wrap<HashMap<Val, Val>> {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
           StringBuilder sb = new StringBuilder("M[");
-          Iterator<HashMap.Entry<Val, Val>> it =
+          Iterator<java.util.Map.Entry<Val, Val>> it =
               self.as(Map.class, "self").val.entrySet().iterator();
           if (it.hasNext()) {
-            HashMap.Entry<Val, Val> e = it.next();
+            java.util.Map.Entry<Val, Val> e = it.next();
             sb.append(e.getKey().repr());
             sb.append(", " + e.getValue().repr());
           }
           while (it.hasNext()) {
-            HashMap.Entry<Val, Val> e = it.next();
+            java.util.Map.Entry<Val, Val> e = it.next();
             sb.append(", " + e.getKey().repr());
             sb.append(", " + e.getValue().repr());
           }
@@ -82,15 +82,18 @@ public final class Map extends Val.Wrap<HashMap<Val, Val>> {
       .put(new BuiltinFunc("Map#iter") {
         public Val calli(Val self, ArrayList<Val> args) {
           Err.expectArglen(args, 0);
-          final Iterator<HashMap.Entry<Val, Val>> it =
+          final Iterator<java.util.Map.Entry<Val, Val>> it =
               self.as(Map.class, "self").val.entrySet().iterator();
           return new BuiltinIter(new Iterator<Val>() {
             public boolean hasNext() {
               return it.hasNext();
             }
             public Val next() {
-              HashMap.Entry<Val, Val> e = it.next();
+              java.util.Map.Entry<Val, Val> e = it.next();
               return List.from(toArrayList(e.getKey(), e.getValue()));
+            }
+            public void remove() {
+              throw new Err("Not supported");
             }
           });
         }

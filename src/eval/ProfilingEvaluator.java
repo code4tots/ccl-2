@@ -26,19 +26,25 @@ public class ProfilingEvaluator extends Evaluator {
       reps.put(name, rep + 1);
   }
 
-  private static ArrayList<HashMap.Entry<String, Long>> getSortedResults() {
-    ArrayList<HashMap.Entry<String, Long>> results =
-        new ArrayList<HashMap.Entry<String, Long>>();
-    Iterator<HashMap.Entry<String, Long>> it = totals.entrySet().iterator();
+  private static ArrayList<java.util.Map.Entry<String, Long>>
+      getSortedResults() {
+    ArrayList<java.util.Map.Entry<String, Long>> results =
+        new ArrayList<java.util.Map.Entry<String, Long>>();
+    Iterator<java.util.Map.Entry<String, Long>> it = totals.entrySet().iterator();
     while (it.hasNext())
       results.add(it.next());
-    Collections.sort(results, new Comparator<HashMap.Entry<String, Long>>() {
+    Collections.sort(
+        results, new Comparator<java.util.Map.Entry<String, Long>>() {
       public boolean equals(Object other) {
         return this == other;
       }
-      public int compare(HashMap.Entry<String, Long> a, HashMap.Entry<String, Long> b) {
-        return Double.valueOf(a.getValue() / reps.get(a.getKey()).doubleValue()).compareTo(
-            b.getValue() / reps.get(b.getKey()).doubleValue());
+      public int compare(
+          java.util.Map.Entry<String, Long> a,
+          java.util.Map.Entry<String, Long> b) {
+        return
+            Double.valueOf(a.getValue() / reps.get(a.getKey())
+                .doubleValue()).compareTo(
+                    b.getValue() / reps.get(b.getKey()).doubleValue());
       }
     });
     return results;
@@ -46,9 +52,9 @@ public class ProfilingEvaluator extends Evaluator {
 
   public static synchronized String getResultSummary() {
     StringBuilder sb = new StringBuilder();
-    Iterator<HashMap.Entry<String, Long>> it = getSortedResults().iterator();
+    Iterator<java.util.Map.Entry<String, Long>> it = getSortedResults().iterator();
     while (it.hasNext()) {
-      HashMap.Entry<String, Long> entry = it.next();
+      java.util.Map.Entry<String, Long> entry = it.next();
       sb.append(entry.getKey());
       for (int i = 0; i < 25 - entry.getKey().length(); i++)
         sb.append(" ");
