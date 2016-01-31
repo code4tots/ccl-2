@@ -2,19 +2,18 @@
 
 A very simple programming language with zero cost abstractions.
 
+Module
+  classes - [Class]
 Class
+  singleton - Bool
   name - String
-  typeargs - [Type]
-  members - [Declaration]
-  methods - [Function]
-Function
+  base - String
+  members - [String]
+  methods - [Method]
+Method
   name - String
-  typeargs - [Type]
   args - [String]
   body - Statement
-Declaration
-  name - String
-  type - Type
 Statement
   While
     condition - Expression
@@ -35,15 +34,20 @@ Statement
       owner - Expression
       name - String
       args - [Expression]
-    FunctionCall
-      name - String
-      args - [Expression]
     Or
       left - Expression
       right - Expression
     And
       left - Expression
       right - Expression
+    Name
+      name - String
+    Int
+      value - Int
+    Float
+      value - Float
+    String
+      value - String
 
 """
 
@@ -55,14 +59,14 @@ class Ast(object):
     for name, value in zip(type(self).attrs, args):
       setattr(self, name, value)
 
+class ModuleAst(Ast):
+  attrs = ['classes']
+
 class ClassAst(Ast):
-  attrs = ['name', 'typeargs', 'members', 'methods']
+  attrs = ['singleton', 'name', 'base', 'members', 'methods']
 
-class FunctionAst(Ast):
-  attrs = ['name', 'typeargs', 'args', 'body']
-
-class DeclarationAst(Ast):
-  attrs = ['name', 'type']
+class MethodAst(Ast):
+  attrs = ['name', 'args', 'body']
 
 class StatementAst(Ast):
   pass
@@ -70,17 +74,36 @@ class StatementAst(Ast):
 class WhileAst(StatementAst):
   attrs = ['condition', 'body']
 
+  def collect_all_assigned_names(self, names):
+    self.condition.collect_all_assigned_names(names)
+    self.body.collect_all_assigned_names(names)
+
 class BreakAst(StatementAst):
   attrs = []
+
+  def collect_all_assigned_names(self, names):
+    pass
 
 class ContinueAst(StatementAst):
   attrs = []
 
+  def collect_all_assigned_names(self, names):
+    pass
+
 class IfAst(StatementAst):
   attrs = ['condition', 'body', 'other']
 
+  def collect_all_assigned_names(self, names):
+    self.condition.collect_all_assigned_names(names)
+    self.body.collect_all_assigned_names(names)
+    self.other.collect_all_assigned_names(names)
+
 class BlockAst(StatementAst):
   attrs = ['statements']
+
+  def collect_all_assigned_names(self, names):
+    for statement in self.statements:
+      statement.collect_all_assigned_names(names)
 
 class ExpressionAst(StatementAst):
   pass
@@ -88,4 +111,40 @@ class ExpressionAst(StatementAst):
 class AssignAst(ExpressionAst):
   attrs = ['name', 'value']
 
-class 
+  def collect_all_assigned_names(self, names):
+    names.add(self.name)
+    self.value.collect_all_assigned_names(names)
+
+class MethodCallAst(ExpressionAst):
+  attrs = ['owner', 'name', 'args']
+
+  def collect_all_assigned_names(self, names):
+    self.owner.collect_all_assigned_names(names)
+    for arg in self.args:
+      arg.collect_all_assigned_names(names)
+
+class OrAst(ExpressionAst):
+  attrs = ['left', 'right']
+
+  def collect_all_assigned_names(self, names):
+    self.left.collect_all_assigned_names(names)
+    self.right.collect_all_assigned_names(names)
+
+class AndAst(ExpressionAst):
+  attrs = ['left', 'right']
+
+  def collect_all_assigned_names(self, names):
+    self.left.collect_all_assigned_names(names)
+    self.right.collect_all_assigned_names(names)
+
+class NameAst(ExpressionAst):
+  attrs = ['name']
+
+class IntAst(ExpressionAst):
+  attrs = ['value']
+
+class FloatAst(ExpressionAst):
+  attrs = ['value']
+
+class StringAst(ExpressionAst):
+  attrs = ['value']
