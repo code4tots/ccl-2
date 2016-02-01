@@ -3,8 +3,9 @@ package com.ccl.core;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
-public abstract class Value {
+public abstract class Value implements Iterable<Value>, Iterator<Value> {
   public static final Nil nil = Nil.nil;
   public static final Bool tru = Bool.tru;
   public static final Bool fal = Bool.fal;
@@ -14,6 +15,9 @@ public abstract class Value {
     return owner.getMeta().get(name).call(owner, args);
   }
   public boolean truthy() { return this != nil && this != fal; }
+  public boolean hasNext() { throw new Err("Not iterator"); }
+  public Value next() { throw new Err("Not iterator"); }
+  public Iterator<Value> iterator() { throw new Err("Not iterable"); }
   public static final class Nil extends Value {
     public static final Nil nil = new Nil();
     private Nil() {}
