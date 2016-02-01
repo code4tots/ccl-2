@@ -3,7 +3,7 @@ package com.ccl;
 import java.util.ArrayList;
 
 public final class Err extends RuntimeException {
-  private final ArrayList<Traceable> trace = new ArrayList<Traceable>();
+  public final ArrayList<Traceable> trace = new ArrayList<Traceable>();
   public Err(String message) { super(message); }
   public Err(Throwable cause) { super(cause); }
   public String getTraceString() {

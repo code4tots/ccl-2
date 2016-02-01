@@ -53,7 +53,6 @@ public abstract class Ast implements Traceable {
       this.expr = expr;
     }
   }
-
   public static final class If extends Statement {
     public final Expression cond;
     public final Statement body;
@@ -81,7 +80,6 @@ public abstract class Ast implements Traceable {
       this.other = other;
     }
   }
-
   public static final class Int extends Expression {
     public final BigInteger val;
     public Int(Token token, BigInteger val) {
