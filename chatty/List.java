@@ -13,4 +13,7 @@ public final class List extends Value {
       this.value.add(value[i]);
   }
   public Blob getMeta() { return META; }
+  public void add(Value item) { value.add(item); }
+  public Value get(int i) { return value.get(i); }
+  public int size() { return value.size(); }
 }
