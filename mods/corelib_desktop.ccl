@@ -10,68 +10,6 @@ read[/path]
   # Reads content from file at path.
   # If path is nil, reads from stdin.
 
-gui
-  # Must be imported (e.g. gui = import['gui'])
-  # Module for simple gui stuff.
-
-gui@Window
-  # Window type.
-  # Instantiating creates a 
-
-gui@Window@dim
-  # Window dimension.
-  # If 2 arguments:
-  #   Sets the preferred size of the window (width, height)
-  #   and returns self.
-  #   Actually since all UI operations must run on the event
-  #   dispatch thread, this queues the operation.
-  # If 0 arguments:
-  #   Returns L[<width>, <height>].
-  #   This is also queued on the event dispatch thread.
-  #   This call blocks until the values are ready.
-
-gui@Pane
-  # Pane.
-  # A place to draw stuff within a Window.
-  # You can draw panes inside other panes.
-
-gui@Pane@dim
-  # Pane dimension.
-  # Works like Window@dim
-
-gui@Pane@fill
-  # Draws a filled in polygon.
-  # Expects a list of pairs of numbers.
-  # E.g. L[L[0, 0], L[100, 100], L[100, 0]] should draw a filled in triangle.
-  #
-  # Drawing with these primitives are bound to be slow.
-
-gui@Pane@clear
-  # Clears any drawing in the Pane.
-
-gui@TextPane
-  # A subclass of Pane (subclass relation specified in here, corelib_gui),
-  # that has native support for drawing text.
-
-gui@TextPane@model
-  # Gets/sets this TextPane's model.
-  # Used to change text on the pane.
-
-gui@TextPaneModel
-
-gui@TextPaneModel@add
-gui@TextPaneModel@insert
-
 """
 
-gui = import['gui']
-
 GLOBAL@print = \content /path. write[content.str[] + '\n', path]
-
-gui@BLACK = 0
-gui@BLUE = 255
-gui@GREEN = 255 * 256
-gui@RED = 255 * 256 * 256
-gui@WHITE = gui@BLUE + gui@GREEN + gui@RED
-
-gui@Window.extend[Val]

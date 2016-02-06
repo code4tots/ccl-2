@@ -16,7 +16,7 @@ import java.io.File;
 public class Desktop {
 
   static {
-    Val.MODULE_REGISTRY.put("gui", Gui.MODULE);
+    // Val.MODULE_REGISTRY.put("gui", Gui.MODULE);
   }
 
   public static String PATH_TO_MODULES = null;
