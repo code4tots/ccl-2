@@ -5,10 +5,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 public abstract class Val {
-
-  public static final HashMap<String, Blob> MODULE_REGISTRY =
-      new HashMap<String, Blob>();
-
   public static final HashMap<String, Val> MMMeta = new Hmb()
       .put("name", Str.from("Meta"))
       .put(new BuiltinFunc("Meta#extend") {

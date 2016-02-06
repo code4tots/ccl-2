@@ -101,37 +101,20 @@ Tier 2 (grammar dir -- Parser)
   Ast
   AstVisitor
 
-Tier 3 (val dir and eval dir -- Object model and Evaluation)
-  val
-    Val
-    Func
-    UserFunc
-    BuiltinFunc
-    Num
-    Str
-    List
-    Map
-  eval
-    Err
-    Traceable
-    Evaluator
-    Scope      ** Designated initializer.
+Tier 3a (val dir -- Object model)
+  Val
+  Func
+  UserFunc
+  BuiltinFunc
+  Num
+  Str
+  List
+  Map
 
-  # In terms of filling up the global scope, all of it
-  # should be initialized inside 'Scope', since I'm afraid that if
-  # I fragment the initialization code into each of the classes,
-  # a lot of it might not run properly since instantiating 'Scope'
-  # does not necessarily mean that all of the 'Val' subclasses
-  # will be initialized.
-  #
-  # If you require that all initial modifications to GLOBAL
-  # be done inside of Scope, you know that GLOBAL will have
-  # everything it needs once an instance of Scope is initialized.
-  #
-  # If you need to add more to your global scope, consider using a proxy
-  # global scope (e.g. See Desktop.DESKTOP_GLOBAL).
+Tier 3b (eval dir -- Evaluation)
+  Err
+  Traceable
+  Evaluator
+  Scope
+  Runtime      ** Designated initializer.
 
-Tier 4 (Desktop API)
-  Desktop      ** Designated initializer
-  Gui
-  Window
