@@ -1,3 +1,5 @@
+package com.ccl.core;
+
 public final class Token {
   public final Lexer lexer;
   public final int i;

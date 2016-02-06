@@ -1,3 +1,5 @@
+package com.ccl.core;
+
 // SyntaxError is thrown if an error is encountered in either
 // the lex or parse process.
 public final class SyntaxError extends RuntimeException {

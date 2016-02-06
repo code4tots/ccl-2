@@ -1,3 +1,5 @@
+package com.ccl.core;
+
 import java.util.ArrayList;
 
 public final class Err extends RuntimeException {

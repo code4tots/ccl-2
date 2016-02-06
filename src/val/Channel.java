@@ -1,3 +1,5 @@
+package com.ccl.core;
+
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;

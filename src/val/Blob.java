@@ -1,3 +1,5 @@
+package com.ccl.core;
+
 import java.util.HashMap;
 
 public final class Blob extends Val {
