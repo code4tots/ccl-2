@@ -16,8 +16,9 @@ import java.io.File;
 public class Desktop extends Runtime {
 
   private final String pathToModules;
-  private final HashMap<String, Blob> moduleRegistry =
-      new HashMap<String, Blob>();
+  public Desktop(String pathToModules) {
+    this.pathToModules = pathToModules;
+  }
 
   protected void populateGlobalScope(Scope scope) {
     super.populateGlobalScope(scope);
@@ -47,12 +48,6 @@ public class Desktop extends Runtime {
             return args.get(0);
           }
         })
-        .put(new BuiltinFunc("import") {
-          public Val calli(Val self, ArrayList<Val> args) {
-            return importModule(args.get(0).as(
-                Str.class, "module name argument").val);
-          }
-        })
         .put(new BuiltinFunc("read") {
           public Val calli(Val self, ArrayList<Val> args) {
             Err.expectArgRange(args, 0, 1);
@@ -75,23 +70,12 @@ public class Desktop extends Runtime {
         ;
   }
 
-  public Blob importModule(String name) {
-    if (moduleRegistry.get(name) == null) {
-      Scope scope = new Scope(global);
-      scope.eval(readModule(makePath(pathToModules, name + ".ccl")));
-      moduleRegistry.put(
-          name,
-          new Blob(Val.MMModule, scope.table));
-    }
-    return Err.notNull(moduleRegistry.get(name));
+  protected Ast.Module loadModule(String uri) {
+    return readModule(makePath(pathToModules, uri + ".ccl"));
   }
 
   public void runModule(String path) {
     new Scope(global).eval(readModule(path));
-  }
-
-  public Desktop(String pathToModules) {
-    this.pathToModules = pathToModules;
   }
 
   public static void main(String[] args) {

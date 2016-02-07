@@ -5,11 +5,27 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 public abstract class Runtime {
-  protected Scope global = new Scope(null);
+  protected Scope global = new Scope(null);  
+  private final HashMap<String, Blob> moduleRegistry =
+      new HashMap<String, Blob>();
+
   protected Runtime() {
     populateGlobalScope(global);
   }
-  protected abstract Blob importModule(String uri);
+
+  protected Blob importModule(String uri) {
+    if (moduleRegistry.get(uri) == null) {
+      Scope scope = new Scope(global);
+      scope.eval(loadModule(uri));
+      moduleRegistry.put(
+          uri,
+          new Blob(Val.MMModule, scope.table));
+    }
+    return Err.notNull(moduleRegistry.get(uri));
+  }
+
+  protected abstract Ast.Module loadModule(String uri);
+
   protected void populateGlobalScope(Scope scope) {
     scope
         .put("nil", Nil.val)
@@ -86,6 +102,12 @@ public abstract class Runtime {
           public Val calli(Val self, ArrayList<Val> args) {
             Err.expectArglen(args, 0);
             return Num.from(new java.util.Date().getTime());
+          }
+        })
+        .put(new BuiltinFunc("import") {
+          public Val calli(Val self, ArrayList<Val> args) {
+            return importModule(args.get(0).as(
+                Str.class, "module name argument").val);
           }
         })
         ;
