@@ -9,7 +9,7 @@ if [%1]==[] goto usage
 SET root=%~dp0\..\..
 if not exist %root%\cls mkdir %root%\cls
 javac -Xlint -Xdiags:verbose -g %root%\src\val\*.java %root%\src\desktop\*.java %root%\src\eval\*.java %root%\src\grammar\*.java %root%\src\translator\*.java %root%\src\val\*.java -d %root%\cls || goto fail_to_compile
-java -cp %root%\cls com.ccl.core.DesktopCore %root% %1
+java -cp %root%\cls com.ccl.desktop.Core %root% %1
 goto :eof
 
 :usage

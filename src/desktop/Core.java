@@ -1,5 +1,6 @@
-package com.ccl.core;
+package com.ccl.desktop;
 
+import com.ccl.core.*;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,10 +14,10 @@ import java.io.Reader;
 import java.io.Writer;
 import java.io.File;
 
-public class DesktopCore extends Runtime {
+public class Core extends com.ccl.core.Runtime {
 
   private final String pathToModules;
-  public DesktopCore(String pathToModules) {
+  public Core(String pathToModules) {
     this.pathToModules = pathToModules;
   }
 
@@ -80,7 +81,7 @@ public class DesktopCore extends Runtime {
 
   public static void main(String[] args) {
     try {
-      DesktopCore desktop = new DesktopCore(makePath(args[0], "mods"));
+      Core desktop = new Core(makePath(args[0], "mods"));
       desktop.importModule("corelib");
       desktop.importModule("corelib_desktop");
       desktop.runModule(args[1]);
