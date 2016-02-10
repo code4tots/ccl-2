@@ -13,10 +13,10 @@ import java.io.Reader;
 import java.io.Writer;
 import java.io.File;
 
-public class Desktop extends Runtime {
+public class DesktopCore extends Runtime {
 
   private final String pathToModules;
-  public Desktop(String pathToModules) {
+  public DesktopCore(String pathToModules) {
     this.pathToModules = pathToModules;
   }
 
@@ -80,7 +80,7 @@ public class Desktop extends Runtime {
 
   public static void main(String[] args) {
     try {
-      Desktop desktop = new Desktop(makePath(args[0], "mods"));
+      DesktopCore desktop = new DesktopCore(makePath(args[0], "mods"));
       desktop.importModule("corelib");
       desktop.importModule("corelib_desktop");
       desktop.runModule(args[1]);
