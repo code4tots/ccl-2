@@ -61,4 +61,8 @@ class Lexer(object):
       if self.starts_with('r'):
         self.pos += 1
         raw = True
+      quote = (
+          self.slice(3) if
+          self.starts_with('"""', "'''") else
+          self.slice(1))
       self.pos += len(quote)
