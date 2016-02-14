@@ -55,8 +55,6 @@ class Lexer(object):
     start = self.pos
 
     if self.starts_with("r'", "'", 'r"', '"'):
-      """ I can kind of cheat in the Python version here
-      in a way I can't in the Java version."""
       raw = False
       if self.starts_with('r'):
         self.pos += 1
