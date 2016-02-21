@@ -72,7 +72,7 @@ public final class Parser {
       Ast other = new Ast.Block(token, new ArrayList<Ast>());
       if (consume("else"))
         other = parseStatement();
-      return new Ast.If(token, cond, body, other, false);
+      return new Ast.If(token, cond, body, other);
     }
 
     if (at("break"))
@@ -365,7 +365,7 @@ public final class Parser {
       Ast other = new Ast.Name(token, "nil");
       if (consume("else"))
         other = parseExpression();
-      return new Ast.If(token, cond, body, other, true);
+      return new Ast.Ternary(token, cond, body, other);
     }
 
     if (at("let")) {

@@ -10,11 +10,10 @@ public abstract class AstVisitor<T> {
   public abstract T visitBreak(Ast.Break node);
   public abstract T visitContinue(Ast.Continue node);
   public abstract T visitExpressionStatement(Ast.ExpressionStatement node);
-
-  // Statement or Expression
   public abstract T visitIf(Ast.If node);
 
   // Expression only
+  public abstract T visitTernary(Ast.Ternary node);
   public abstract T visitInt(Ast.Int node);
   public abstract T visitFlt(Ast.Flt node);
   public abstract T visitStr(Ast.Str node);

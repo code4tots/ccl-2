@@ -67,18 +67,13 @@ public abstract class Ast implements Traceable {
     }
   }
 
-  // Statement or Expression
   public static final class If extends Ast {
     public final Ast cond, body, other;
-    public final boolean expr;
-    public If(
-        Token token, Ast cond, Ast body, Ast other,
-        boolean expr) {
+    public If(Token token, Ast cond, Ast body, Ast other) {
       super(token);
       this.cond = cond;
       this.body = body;
       this.other = other;
-      this.expr = expr;
     }
     public <T> T accept(AstVisitor<T> visitor) {
       return visitor.visitIf(this);
@@ -86,6 +81,19 @@ public abstract class Ast implements Traceable {
   }
 
   // Expression only
+  public static final class Ternary extends Ast {
+    public final Ast cond, body, other;
+    public Ternary(Token token, Ast cond, Ast body, Ast other) {
+      super(token);
+      this.cond = cond;
+      this.body = body;
+      this.other = other;
+    }
+    public <T> T accept(AstVisitor<T> visitor) {
+      return visitor.visitTernary(this);
+    }
+  }
+
   public static final class Int extends Ast {
     public final BigInteger val;
     public Int(Token token, BigInteger val) {

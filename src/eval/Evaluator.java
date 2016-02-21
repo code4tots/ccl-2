@@ -87,13 +87,15 @@ public class Evaluator extends AstVisitor<Val> {
   public Val visitExpressionStatement(Ast.ExpressionStatement node) {
     return visit(node.expr);
   }
-  // Statement or Expression
 
   public Val visitIf(Ast.If node) {
     return visit(visit(node.cond).truthy() ? node.body : node.other);
   }
 
   // Expression only
+  public Val visitTernary(Ast.Ternary node) {
+    return visit(visit(node.cond).truthy() ? node.body : node.other);
+  }
 
   public Val visitInt(Ast.Int node) {
     return Num.from(node.val);
