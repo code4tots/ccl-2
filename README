@@ -85,36 +85,9 @@ misc/
 Design
 ------
 
-Just a simple map so that if I decide to burn some of the code, it's going to be easier for me to do some codereuse.
-
 Tier N can compile with only the classes from Tier 1 ... N as dependencies.
 
-Each tier has a designated initializer. This is where all the 'static' blocks and other initialization should be triggered. This way, you can be sure that initializing just the designated class in each tier triggers all the necessary initializations of all the classes in the tier itself and all the tiers before it.
-
-Tier 1 (grammar dir -- Lexer)
-  Lexer
-  Token
-  SyntaxError
-
-Tier 2 (grammar dir -- Parser)
-  Parser
-  Ast
-  AstVisitor
-
-Tier 3a (val dir -- Object model)
-  Val
-  Func
-  UserFunc
-  BuiltinFunc
-  Num
-  Str
-  List
-  Map
-
-Tier 3b (eval dir -- Evaluation)
-  Err
-  Traceable
-  Evaluator
-  Scope
-  Runtime      ** Designated initializer.
-
+1. err
+2. grammar
+3. object
+4. runtime
