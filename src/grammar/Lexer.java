@@ -60,24 +60,24 @@ public final class Lexer {
       StringBuilder sb = new StringBuilder();
       while (!startsWith(quote)) {
         if (!more())
-          throw new SyntaxError(
-              makeToken(start, "ERR"),
-              "Finish your string literals");
+          throw new Err(
+              "Finish your string literals",
+              makeToken(start, "ERR"));
         if (!raw && startsWith("\\")) {
           pos++;
           if (!more())
-            throw new SyntaxError(
-                makeToken(pos, "ERR"),
-                "Finish your string escapes");
+            throw new Err(
+                "Finish your string escapes",
+                makeToken(pos, "ERR"));
           switch (ch()) {
           case '\\': sb.append('\\'); break;
           case 'n': sb.append('\n'); break;
           case 't': sb.append('\t'); break;
           case '"': sb.append('\"'); break;
           case '\'': sb.append('\''); break;
-          default: throw new SyntaxError(
-              makeToken(pos, "ERR"), 
-              "Invalid string escape " + Character.toString(ch()));
+          default: throw new Err(
+              "Invalid string escape " + Character.toString(ch()),
+              makeToken(pos, "ERR"));
           }
           pos++;
         } else {
@@ -139,7 +139,7 @@ public final class Lexer {
     while (more() && !Character.isWhitespace(ch()))
       pos++;
     Token token = makeToken(start, "ERR");
-    throw new SyntaxError(token, "Unrecognized token");
+    throw new Err("Unrecognized token", token);
   }
   public boolean isdigit() {
     return more() && Character.isDigit(ch());

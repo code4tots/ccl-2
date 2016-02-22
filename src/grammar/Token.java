@@ -1,6 +1,6 @@
 package com.ccl.core;
 
-public final class Token {
+public final class Token implements Traceable {
   public final Lexer lexer;
   public final int i;
   public final String type;
@@ -33,5 +33,8 @@ public final class Token {
         "file '" + lexer.filespec + "' on line " + Integer.toString(lc) +
         "\n" + lexer.string.substring(a, b) + "\n" +
         spaces + "*";
+  }
+  public String getTraceMessage() {
+    return "in " + getLocationString();
   }
 }

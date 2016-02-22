@@ -5,15 +5,14 @@ public abstract class AstVisitor<T> {
 
   // Statement only
   public abstract T visitReturn(Ast.Return node);
+  public abstract T visitIf(Ast.If node);
   public abstract T visitWhile(Ast.While node);
   public abstract T visitBlock(Ast.Block node);
   public abstract T visitBreak(Ast.Break node);
   public abstract T visitContinue(Ast.Continue node);
   public abstract T visitExpressionStatement(Ast.ExpressionStatement node);
-  public abstract T visitIf(Ast.If node);
 
   // Expression only
-  public abstract T visitTernary(Ast.Ternary node);
   public abstract T visitInt(Ast.Int node);
   public abstract T visitFlt(Ast.Flt node);
   public abstract T visitStr(Ast.Str node);
@@ -29,6 +28,7 @@ public abstract class AstVisitor<T> {
   public abstract T visitNot(Ast.Not node);
   public abstract T visitAnd(Ast.And node);
   public abstract T visitOr(Ast.Or node);
+  public abstract T visitTernary(Ast.Ternary node);
 
   // Module
   public abstract T visitModule(Ast.Module node);

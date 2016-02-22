@@ -27,8 +27,8 @@ public final class Parser {
   }
   private Token expect(String type) {
     if (!at(type))
-      throw new SyntaxError(
-          peek(), "Expected " + type + " but found " + peek().type);
+      throw new Err(
+          "Expected " + type + " but found " + peek().type, peek());
     return next();
   }
   public Ast.Module parse() {
@@ -259,12 +259,12 @@ public final class Parser {
         if (at("=")) {
           token = next();
           if (vararg != null || args.size() != 1)
-            throw new SyntaxError(
-                token, "For setitem syntax, must have exactly one argument");
+            throw new Err(
+                "For setitem syntax, must have exactly one argument", token);
           node = new Ast.Call(
               token, node, "__setitem__", args.get(0), parseExpression());
         } else {
-          node = new Ast.Call(token, node, "__call__", args, vararg);
+          node = new Ast.Call(token, node, null, args, vararg);
         }
         continue;
       }
@@ -349,10 +349,10 @@ public final class Parser {
       Token token = next();
       Ast.ListPattern args = parseListPattern();
       if (!consume(".") && !at("{"))
-        throw new SyntaxError(
-            peek(),
+        throw new Err(
             "Expected either a '.' or '{' to indicate " +
-            "the end of the argument list.");
+            "the end of the argument list.",
+            peek());
       Ast body = parseStatement();
       return new Ast.Function(token, args, body, newScope);
     }
@@ -376,8 +376,8 @@ public final class Parser {
       return new Ast.Assign(token, pattern, val);
     }
 
-    throw new SyntaxError(
-        peek(), "Expected expression but found " + peek().type);
+    throw new Err(
+        "Expected expression but found " + peek().type, peek());
   }
 
   public Ast.Pattern parsePattern() {

@@ -23,6 +23,18 @@ public abstract class Ast implements Traceable {
       return visitor.visitReturn(this);
     }
   }
+  public static final class If extends Ast {
+    public final Ast cond, body, other;
+    public If(Token token, Ast cond, Ast body, Ast other) {
+      super(token);
+      this.cond = cond;
+      this.body = body;
+      this.other = other;
+    }
+    public <T> T accept(AstVisitor<T> visitor) {
+      return visitor.visitIf(this);
+    }
+  }
   public static final class While extends Ast {
     public final Ast cond, body;
     public While(Token token, Ast cond, Ast body) {
@@ -67,33 +79,7 @@ public abstract class Ast implements Traceable {
     }
   }
 
-  public static final class If extends Ast {
-    public final Ast cond, body, other;
-    public If(Token token, Ast cond, Ast body, Ast other) {
-      super(token);
-      this.cond = cond;
-      this.body = body;
-      this.other = other;
-    }
-    public <T> T accept(AstVisitor<T> visitor) {
-      return visitor.visitIf(this);
-    }
-  }
-
   // Expression only
-  public static final class Ternary extends Ast {
-    public final Ast cond, body, other;
-    public Ternary(Token token, Ast cond, Ast body, Ast other) {
-      super(token);
-      this.cond = cond;
-      this.body = body;
-      this.other = other;
-    }
-    public <T> T accept(AstVisitor<T> visitor) {
-      return visitor.visitTernary(this);
-    }
-  }
-
   public static final class Int extends Ast {
     public final BigInteger val;
     public Int(Token token, BigInteger val) {
@@ -253,7 +239,7 @@ public abstract class Ast implements Traceable {
   }
   public static final class Call extends Ast {
     public final Ast owner;
-    public final String name; // method name
+    public final String name; // method name (nullable -> implicit __call__)
     public final ArrayList<Ast> args;
     public final Ast vararg;
     public Call(
@@ -309,6 +295,18 @@ public abstract class Ast implements Traceable {
       return visitor.visitOr(this);
     }
   }
+  public static final class Ternary extends Ast {
+    public final Ast cond, body, other;
+    public Ternary(Token token, Ast cond, Ast body, Ast other) {
+      super(token);
+      this.cond = cond;
+      this.body = body;
+      this.other = other;
+    }
+    public <T> T accept(AstVisitor<T> visitor) {
+      return visitor.visitTernary(this);
+    }
+  }
 
   // Module
   public static final class Module extends Ast {
@@ -330,5 +328,4 @@ public abstract class Ast implements Traceable {
       al.add(args[i]);
     return al;
   }
-
 }
