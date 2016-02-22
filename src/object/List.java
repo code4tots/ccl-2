@@ -32,4 +32,12 @@ public final class List extends Value {
   protected ArrayList<Value> getValue() {
     return value;
   }
+
+  public Value get(int i) {
+    return value.get(i);
+  }
+
+  public int size() {
+    return value.size();
+  }
 }

@@ -3,4 +3,4 @@
 root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/../..
 mkdir -p "$root"/cls && \
 javac -Xlint -g "$root"/src/**/*.java -d "$root"/cls/ && \
-java -cp "$root"/cls com.ccl.desktop.Core "$root" $1
+java -cp "$root"/cls com.ccl.desktop.Runtime "$root" $1

@@ -35,6 +35,6 @@ public final class Token implements Traceable {
         spaces + "*";
   }
   public String getTraceMessage() {
-    return "in " + getLocationString();
+    return "\nin " + getLocationString();
   }
 }

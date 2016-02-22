@@ -12,6 +12,10 @@ public final class ErrUtils {
           args.size() + ".");
   }
 
+  public static void expectArglen(List args, int len) {
+    expectArglen(args.getValue(), len);
+  }
+
   public static void expectArglen(ArrayList<Value> args, int len) {
     if (args.size() != len)
       throw new Err(
