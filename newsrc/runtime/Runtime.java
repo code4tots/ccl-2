@@ -53,6 +53,13 @@ public class Runtime {
     return runModule(new Parser(readModule(uri), uri).parse());
   }
 
+  public final Blob importModule(String uri) {
+    if (moduleRegistry.get(uri) == null) {
+      moduleRegistry.put(uri, loadModule(uri));
+    }
+    return moduleRegistry.get(uri);
+  }
+
   // In order to import modules, subclass Runtime must override 'readModule'.
   public String readModule(String uri) {
     throw new Err("Importing module not supported");
