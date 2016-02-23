@@ -8,7 +8,7 @@ public final class Text extends Value {
 
   public static final Blob META = new Blob(Blob.META)
       .setattr("name", Text.from("Text"))
-      .setattr("__str__", new BuiltinFunction("Text#__str__") {
+      .setattr("str", new BuiltinFunction("Text#str") {
         @Override
         public Value calli(Value owner, List args) {
           ErrUtils.expectArglen(args, 0);

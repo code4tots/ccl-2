@@ -1,3 +1,9 @@
+Value@str = \. self.repr[]
+Nil@repr = \\. 'nil'
+Bool@repr = \. if self 'true' else 'false'
+Bool@__bool__ = \. self
+
+
 Nil.extends[Value]
 Bool.extends[Value]
 Number.extends[Value]

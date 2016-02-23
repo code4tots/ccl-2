@@ -47,11 +47,11 @@ public abstract class Value {
 
   @Override
   public final String toString() {
-    return callx("__str__").as(Text.class).getValue();
+    return callx("str").as(Text.class).getValue();
   }
 
   @Override
   public final int hashCode() {
-    return (int) callx("__hash__").as(Number.class).getValue();
+    return (int) callx("hash").as(Number.class).getValue();
   }
 }

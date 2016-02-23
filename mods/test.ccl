@@ -1,4 +1,6 @@
 print['hello world']
+print[nil]
+print[true]
 
 # Comment out the rest of this test for now.
 r'''

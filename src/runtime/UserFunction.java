@@ -24,7 +24,7 @@ public final class UserFunction extends Function {
     Scope scope = this.scope;
     if (ast.newScope) {
       scope = new Scope(scope);
-      scope.put("self", this);
+      scope.put("self", owner);
     }
     new Assigner(scope).visit(ast.args, args);
     Value result = runtime.makeEvaluator(scope).visit(ast.body);

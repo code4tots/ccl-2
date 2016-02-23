@@ -70,8 +70,7 @@ public class Evaluator extends AstVisitor<Value> {
 
   public Value visitExpressionStatement(
       Ast.ExpressionStatement node) {
-    visit(node.expr);
-    return null;
+    return visit(node.expr);
   }
 
   // Expression only
