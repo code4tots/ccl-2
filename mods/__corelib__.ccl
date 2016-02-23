@@ -1,11 +1,29 @@
+"""__corelib__.ccl"""
+
+"""Assign names to all the 'Meta' objects."""
+Meta@name = "Meta"
+Value@name = "Value"
+Nil@name = "Nil"
+Bool@name = "Bool"
+Number@name = "Number"
+Text@name = "Text"
+List@name = "List"
+UserFunction@name = "UserFunction"
+
+"""Add methods that can be implemented in the language itself."""
 Value@str = \. self.repr[]
 Nil@repr = \\. 'nil'
+Nil@__bool__ = \\. false
 Bool@repr = \. if self 'true' else 'false'
 Bool@__bool__ = \. self
+Text@str = \. self
+Text@repr = \. '"' + self + '"' # TODO: Smarter Text repr.
 
-
+"""Set up static inheritance."""
+Meta.extends[Value]
 Nil.extends[Value]
 Bool.extends[Value]
 Number.extends[Value]
 Text.extends[Value]
 List.extends[Value]
+UserFunction.extends[Value]

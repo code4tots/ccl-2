@@ -23,7 +23,8 @@ public class Runtime {
         .put("List", List.META)
         .put("Nil", Nil.META)
         .put("Number", Number.META)
-        .put("Text", Text.META);
+        .put("Text", Text.META)
+        .put("UserFunction", UserFunction.META);
   }
 
   public final Scope getGlobalScope() {
@@ -58,7 +59,8 @@ public class Runtime {
     return moduleRegistry.get(uri);
   }
 
-  // In order to import modules, subclass Runtime must override 'readModule'.
+  // In order to import modules, subclass Runtime must override
+  // 'readModule'.
   public String readModule(String uri) {
     throw new Err("Importing module not supported");
   }

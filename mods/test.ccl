@@ -2,6 +2,11 @@ print['hello world']
 print[nil]
 print[true]
 
+if nil
+  print['nil is true']
+else
+  print['nil is false']
+
 # Comment out the rest of this test for now.
 r'''
 startTime = time[]

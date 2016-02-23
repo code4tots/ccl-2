@@ -2,6 +2,7 @@ package com.ccl.core;
 
 public abstract class BuiltinFunction extends Function implements Traceable {
   public static final Blob META = new Blob(Blob.META)
+      .setattr("name", Text.from("BuiltinFunction"))
       .setattr("__str__", new BuiltinFunction("BuiltinFunction#__str__") {
         @Override
         public Value calli(Value owner, List args) {

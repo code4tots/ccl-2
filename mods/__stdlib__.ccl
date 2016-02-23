@@ -1,0 +1,12 @@
+"""__stdlib__.ccl"""
+
+import['__corelib__']
+
+"""Assign names to all the 'Meta' objects."""
+BuiltinFunction@name = "BuiltinFunction"
+
+"""Add methods that can be implemented in the language itself."""
+# TODO: ...
+
+"""Set up static inheritance."""
+BuiltinFunction.extends[Value]

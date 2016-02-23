@@ -15,13 +15,13 @@ import java.io.Reader;
 import java.io.Writer;
 import java.io.File;
 
-public class Runtime extends com.ccl.core.Runtime {
+public class Runtime extends RuntimeWithStdlib {
 
   public final String pathToModules;
 
   public Runtime(String pathToModules) {
     this.pathToModules = pathToModules;
-    importModule("__corelib__");
+    importModule("__desktoplib__");
   }
 
   @Override
