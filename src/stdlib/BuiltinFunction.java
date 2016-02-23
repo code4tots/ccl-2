@@ -25,18 +25,16 @@ public abstract class BuiltinFunction extends Function implements Traceable {
   @Override
   public final Value call(Value owner, List args) {
     try {
-      try {
-        Value result = calli(owner, args);
-        if (result == null) {
-          throw new Err("Builtin function returned null");
-        }
-        return result;
-      } catch (final Throwable e) {
-        throw new Err(e);
+      Value result = calli(owner, args);
+      if (result == null) {
+        throw new Err("Builtin function returned null");
       }
+      return result;
     } catch (final Err e) {
       e.add(this);
       throw e;
+    } catch (final Throwable e) {
+      throw new Err(e, this);
     }
   }
 

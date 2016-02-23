@@ -1,0 +1,5 @@
+Nil.extends[Value]
+Bool.extends[Value]
+Number.extends[Value]
+Text.extends[Value]
+List.extends[Value]

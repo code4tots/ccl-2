@@ -20,6 +20,11 @@ public final class Err extends RuntimeException {
     trace.add(traceable);
   }
 
+  public Err(Throwable throwable, Traceable traceable) {
+    super(throwable);
+    trace.add(traceable);
+  }
+
   public void add(Traceable traceable) {
     trace.add(traceable);
   }

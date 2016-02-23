@@ -8,9 +8,6 @@ public class Runtime {
   protected HashMap<String, Blob> moduleRegistry =
       new HashMap<String, Blob>();
 
-  // META for module blobs.
-  public static final Blob META = new Blob(Blob.META);
-
   public Runtime() {
     populateGlobalScope(global);
   }
@@ -20,6 +17,7 @@ public class Runtime {
         .put("nil", Nil.value)
         .put("true", Bool.yes)
         .put("false", Bool.no)
+        .put("Value", Value.META)
         .put("Meta", Blob.META)
         .put("Bool", Bool.META)
         .put("List", List.META)
@@ -46,7 +44,7 @@ public class Runtime {
     Scope scope = new Scope(global);
     Evaluator evaluator = makeEvaluator(scope);
     evaluator.visit(module);
-    return new Blob(META, scope.table);
+    return new Blob(Blob.MODULE_META, scope.table);
   }
 
   public final Blob loadModule(String uri) {

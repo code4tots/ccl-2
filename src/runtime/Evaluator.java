@@ -114,14 +114,21 @@ public class Evaluator extends AstVisitor<Value> {
               .getValue());
     }
     List args = List.from(arglist);
-    if (node.name == null) {
-      if (owner instanceof Function) {
-        return ((Function) owner).call(owner, args);
+    try {
+      if (node.name == null) {
+        if (owner instanceof Function) {
+          return ((Function) owner).call(owner, args);
+        } else {
+          return owner.call("__call__", args);
+        }
       } else {
-        return owner.call("__call__", args);
+        return owner.call(node.name, List.from(arglist));
       }
-    } else {
-      return owner.call(node.name, List.from(arglist));
+    } catch (final Err e) {
+      e.add(node);
+      throw e;
+    // } catch (final Throwable e) {
+    //   throw new Err(e, node);
     }
   }
 

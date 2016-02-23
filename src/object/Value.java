@@ -1,6 +1,9 @@
 package com.ccl.core;
 
 public abstract class Value {
+
+  public static final Blob META = new Blob(Blob.META);
+
   public abstract Blob getMeta();
 
   public final <T extends Value> T as(Class<T> cls) {
@@ -14,7 +17,13 @@ public abstract class Value {
   }
 
   public final Value call(String name, List args) {
-    return getMeta().getattr(name).as(Function.class).call(this, args);
+    Blob meta = getMeta();
+    if (meta == null) {
+      throw new Err("WTF: " + getClass().getName());
+    }
+    Value attr = meta.getattr(name);
+    Function func = attr.as(Function.class);
+    return func.call(this, args);
   }
 
   public final Value callx(String name, Value... args) {

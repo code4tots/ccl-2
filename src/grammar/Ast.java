@@ -8,7 +8,7 @@ public abstract class Ast implements Traceable {
   public final Token token;
   public Ast(Token token) { this.token = token; }
   public String getTraceMessage() {
-    return "\nin expression in " + token.getLocationString();
+    return "\n" + token.getLocationString();
   }
   public abstract <T> T accept(AstVisitor<T> visitor);
 

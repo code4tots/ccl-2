@@ -48,6 +48,7 @@ public class Runtime extends com.ccl.core.Runtime {
       runtime.runMainModule(readFile(args[1]));
     } catch (final Err e) {
       System.out.println(e.getMessageWithTrace());
+      // TODO: Add a flag for displaying native Java errors.
       e.printStackTrace();
       System.exit(1);
     } catch (final Throwable e) {
