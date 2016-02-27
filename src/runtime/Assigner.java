@@ -3,13 +3,13 @@ package com.ccl.core;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-public final class Assigner extends Ast.PatternVisitor<Value> {
+public final class Assigner extends PatternVisitor<Value> {
   private final Scope scope;
   public Assigner(Scope scope) {
     this.scope = scope;
   }
 
-  public void visitListPattern(Ast.ListPattern pattern, Value val) {
+  public void visitList(Pattern.List pattern, Value val) {
     // TODO: Allow 'val' to be any iteratorable.
     ArrayList<Value> args = val.as(List.class).getValue();
     if (pattern.vararg == null) {
@@ -24,7 +24,7 @@ public final class Assigner extends Ast.PatternVisitor<Value> {
     }
 
     Iterator<Value> vit = args.iterator();
-    Iterator<Ast.Pattern> sit = pattern.args.iterator();
+    Iterator<Pattern> sit = pattern.args.iterator();
 
     while (sit.hasNext())
       visit(sit.next(), vit.next());
@@ -45,7 +45,7 @@ public final class Assigner extends Ast.PatternVisitor<Value> {
     }
   }
 
-  public void visitNamePattern(Ast.NamePattern pattern, Value value) {
+  public void visitName(Pattern.Name pattern, Value value) {
     scope.put(pattern.name, value);
   }
 }

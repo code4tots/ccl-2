@@ -332,7 +332,7 @@ public final class Parser {
       if (at("=")) {
         token = next();
         Ast value = parseExpression();
-        return new Ast.Assign(token, new Ast.NamePattern(name), value);
+        return new Ast.Assign(token, new Pattern.Name(name), value);
       } else {
         return new Ast.Name(token, name);
       }
@@ -347,7 +347,7 @@ public final class Parser {
     if (at("\\") || at("\\\\")) {
       boolean newScope = at("\\");
       Token token = next();
-      Ast.ListPattern args = parseListPattern();
+      Pattern.List args = parseListPattern();
       if (!consume(".") && !at("{"))
         throw new Err(
             "Expected either a '.' or '{' to indicate " +
@@ -370,7 +370,7 @@ public final class Parser {
 
     if (at("let")) {
       Token token = next();
-      Ast.Pattern pattern = parsePattern();
+      Pattern pattern = parsePattern();
       expect("=");
       Ast val = parseExpression();
       return new Ast.Assign(token, pattern, val);
@@ -380,22 +380,22 @@ public final class Parser {
         "Expected expression but found " + peek().type, peek());
   }
 
-  public Ast.Pattern parsePattern() {
+  public Pattern parsePattern() {
     if (consume("[")) {
-      Ast.Pattern pattern = parseListPattern();
+      Pattern pattern = parseListPattern();
       expect("]");
       return pattern;
     }
-    return new Ast.NamePattern((String) expect("ID").value);
+    return new Pattern.Name((String) expect("ID").value);
   }
 
-  public Ast.ListPattern parseListPattern() {
-    ArrayList<Ast.Pattern> args = new ArrayList<Ast.Pattern>();
+  public Pattern.List parseListPattern() {
+    ArrayList<Pattern> args = new ArrayList<Pattern>();
     while (at("ID") || at("[")) {
       args.add(parsePattern());
       consume(",");
     }
-    ArrayList<Ast.Pattern> optargs = new ArrayList<Ast.Pattern>();
+    ArrayList<Pattern> optargs = new ArrayList<Pattern>();
     while (consume("/")) {
       optargs.add(parsePattern());
       consume(",");
@@ -403,7 +403,7 @@ public final class Parser {
     String vararg = null;
     if (consume("*"))
       vararg = (String) expect("ID").value;
-    return new Ast.ListPattern(args, optargs, vararg);
+    return new Pattern.List(args, optargs, vararg);
   }
 
   public static String filespecToName(String filespec) {

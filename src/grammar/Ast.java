@@ -133,11 +133,11 @@ public abstract class Ast implements Traceable {
     }
   }
   public static final class Function extends Ast {
-    public final ListPattern args;
+    public final Pattern.List args;
     public final Ast body;
     public final boolean newScope;
     public Function(
-        Token token, ListPattern args, Ast body, boolean newScope) {
+        Token token, Pattern.List args, Ast body, boolean newScope) {
       super(token);
       this.args = args;
       this.body = body;
@@ -146,35 +146,6 @@ public abstract class Ast implements Traceable {
     public <T> T accept(AstVisitor<T> visitor) {
       return visitor.visitFunction(this);
     }
-  }
-  public abstract static class Pattern {
-    public abstract <T> void accept(PatternVisitor<T> visitor, T t);
-  }
-  public static final class ListPattern extends Pattern {
-    public final ArrayList<Pattern> args;
-    public final ArrayList<Pattern> optargs;
-    public final String vararg;
-    public ListPattern(
-        ArrayList<Pattern> args, ArrayList<Pattern> optargs, String vararg) {
-      this.args = args;
-      this.optargs = optargs;
-      this.vararg = vararg;
-    }
-    public <T> void accept(PatternVisitor<T> visitor, T t) {
-      visitor.visitListPattern(this, t);
-    }
-  }
-  public static final class NamePattern extends Pattern {
-    public final String name;
-    public NamePattern(String name) { this.name = name; }
-    public <T> void accept(PatternVisitor<T> visitor, T t) {
-      visitor.visitNamePattern(this, t);
-    }
-  }
-  public abstract static class PatternVisitor<T> {
-    public final void visit(Pattern pattern, T t) { pattern.accept(this, t); }
-    public abstract void visitListPattern(ListPattern pattern, T t);
-    public abstract void visitNamePattern(NamePattern pattern, T t);
   }
   public static final class GetMethod extends Ast {
     public final Ast owner;
