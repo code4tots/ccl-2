@@ -18,6 +18,7 @@ Bool@repr = \. if self 'true' else 'false'
 Bool@__bool__ = \. self
 Text@str = \. self
 Text@repr = \. '"' + self + '"' # TODO: Smarter Text repr.
+UserFunction@repr = \. '<user-function>'
 
 """Set up static inheritance."""
 Meta.extends[Value]
