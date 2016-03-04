@@ -22,7 +22,7 @@ public class Runtime extends RuntimeWithStdlib {
 
   public Runtime(String pathToModules) {
     this.pathToModules = pathToModules;
-    importModule("__desktoplib__");
+    importModule("rt/desktoplib");
   }
 
   @Override

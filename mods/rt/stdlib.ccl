@@ -1,6 +1,6 @@
-"""__stdlib__.ccl"""
+"""rt/stdlib.ccl"""
 
-import['__corelib__']
+import['rt/corelib']
 
 """Assign names to all the 'Meta' objects."""
 BuiltinFunction@name = "BuiltinFunction"

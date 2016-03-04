@@ -1,4 +1,4 @@
-"""__corelib__.ccl"""
+"""rt/corelib.ccl"""
 
 """Assign names to all the 'Meta' objects."""
 Meta@name = "Meta"
