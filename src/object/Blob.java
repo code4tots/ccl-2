@@ -14,7 +14,7 @@ public final class Blob extends Value {
   static {
     META
         .setattr("name", Text.from("Meta"))
-        .setattr("extends", new BuiltinFunction("Meta.extends") {
+        .setattr("extends", new BuiltinFunction("Meta@extends") {
           @Override
           public Value calli(Value owner, List args) {
             ErrUtils.expectArglen(args, 1);

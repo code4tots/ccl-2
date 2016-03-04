@@ -24,7 +24,13 @@ public class Runtime {
         .put("Nil", Nil.META)
         .put("Number", Number.META)
         .put("Text", Text.META)
-        .put("UserFunction", UserFunction.META);
+        .put("UserFunction", UserFunction.META)
+        .put("L", new BuiltinFunction("L") {
+          @Override
+          public Value calli(Value owner, List args) {
+            return args;
+          }
+        });
   }
 
   public final Scope getGlobalScope() {
