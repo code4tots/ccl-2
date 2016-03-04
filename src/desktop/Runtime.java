@@ -1,6 +1,7 @@
 package com.ccl.desktop;
 
 import com.ccl.core.*;
+import com.ccl.core.Number;
 
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -33,6 +34,13 @@ public class Runtime extends RuntimeWithStdlib {
             ErrUtils.expectArglen(args, 1);
             System.out.println(args.get(0));
             return args.get(0);
+          }
+        })
+        .put("time", new BuiltinFunction("time") {
+          public Value calli(Value owner, List args) {
+            ErrUtils.expectArglen(args, 0);
+            return Number.from(
+                ((double)System.currentTimeMillis())/1000);
           }
         });
   }

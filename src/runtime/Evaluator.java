@@ -87,7 +87,12 @@ public class Evaluator extends AstVisitor<Value> {
   }
 
   public Value visitName(Ast.Name node) {
-    return scope.get(node.name);
+    try {
+      return scope.get(node.name);
+    } catch (final Err e) {
+      e.add(node);
+      throw e;
+    }
   }
 
   public Value visitAssign(Ast.Assign node) {
