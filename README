@@ -3,7 +3,15 @@ Sanity (CCL - Cackle)
 
 Simple programming language with an object model a lot like Lua's.
 
-Usage: ./run.sh <path_to_ccl_script>
+Add 'exec/unix' (for Mac/Linux etc) or 'exec/windows' (for Windows) to the path.
+
+Usage: xccl <path_to_ccl_script>
+
+If you've run a script at least once with xccl, you can just use
+
+Usage: ccl  <path_to_ccl_script>
+
+xccl is like ccl, except it recompiles the Java binaries before running.
 
 Design Philosophy
 -----------------
