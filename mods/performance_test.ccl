@@ -1,3 +1,29 @@
+"""
+Kyumins-MacBook-Pro:ccl math4tots$ xccl mods/performance_test.ccl 
+total = 4.999995E11
+elapsed time ~ 0.437000036239624 sec
+total = 4.999995E11
+elapsed time ~ 0.41899991035461426 sec
+
+This is compared to an older version:
+
+Kyumins-MacBook-Pro:ccl math4tots$ git checkout 7d1575e9e4168dc7dc902fda2d3aa17ccb8ae73e
+Kyumins-MacBook-Pro:ccl math4tots$ xccl mods/performance_test.ccl 
+total = 499999500000
+elapsed time ~ 0.403 sec
+total = 4.999995E11
+elapsed time ~ 0.419 sec
+
+-----
+
+So not that much worse.
+I did expect some more overhead.
+
+But also, in the older version, there was a separation between float and int.
+
+Now they are all just 'Number'.
+
+"""
 start = time[]
 
 total = 0
