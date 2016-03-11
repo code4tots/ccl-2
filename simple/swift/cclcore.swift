@@ -86,11 +86,11 @@ class Value: Hashable, CustomStringConvertible {
 class Scope {
   let parent: Scope?
   var table: [String: Value] = [:]
-  
+
   init(_ parent: Scope?) {
     self.parent = parent
   }
-  
+
   subscript(index: String) -> Value {
     get {
       if let value = table[index] {
@@ -265,11 +265,11 @@ class Function: BaseFunction {
 
 class BuiltinFunction: BaseFunction {
   let block: ([Value]) -> Value
-  
+
   init(_ block: ([Value]) -> Value) {
     self.block = block
   }
-  
+
   override func callf(args: [Value]) -> Value {
     return block(args)
   }
@@ -519,7 +519,7 @@ class Parser {
     while consume("\n") {}
     return Command(token, f, args)
   }
-  
+
   func parseParentheticalCommand() -> Command {
     expect("(")
     let token = peek()
@@ -532,7 +532,7 @@ class Parser {
     }
     return Command(token, f, args)
   }
-  
+
   func parseProgram() -> Ast {
     let token = peek()
     var args: [Ast] = []
