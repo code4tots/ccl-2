@@ -36,131 +36,131 @@
 //: Playground - noun: a place where people can play
 
 func isspace(c: Character) -> Bool {
-    return c == " " || c == "\t"
+  return c == " " || c == "\t"
 }
 
 func isword(c: Character) -> Bool {
-    return c == "_" || (c >= "0" && c <= "9") || (c >= "a" && c <= "z") || (c >= "A" && c <= "Z")
+  return c == "_" || (c >= "0" && c <= "9") || (c >= "a" && c <= "z") || (c >= "A" && c <= "Z")
 }
 
 func isdig(c: Character) -> Bool {
-    return c >= "0" && c <= "9"
+  return c >= "0" && c <= "9"
 }
 
 @noreturn func die(msg: String) {
-    preconditionFailure(msg)
+  preconditionFailure(msg)
 }
 
 struct Token {
-    let source: Source
-    let type: String
-    let i: String.Index
-    let value: String
+  let source: Source
+  let type: String
+  let i: String.Index
+  let value: String
 }
 
 class Source {
-    let text: String
-    let filespec: String
-    init(text: String, filespec: String) {
-        self.text = text
-        self.filespec = filespec
-    }
+  let text: String
+  let filespec: String
+  init(text: String, filespec: String) {
+    self.text = text
+    self.filespec = filespec
+  }
 }
 
 func ==(lhs: Value, rhs: Value) -> Bool {
-    return lhs.eq(rhs)
+  return lhs.eq(rhs)
 }
 
 class Value: Hashable, CustomStringConvertible {
-    var hashValue: Int {
-        die("hashValue not implemented")
-    }
-    func eq(other: Value) -> Bool {
-        die("Didn't override eq")
-    }
-    var description: String {
-        return "<Value -- \(self.dynamicType) (unimplemented)>"
-    }
+  var hashValue: Int {
+    die("hashValue not implemented")
+  }
+  func eq(other: Value) -> Bool {
+    die("Didn't override eq")
+  }
+  var description: String {
+    return "<Value -- \(self.dynamicType) (unimplemented)>"
+  }
 }
 
 class Scope {
-    let parent: Scope?
-    var table: [String: Value] = [:]
-    
-    init(_ parent: Scope?) {
-        self.parent = parent
+  let parent: Scope?
+  var table: [String: Value] = [:]
+  
+  init(_ parent: Scope?) {
+    self.parent = parent
+  }
+  
+  subscript(index: String) -> Value {
+    get {
+      if let value = table[index] {
+        return value
+      }
+      if let p = parent {
+        return p[index]
+      }
+      die("No such name '\(index)'")
     }
-    
-    subscript(index: String) -> Value {
-        get {
-            if let value = table[index] {
-                return value
-            }
-            if let p = parent {
-                return p[index]
-            }
-            die("No such name '\(index)'")
-        }
-        set(value) {
-            table[index] = value
-        }
+    set(value) {
+      table[index] = value
     }
+  }
 }
 
 class Niil: Value {
-    override var hashValue: Int {
-        return 97
-    }
-    
-    override var description: String {
-        return "nil"
-    }
+  override var hashValue: Int {
+    return 97
+  }
+
+  override var description: String {
+    return "nil"
+  }
 }
 
 class Number: Value {
-    var value = 0.0
-    
-    init(_ value: Double) {
-        self.value = value
+  var value = 0.0
+
+  init(_ value: Double) {
+    self.value = value
+  }
+
+  override var hashValue: Int {
+    return value.hashValue
+  }
+
+  override func eq(other: Value) -> Bool {
+    if let x = other as? Number {
+      return value == x.value
     }
-    
-    override var hashValue: Int {
-        return value.hashValue
-    }
-    
-    override func eq(other: Value) -> Bool {
-        if let x = other as? Number {
-            return value == x.value
-        }
-        return false
-    }
-    
-    override var description: String {
-        return value.description
-    }
+    return false
+  }
+
+  override var description: String {
+    return value.description
+  }
 }
 
 class Text: Value {
-    var value = ""
-    
-    init(_ value: String) {
-        self.value = value
+  var value = ""
+
+  init(_ value: String) {
+    self.value = value
+  }
+
+  override var hashValue: Int {
+    return value.hashValue
+  }
+
+  override func eq(other: Value) -> Bool {
+    if let x = other as? Text {
+      return value == x.value
     }
-    
-    override var hashValue: Int {
-        return value.hashValue
-    }
-    
-    override func eq(other: Value) -> Bool {
-        if let x = other as? Text {
-            return value == x.value
-        }
-        return false
-    }
-    
-    override var description: String {
-        return value
-    }
+    return false
+  }
+
+  override var description: String {
+    return value
+  }
 }
 
 class List: Value {
@@ -183,77 +183,77 @@ class List: Value {
 }
 
 class Table: Value {
-    var value: [Value: Value] = [:]
-    
-    override var hashValue: Int {
-        return value.count // TODO
+  var value: [Value: Value] = [:]
+
+  override var hashValue: Int {
+    return value.count // TODO
+  }
+
+  override func eq(other: Value) -> Bool {
+    if let x = other as? Table {
+      return value == x.value
     }
-    
-    override func eq(other: Value) -> Bool {
-        if let x = other as? Table {
-            return value == x.value
-        }
-        return false
-    }
+    return false
+  }
 }
 
 class Ast {
-    let token: Token
-    
-    init(_ token: Token) {
-        self.token = token
-    }
-    
-    func eval(scope: Scope) -> Value {
-        die("eval not implemented")
-    }
+  let token: Token
+
+  init(_ token: Token) {
+    self.token = token
+  }
+
+  func eval(scope: Scope) -> Value {
+    die("eval not implemented")
+  }
 }
 
 class Callable: Value {
-    func call(scope: Scope, args: [Ast]) -> Value {
-        die("Not implemented")
-    }
+  func call(scope: Scope, args: [Ast]) -> Value {
+    die("Not implemented")
+  }
 }
 
 class SpecialForm: Callable {
-    
-    let block: (Scope, [Ast]) -> Value
-    
-    init(_ block: (Scope, [Ast]) -> Value) {
-        self.block = block
-    }
-    
-    override func call(scope: Scope, args: [Ast]) -> Value {
-        return block(scope, args)
-    }
+
+  let block: (Scope, [Ast]) -> Value
+
+  init(_ block: (Scope, [Ast]) -> Value) {
+    self.block = block
+  }
+
+  override func call(scope: Scope, args: [Ast]) -> Value {
+    return block(scope, args)
+  }
 }
 
 class BaseFunction: Callable {
-    override final func call(scope: Scope, args: [Ast]) -> Value {
-        var eargs: [Value] = []
-        for arg in args {
-            eargs.append(arg.eval(scope))
-        }
-        return callf(eargs)
+  override final func call(scope: Scope, args: [Ast]) -> Value {
+    var eargs: [Value] = []
+    for arg in args {
+      eargs.append(arg.eval(scope))
     }
-    
-    func callf(args: [Value]) -> Value {
-        die("Not implemented")
-    }
+    return callf(eargs)
+  }
+
+  func callf(args: [Value]) -> Value {
+    die("Not implemented")
+  }
 }
 
 class Function: BaseFunction {
-    
+
   let scope: Scope
   let args: [String]
   let body: Ast
-  
+
   init(_ scope: Scope, _ args: [String], _ body: Ast) {
     self.scope = scope
     self.args = args
     self.body = body
   }
-  
+
   override func callf(args: [Value]) -> Value {
     let scope = Scope(self.scope)
     for (name, value) in zip(self.args, args) {
@@ -264,15 +264,15 @@ class Function: BaseFunction {
 }
 
 class BuiltinFunction: BaseFunction {
-    let block: ([Value]) -> Value
-    
-    init(_ block: ([Value]) -> Value) {
-        self.block = block
-    }
-    
-    override func callf(args: [Value]) -> Value {
-        return block(args)
-    }
+  let block: ([Value]) -> Value
+  
+  init(_ block: ([Value]) -> Value) {
+    self.block = block
+  }
+  
+  override func callf(args: [Value]) -> Value {
+    return block(args)
+  }
 }
 
 func lex(text: String, _ filespec: String) -> [Token] {
@@ -283,20 +283,20 @@ func lex(text: String, _ filespec: String) -> [Token] {
     while i < text.endIndex && isspace(text[i]) {
       i++
     }
-    
+
     if i >= text.endIndex {
       break
     }
-    
+
     // Special characters
     if ["\n", "(", ")", "{", "}", "[", "]"].contains(text[i]) {
       tokens.append(Token(source: source, type: String(text[i]), i: i, value: ""))
       i++
       continue
     }
-    
+
     let j = i
-    
+
     // STR
     if text[i] == "'" || text[i] == "\"" ||
         text[i..<text.endIndex].hasPrefix("r\"\"\"") ||
