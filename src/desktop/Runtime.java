@@ -80,10 +80,10 @@ public class Runtime extends com.ccl.core.Runtime {
     } catch (IOException e) {
       throw new Err(e);
     }
-    return readFile(r, path);
+    return readFile(r);
   }
 
-  public static String readFile(Reader unBufferedreader, String path) {
+  public static String readFile(Reader unBufferedreader) {
     try {
       BufferedReader reader = new BufferedReader(unBufferedreader);
       String line = null;
