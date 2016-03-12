@@ -1,4 +1,4 @@
-"""rt/corelib.ccl"""
+"""rt/core_prelude.ccl"""
 
 """Assign names to all the 'Meta' objects."""
 Meta@name = "Meta"
@@ -9,6 +9,7 @@ Number@name = "Number"
 Text@name = "Text"
 List@name = "List"
 UserFunction@name = "UserFunction"
+BuiltinFunction@name = "BuiltinFunction"
 
 """Add methods that can be implemented in the language itself."""
 Value@str = \. self.repr[]
@@ -28,3 +29,4 @@ Number.extends[Value]
 Text.extends[Value]
 List.extends[Value]
 UserFunction.extends[Value]
+BuiltinFunction.extends[Value]

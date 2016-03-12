@@ -22,7 +22,7 @@ public class Runtime extends com.ccl.core.Runtime {
 
   public Runtime(String pathToModules) {
     this.pathToModules = pathToModules;
-    importModule("rt/desktoplib");
+    importModule("rt/desktop_prelude");
   }
 
   @Override

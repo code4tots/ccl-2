@@ -1,0 +1,3 @@
+"""rt/desktop_prelude"""
+
+import['rt/core_prelude']
