@@ -13,7 +13,6 @@ public final class Blob extends Value {
   // that 'Blob.META' already be set.
   static {
     META
-        .setattr("name", Text.from("Meta"))
         .setattr("extends", new BuiltinFunction("Meta@extends") {
           @Override
           public Value calli(Value owner, List args) {

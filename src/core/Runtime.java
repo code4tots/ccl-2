@@ -19,6 +19,7 @@ public class Runtime {
         .put("false", Bool.no)
         .put("Value", Value.META)
         .put("Meta", Blob.META)
+        .put("Module", Blob.MODULE_META)
         .put("Bool", Bool.META)
         .put("List", List.META)
         .put("Nil", Nil.META)
@@ -52,18 +53,19 @@ public class Runtime {
   }
 
   public final void runMainModule(String code) {
-    runModule(new Parser(code, "<main>").parse());
+    runModule(new Parser(code, "<main>").parse(), "__main__");
   }
 
-  public final Blob runModule(Ast.Module module) {
+  public final Blob runModule(Ast.Module module, String name) {
     Scope scope = new Scope(global);
+    scope.put("__name__", Text.from(name));
     Evaluator evaluator = makeEvaluator(scope);
     evaluator.visit(module);
     return new Blob(Blob.MODULE_META, scope.table);
   }
 
   public final Blob loadModule(String uri) {
-    return runModule(new Parser(readModule(uri), uri).parse());
+    return runModule(new Parser(readModule(uri), uri).parse(), uri);
   }
 
   public final Blob importModule(String uri) {

@@ -1,8 +1,9 @@
 """rt/core_prelude.ccl"""
 
 """Assign names to all the 'Meta' objects."""
-Meta@name = "Meta"
 Value@name = "Value"
+Meta@name = "Meta"
+Module@name = "Module"
 Nil@name = "Nil"
 Bool@name = "Bool"
 Number@name = "Number"
@@ -13,16 +14,19 @@ BuiltinFunction@name = "BuiltinFunction"
 
 """Add methods that can be implemented in the language itself."""
 Value@str = \. self.repr[]
+Module@repr = \. '<module "%s">' % L[self@__name__]
 Nil@repr = \\. 'nil'
 Nil@__bool__ = \\. false
 Bool@repr = \. if self 'true' else 'false'
 Bool@__bool__ = \. self
 Text@str = \. self
 Text@repr = \. '"' + self + '"' # TODO: Smarter Text repr.
+Text@__add__ = \ other. "%s%s" % L[self, other]
 UserFunction@repr = \. '<user-function>'
 
 """Set up static inheritance."""
 Meta.extends[Value]
+Module.extends[Value]
 Nil.extends[Value]
 Bool.extends[Value]
 Number.extends[Value]

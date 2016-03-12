@@ -9,6 +9,10 @@ else
 
 print[\. 5]
 
+math = import['rt/math']
+
+print[math]
+
 # Comment out the rest of this test for now.
 r'''
 startTime = time[]
