@@ -16,7 +16,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.io.File;
 
-public class Runtime extends RuntimeWithStdlib {
+public class Runtime extends com.ccl.core.Runtime {
 
   public final String pathToModules;
 

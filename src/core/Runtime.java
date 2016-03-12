@@ -25,6 +25,14 @@ public class Runtime {
         .put("Number", Number.META)
         .put("Text", Text.META)
         .put("UserFunction", UserFunction.META)
+        .put("BuiltinFunction", BuiltinFunction.META)
+        .put("import", new BuiltinFunction("import") {
+          @Override
+          public Value calli(Value owner, List args) {
+            ErrUtils.expectArglen(args, 1);
+            return importModule(args.get(0).as(Text.class).getValue());
+          }
+        })
         .put("L", new BuiltinFunction("L") {
           @Override
           public Value calli(Value owner, List args) {
