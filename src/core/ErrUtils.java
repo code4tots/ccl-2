@@ -5,15 +5,19 @@ import java.util.ArrayList;
 public final class ErrUtils {
   private ErrUtils() {}
 
+  public static void expectArglen(List args, int len) {
+    expectArglen(args.getValue(), len);
+  }
+
+  public static void expectArgRange(List args, int min, int max) {
+    expectArgRange(args.getValue(), min, max);
+  }
+
   public static void expectArgRange(ArrayList<Value> args, int min, int max) {
     if (args.size() < min || args.size() > max)
       throw new Err(
           "Expected " + min + " to " + max + " arguments but got " +
           args.size() + ".");
-  }
-
-  public static void expectArglen(List args, int len) {
-    expectArglen(args.getValue(), len);
   }
 
   public static void expectArglen(ArrayList<Value> args, int len) {

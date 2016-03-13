@@ -41,6 +41,30 @@ public final class Number extends Value {
               args.get(0).as(Number.class).getValue());
         }
       })
+      .setattr("__mul__", new BuiltinFunction("Number@__mul__") {
+        @Override
+        public Value calli(Value owner, List args) {
+          return Number.from(
+              owner.as(Number.class).getValue() *
+              args.get(0).as(Number.class).getValue());
+        }
+      })
+      .setattr("__div__", new BuiltinFunction("Number@__div__") {
+        @Override
+        public Value calli(Value owner, List args) {
+          return Number.from(
+              owner.as(Number.class).getValue() /
+              args.get(0).as(Number.class).getValue());
+        }
+      })
+      .setattr("__mod__", new BuiltinFunction("Number@__mod__") {
+        @Override
+        public Value calli(Value owner, List args) {
+          return Number.from(
+              owner.as(Number.class).getValue() %
+              args.get(0).as(Number.class).getValue());
+        }
+      })
       .setattr("repr", new BuiltinFunction("Number@repr") {
         @Override
         public Value calli(Value owner, List args) {

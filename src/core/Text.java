@@ -12,6 +12,7 @@ public final class Text extends Value {
       .setattr("__mod__", new BuiltinFunction("Text@__mod__") {
         @Override
         public Value calli(Value owner, List args) {
+          ErrUtils.expectArglen(args, 1);
           List list = args.get(0).as(List.class);
           Object[] arr = new Object[list.size()];
           for (int i = 0; i < list.size(); i++) {
@@ -20,6 +21,16 @@ public final class Text extends Value {
           return Text.from(new Formatter()
               .format(owner.as(Text.class).getValue(), arr)
               .toString());
+        }
+      })
+      .setattr("__eq__", new BuiltinFunction("Text@__eq__") {
+        @Override
+        public Value calli(Value owner, List args) {
+          ErrUtils.expectArglen(args, 1);
+          if (args.get(0) instanceof Text)
+            return owner.as(Text.class).value.equals(
+                ((Text) args.get(0)).value) ? Bool.yes : Bool.no;
+          return Bool.no;
         }
       });
 

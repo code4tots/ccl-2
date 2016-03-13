@@ -14,6 +14,7 @@ BuiltinFunction@name = "BuiltinFunction"
 
 """Add methods that can be implemented in the language itself."""
 Value@str = \. self.repr[]
+Value@__bool__ = \\. true
 Module@repr = \. '<module "%s">' % L[self@__name__]
 Nil@repr = \\. 'nil'
 Nil@__bool__ = \\. false
@@ -34,3 +35,11 @@ Text.extends[Value]
 List.extends[Value]
 UserFunction.extends[Value]
 BuiltinFunction.extends[Value]
+
+"""Misc helper functions."""
+global['assert'] = \\cond /msg. {
+  msg = msg or 'assertion err'
+  if not cond
+    err[msg]
+}
+

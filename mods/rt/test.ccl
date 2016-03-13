@@ -1,17 +1,12 @@
-print['hello world']
-print[nil]
-print[true]
 
-if nil
-  print['nil is true']
-else
-  print['nil is false']
-
-print[\. 5]
-
+assert[not nil]
+assert[true]
+assert[not false]
+assert[\. 5]
 math = import['rt/math']
-
-print[math]
+assert[math]
+assert[math.str[] == '<module "rt/math">']
+print['*** tests pass ***']
 
 # Comment out the rest of this test for now.
 r'''

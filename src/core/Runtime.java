@@ -39,7 +39,37 @@ public class Runtime {
           public Value calli(Value owner, List args) {
             return args;
           }
-        });
+        })
+        .put("err", new BuiltinFunction("err") {
+          @Override
+          public Value calli(Value owner, List args) {
+            ErrUtils.expectArglen(args, 1);
+            throw new Err(args.get(0).toString());
+          }
+        })
+        .put("global", new Blob(
+            new Blob(Blob.META)
+                .setattr("name", Text.from("Global"))
+                .setattr("__call__", new BuiltinFunction("Global#__call__") {
+                  @Override
+                  public Value calli(Value owner, List args) {
+                    ErrUtils.expectArglen(args, 1);
+                    return global.get(args.get(0).as(Text.class).getValue());
+                  }
+                })
+                .setattr(
+                    "__setitem__",
+                    new BuiltinFunction("Global#__setitem__") {
+                  @Override
+                  public Value calli(Value owner, List args) {
+                    ErrUtils.expectArglen(args, 2);
+                    global.put(
+                        args.get(0).as(Text.class).getValue(),
+                        args.get(1));
+                    return args.get(1);
+                  }
+                })
+        ));
   }
 
   public final Scope getGlobalScope() {
