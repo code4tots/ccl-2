@@ -131,8 +131,8 @@ public class Evaluator extends AstVisitor<Value> {
     } catch (final Err e) {
       e.add(node);
       throw e;
-    // } catch (final Throwable e) {
-    //   throw new Err(e, node);
+    } catch (final Throwable e) {
+      throw new Err(e, node);
     }
   }
 

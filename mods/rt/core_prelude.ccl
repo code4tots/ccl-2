@@ -41,8 +41,7 @@ BuiltinFunction.extends[Value]
 
 """Misc helper functions."""
 global['assert'] = \\cond /msg. {
-  msg = msg or 'assertion err'
   if not cond
-    err[msg]
+    err[msg or 'assertion err']
 }
 
