@@ -9,6 +9,7 @@ Bool@name = "Bool"
 Number@name = "Number"
 Text@name = "Text"
 List@name = "List"
+Map@name = "Map"
 UserFunction@name = "UserFunction"
 BuiltinFunction@name = "BuiltinFunction"
 
@@ -36,6 +37,7 @@ Bool.extends[Value]
 Number.extends[Value]
 Text.extends[Value]
 List.extends[Value]
+Map.extends[Value]
 UserFunction.extends[Value]
 BuiltinFunction.extends[Value]
 

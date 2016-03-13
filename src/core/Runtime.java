@@ -1,6 +1,7 @@
 package com.ccl.core;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 
 public class Runtime {
   private Scope global = new Scope(null);
@@ -22,6 +23,7 @@ public class Runtime {
         .put("Module", Blob.MODULE_META)
         .put("Bool", Bool.META)
         .put("List", List.META)
+        .put("Map", Map.META)
         .put("Nil", Nil.META)
         .put("Number", Number.META)
         .put("Text", Text.META)
@@ -38,6 +40,19 @@ public class Runtime {
           @Override
           public Value calli(Value owner, List args) {
             return args;
+          }
+        })
+        .put("M", new BuiltinFunction("M") {
+          @Override
+          public Value calli(Value owner, List args) {
+            ArrayList<Value> arr = args.getValue();
+            if (arr.size()%2 != 0)
+              throw new Err("'M' expects an even number of arguments");
+            HashMap<Value, Value> map = new HashMap<Value, Value>();
+            for (int i = 0; i < arr.size(); i += 2) {
+              map.put(arr.get(i), arr.get(i+1));
+            }
+            return Map.from(map);
           }
         })
         .put("err", new BuiltinFunction("err") {

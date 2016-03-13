@@ -1,3 +1,4 @@
+startTime = time[]
 
 assert[not nil]
 assert[true]
@@ -13,20 +14,15 @@ assert['true']
 assert[not '']
 assert[1]
 assert[not 0]
-assert[(\.nil).lineno[] == 16]
-import['rt/test_import']
-print['*** tests pass ***']
-
-# Comment out the rest of this test for now.
-r'''
-startTime = time[]
+assert[(\.nil).lineno[] == 17, (\.nil).lineno[]]
+ti = import['rt/test_import']
+assert[ti@example_var == 5]
 
 f = \ x. x + 1
 
 assert[f[5] == 6, f[5]]
 assert[f[5].repr[] == '6', f[5].repr[]]
 assert[(2.45).repr[] == '2.45', (2.45).repr[]]
-assert[R[2.45] == '2.45', R[2.45]]
 assert[L[1,2,3].repr[] == "L[1, 2, 3]", L[1,2,3].repr[]]
 assert[M[1,2].repr[] == "M[1, 2]", M[1,2].repr[]]
 assert[M[1,2].str[] == "M[1, 2]", M[1,2].str[]]
@@ -54,6 +50,9 @@ assert[m.has[1]]
 assert[not m.has[2]]
 m.rm[1]
 assert[not m.has[1]]
+
+# TODO: Uncomment or delete the following tests.
+r'''
 
 xs = L[1, 2, 3].map[\x. x + 1]
 assert[xs == L[2, 3, 4], xs]
@@ -357,12 +356,6 @@ sleep[1]
 end = time[]
 assert[end - start > 0 and end - start < 1000, end - start]
 
-endTime = time[]
-
-print[
-  "*** All command line tests passed in ~%s seconds ***" %
-  L[(endTime - startTime) / 1000.]]
-
 r"""
 
 # Seems to take ~2.5 sec on late 2013 27" iMac.
@@ -378,5 +371,10 @@ print['end time %s' % L[b]]
 print['%s sec' % L[(b - a) / 1000.]]
 
 """
-
 '''
+
+endTime = time[]
+
+print[
+  "*** All core tests passed in ~%s seconds ***" %
+  L[endTime - startTime]]

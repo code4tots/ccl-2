@@ -32,6 +32,13 @@ public final class Text extends Value {
                 ((Text) args.get(0)).value) ? Bool.yes : Bool.no;
           return Bool.no;
         }
+      })
+      .setattr("hash", new BuiltinFunction("Number@hash") {
+        @Override
+        public Value calli(Value owner, List args) {
+          return Number.from(
+              owner.as(Text.class).getValue().hashCode());
+        }
       });
 
   private final String value;

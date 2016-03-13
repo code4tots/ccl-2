@@ -1,1 +1,9 @@
+"""rt/test_import.ccl
+
+Only meant to be used by being imported from rt/test.ccl.
+"""
+
 assert[(\.nil).filespec[] == 'rt/test_import', (\.nil).filespec[]]
+
+example_var = 5
+

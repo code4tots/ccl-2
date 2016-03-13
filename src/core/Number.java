@@ -68,7 +68,18 @@ public final class Number extends Value {
       .setattr("repr", new BuiltinFunction("Number@repr") {
         @Override
         public Value calli(Value owner, List args) {
+          double value = owner.as(Number.class).getValue();
+          if (value == Math.floor(value)) {
+            return Text.from(Long.toString((long) value));
+          }
           return Text.from(Double.toString(owner.as(Number.class).getValue()));
+        }
+      })
+      .setattr("hash", new BuiltinFunction("Number@hash") {
+        @Override
+        public Value calli(Value owner, List args) {
+          return Number.from(
+              Double.valueOf(owner.as(Number.class).getValue()).hashCode());
         }
       });
 
