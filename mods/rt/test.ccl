@@ -13,6 +13,8 @@ assert['true']
 assert[not '']
 assert[1]
 assert[not 0]
+assert[(\.nil).lineno[] == 16]
+import['rt/test_import']
 print['*** tests pass ***']
 
 # Comment out the rest of this test for now.

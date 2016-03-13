@@ -1,0 +1,1 @@
+assert[(\.nil).filespec[] == 'rt/test_import', (\.nil).filespec[]]
