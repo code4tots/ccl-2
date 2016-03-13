@@ -12,7 +12,7 @@ public class Runtime {
     populateGlobalScope(global);
   }
 
-  public void populateGlobalScope(Scope scope) {
+  public void populateGlobalScope(final Scope scope) {
     scope
         .put("nil", Nil.value)
         .put("true", Bool.yes)
@@ -63,7 +63,7 @@ public class Runtime {
                   @Override
                   public Value calli(Value owner, List args) {
                     ErrUtils.expectArglen(args, 2);
-                    global.put(
+                    scope.put(
                         args.get(0).as(Text.class).getValue(),
                         args.get(1));
                     return args.get(1);
