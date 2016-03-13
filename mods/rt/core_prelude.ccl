@@ -15,14 +15,17 @@ BuiltinFunction@name = "BuiltinFunction"
 """Add methods that can be implemented in the language itself."""
 Value@str = \. self.repr[]
 Value@__bool__ = \\. true
+Value@__ne__ = \ other. not (self == other)
 Module@repr = \. '<module "%s">' % L[self@__name__]
 Nil@repr = \\. 'nil'
 Nil@__bool__ = \\. false
 Bool@repr = \. if self 'true' else 'false'
 Bool@__bool__ = \. self
+Number@__bool__ = \. self != 0
 Text@str = \. self
 Text@repr = \. '"' + self + '"' # TODO: Smarter Text repr.
 Text@__add__ = \ other. "%s%s" % L[self, other]
+Text@__bool__ = \. self != ''
 UserFunction@repr = \. '<user-function>'
 
 """Set up static inheritance."""

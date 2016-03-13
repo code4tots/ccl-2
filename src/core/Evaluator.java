@@ -155,7 +155,7 @@ public class Evaluator extends AstVisitor<Value> {
   }
 
   public Value visitIsNot(Ast.IsNot node) {
-    return visit(node.left) == visit(node.right) ? Bool.yes : Bool.no;
+    return visit(node.left) != visit(node.right) ? Bool.yes : Bool.no;
   }
 
   public Value visitNot(Ast.Not node) {

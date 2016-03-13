@@ -6,6 +6,13 @@ assert[\. 5]
 math = import['rt/math']
 assert[math]
 assert[math.str[] == '<module "rt/math">']
+x = 1
+assert[x is x]
+assert[1 is not 2]
+assert['true']
+assert[not '']
+assert[1]
+assert[not 0]
 print['*** tests pass ***']
 
 # Comment out the rest of this test for now.
