@@ -27,7 +27,9 @@ Text@str = \. self
 Text@repr = \. '"' + self + '"' # TODO: Smarter Text repr.
 Text@__add__ = \ other. "%s%s" % L[self, other]
 Text@__bool__ = \. self != ''
-UserFunction@repr = \. '<user-function>'
+UserFunction@repr = \. '<UserFunction %s:%s>' % L[
+    self.filespec[],
+    self.lineno[]]
 
 """Set up static inheritance."""
 Meta.extends[Value]

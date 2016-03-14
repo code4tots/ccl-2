@@ -7,3 +7,5 @@ assert[(\.nil).filespec[] == 'rt/test_import', (\.nil).filespec[]]
 
 example_var = 5
 
+fmsg = (\.nil).str[]
+assert[fmsg == '<UserFunction rt/test_import:10>', fmsg]

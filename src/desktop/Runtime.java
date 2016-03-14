@@ -65,6 +65,10 @@ public class Runtime extends com.ccl.core.Runtime {
     }
   }
 
+  public final void runMainModule(String code) {
+    runModule(new Parser(code, "<main>").parse(), "__main__");
+  }
+
   // File finding and reading helpers.
   public static String makePath(String start, String... args) {
     File f = new File(start);

@@ -97,10 +97,6 @@ public class Runtime {
     return new Evaluator(this, scope);
   }
 
-  public final void runMainModule(String code) {
-    runModule(new Parser(code, "<main>").parse(), "__main__");
-  }
-
   public final Blob runModule(Ast.Module module, String name) {
     Scope scope = new Scope(global);
     scope.put("__name__", Text.from(name));
