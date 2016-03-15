@@ -147,6 +147,32 @@ public abstract class Ast implements Traceable {
       return visitor.visitFunction(this);
     }
   }
+  public static final class Call extends Ast {
+    public final Ast owner;
+    public final String name; // method name (nullable -> implicit __call__)
+    public final ArrayList<Ast> args;
+    public final Ast vararg;
+    public Call(
+        Token token, Ast owner, String name, Ast... args) {
+      this(token, owner, name, toArrayList(args));
+    }
+    public Call(
+        Token token, Ast owner, String name, ArrayList<Ast> args) {
+      this(token, owner, name, args, null);
+    }
+    public Call(
+        Token token, Ast owner, String name,
+        ArrayList<Ast> args, Ast vararg) {
+      super(token);
+      this.owner = owner;
+      this.name = name;
+      this.args = args;
+      this.vararg = vararg;
+    }
+    public <T> T accept(AstVisitor<T> visitor) {
+      return visitor.visitCall(this);
+    }
+  }
   public static final class GetMethod extends Ast {
     public final Ast owner;
     public final String name;
@@ -206,32 +232,6 @@ public abstract class Ast implements Traceable {
     }
     public <T> T accept(AstVisitor<T> visitor) {
       return visitor.visitIsNot(this);
-    }
-  }
-  public static final class Call extends Ast {
-    public final Ast owner;
-    public final String name; // method name (nullable -> implicit __call__)
-    public final ArrayList<Ast> args;
-    public final Ast vararg;
-    public Call(
-        Token token, Ast owner, String name, Ast... args) {
-      this(token, owner, name, toArrayList(args));
-    }
-    public Call(
-        Token token, Ast owner, String name, ArrayList<Ast> args) {
-      this(token, owner, name, args, null);
-    }
-    public Call(
-        Token token, Ast owner, String name,
-        ArrayList<Ast> args, Ast vararg) {
-      super(token);
-      this.owner = owner;
-      this.name = name;
-      this.args = args;
-      this.vararg = vararg;
-    }
-    public <T> T accept(AstVisitor<T> visitor) {
-      return visitor.visitCall(this);
     }
   }
   public static final class Not extends Ast {
