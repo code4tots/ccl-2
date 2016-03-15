@@ -189,7 +189,7 @@ public final class Lexer {
     return new Token(this, start, type, value);
   }
 
-  public static ArrayList<String> toArrayList(String... args) {
+  private static ArrayList<String> toArrayList(String... args) {
     ArrayList<String> al = new ArrayList<String>();
     for (int i = 0; i < args.length; i++)
       al.add(args[i]);

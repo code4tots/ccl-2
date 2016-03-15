@@ -293,7 +293,7 @@ public abstract class Ast implements Traceable {
     }
   }
 
-  public static ArrayList<Ast> toArrayList(Ast... args) {
+  private static ArrayList<Ast> toArrayList(Ast... args) {
     ArrayList<Ast> al = new ArrayList<Ast>();
     for (int i = 0; i < args.length; i++)
       al.add(args[i]);
