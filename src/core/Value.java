@@ -16,6 +16,14 @@ public abstract class Value {
     }
   }
 
+  public final Value callf(List args) {
+    if (this instanceof Function) {
+      return ((Function) this).call(this, args);
+    } else {
+      return this.call("__call__", args);
+    }
+  }
+
   public final Value call(String name, List args) {
     Blob meta = getMeta();
     if (meta == null) {
