@@ -152,7 +152,8 @@ public class Runtime extends com.ccl.core.Runtime {
   @Override
   public String readModule(String uri) {
     try {
-      return readFile(new InputStreamReader(activity.getAssets().open("cclmods/" + uri + ".ccl")));
+      return readFile(new InputStreamReader(activity.getAssets().open(
+          "cclmods/" + uri + ".ccl")));
     } catch (IOException e) {
       throw new Err(e);
     }
